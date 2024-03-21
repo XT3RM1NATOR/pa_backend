@@ -4,7 +4,7 @@ import (
 	"github.com/Point-AI/backend/config"
 	authDelivery "github.com/Point-AI/backend/internal/auth/delivery"
 	integrationsDelivery "github.com/Point-AI/backend/internal/integrations/delivery"
-	messangerDelivery "github.com/Point-AI/backend/internal/messanger/delivery"
+	messangerDelivery "github.com/Point-AI/backend/internal/messenger/delivery"
 	"github.com/labstack/echo/v4"
 	"go.mongodb.org/mongo-driver/mongo"
 )
