@@ -24,7 +24,7 @@ func ConnectToDB(cfg *config.Config) *mongo.Database {
 		panic(err)
 	}
 
-	if err := client.Ping(ctx, nil); err != nil {
+	if err := client.Ping(context.Background(), nil); err != nil {
 		panic(err)
 	}
 
