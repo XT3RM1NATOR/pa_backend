@@ -10,6 +10,8 @@ const (
 type Config struct {
 	Server  Server
 	MongoDB MongoDB
+	Auth    Auth
+	Email   Email
 }
 
 type (
@@ -24,5 +26,13 @@ type (
 	Server struct {
 		Environment EnvMode `env:"SERVER_ENVIRONMENT" envDefault:"dev"`
 		Port        string  `env:"SERVER_PORT"`
+	}
+
+	Auth struct {
+		JWTSecretKey string `env:"JWT_SECRET_KEY"`
+	}
+
+	Email struct {
+		EmailAPIKey string `env:"EMAIL_API_KEY"`
 	}
 )
