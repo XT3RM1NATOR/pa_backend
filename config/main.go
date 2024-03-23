@@ -2,21 +2,21 @@ package config
 
 import (
 	"github.com/caarlos0/env/v6"
+	"github.com/joho/godotenv"
 	_ "github.com/joho/godotenv/autoload"
-	"sync"
 )
 
 var (
 	instance Config
-	once     sync.Once
 )
 
 func Load() *Config {
-	once.Do(func() {
-		if err := env.Parse(&instance); err != nil {
-			panic(err)
-		}
-	})
+	if err := godotenv.Load("../../.env"); err != nil {
+		panic("Error loading .env file: " + err.Error())
+	}
 
+	if err := env.Parse(&instance); err != nil {
+		panic(err)
+	}
 	return &instance
 }

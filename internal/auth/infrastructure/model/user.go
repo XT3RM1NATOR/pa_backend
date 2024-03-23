@@ -1,13 +1,15 @@
 package model
 
-import "time"
+import (
+	"go.mongodb.org/mongo-driver/bson/primitive"
+)
 
 type User struct {
-	ID           int       `bson:"_id,omitempty"`
-	Email        string    `bson:"email"`
-	PasswordHash string    `bson:"passwordHash"`
-	IsConfirmed  bool      `bson:"isConfirmed"`
-	ConfirmToken string    `bson:"confirmToken"`
-	ResetToken   string    `bson:"resetToken"`
-	CreatedAt    time.Time `bson:"createdAt"`
+	ID           primitive.ObjectID `bson:"_id,omitempty"`
+	Email        string             `bson:"email"`
+	PasswordHash string             `bson:"passwordHash"`
+	IsConfirmed  bool               `bson:"isConfirmed"`
+	ConfirmToken string             `bson:"confirmToken"`
+	ResetToken   string             `bson:"resetToken"`
+	CreatedAt    primitive.DateTime `bson:"createdAt"`
 }

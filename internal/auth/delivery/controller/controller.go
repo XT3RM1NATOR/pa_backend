@@ -50,12 +50,15 @@ func (uc *UserController) Login(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
 	}
 
-	token, err := uc.userService.Login(userInput.Email, userInput.Password)
+	accessToken, refreshToken, err := uc.userService.Login(userInput.Email, userInput.Password)
 	if err != nil {
 		return c.JSON(http.StatusUnauthorized, map[string]string{"error": err.Error()})
 	}
 
-	return c.JSON(http.StatusOK, map[string]string{"token": token})
+	return c.JSON(http.StatusOK, map[string]string{
+		"access_token":  accessToken,
+		"refresh_token": refreshToken,
+	})
 }
 
 func (uc *UserController) ForgotPassword(c echo.Context) error {

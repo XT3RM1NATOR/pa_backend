@@ -3,9 +3,11 @@ package repository
 import (
 	"context"
 	"errors"
+	"fmt"
 	"github.com/Point-AI/backend/internal/auth/infrastructure/model"
 	"github.com/Point-AI/backend/utils"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"time"
 )
@@ -28,9 +30,9 @@ func (ur *UserRepository) CreateUser(email string, passwordHash string, confirmT
 		PasswordHash: passwordHash,
 		IsConfirmed:  false,
 		ConfirmToken: confirmToken,
-		CreatedAt:    time.Now(),
+		CreatedAt:    primitive.NewDateTimeFromTime(time.Now()),
 	}
-
+	fmt.Println(user)
 	_, err := ur.database.Collection(ur.collection).InsertOne(context.Background(), user)
 	return err
 }

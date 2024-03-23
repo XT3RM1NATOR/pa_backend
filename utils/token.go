@@ -2,6 +2,7 @@ package utils
 
 import (
 	"crypto/rand"
+	"encoding/hex"
 )
 
 func GenerateToken() (string, error) {
@@ -10,5 +11,7 @@ func GenerateToken() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return string(token), nil
+
+	tokenStr := hex.EncodeToString(token)
+	return tokenStr, nil
 }

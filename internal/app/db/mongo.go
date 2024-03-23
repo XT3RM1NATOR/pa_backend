@@ -10,11 +10,15 @@ import (
 )
 
 func ConnectToDB(cfg *config.Config) *mongo.Database {
-	uri := fmt.Sprintf("mongodb://%s:%s@%s:%s/%s",
-		cfg.MongoDB.User,
-		cfg.MongoDB.Password,
+	//uri := fmt.Sprintf("mongodb://%s:%s@%s:%s/%s",
+	//	cfg.MongoDB.User,
+	//	cfg.MongoDB.Password,
+	//	cfg.MongoDB.Host,
+	//	cfg.MongoDB.Port,
+	//	cfg.MongoDB.Database,
+	//)
+	uri := fmt.Sprintf("mongodb://%s/%s",
 		cfg.MongoDB.Host,
-		cfg.MongoDB.Port,
 		cfg.MongoDB.Database,
 	)
 

@@ -21,29 +21,30 @@ func NewUserService(userRepo *repository.UserRepository, emailService *EmailServ
 	}
 }
 
-func (us *UserService) Login(email, password string) (string, error) {
+func (us *UserService) Login(email, password string) (string, string, error) {
 	user, err := us.userRepo.GetUserByEmail(email)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 	if user == nil {
-		return "", errors.New("user not found")
+		return "", "", errors.New("user not found")
 	}
 
 	if !utils.VerifyPassword(user.PasswordHash, password) {
-		return "", errors.New("invalid password")
+		return "", "", errors.New("invalid password")
 	}
 
 	if !user.IsConfirmed {
-		return "", errors.New("email not confirmed")
+		return "", "", errors.New("email not confirmed")
 	}
 
-	token, err := utils.GenerateJWTToken(user.ID, us.jwtSecretKey)
+	accessToken, err := utils.GenerateJWTAccessToken(user.ID, us.jwtSecretKey)
+	refreshToken, err := utils.GenerateJWTRefreshToken(user.ID, us.jwtSecretKey)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 
-	return token, nil
+	return accessToken, refreshToken, nil
 }
 
 func (us *UserService) RegisterUser(email string, password string) error {
@@ -54,7 +55,6 @@ func (us *UserService) RegisterUser(email string, password string) error {
 	if existingUser != nil {
 		return errors.New("user already exists")
 	}
-
 	confirmToken, err := utils.GenerateToken()
 	if err != nil {
 		return err
@@ -64,7 +64,6 @@ func (us *UserService) RegisterUser(email string, password string) error {
 	if err != nil {
 		return err
 	}
-
 	if err := us.userRepo.CreateUser(email, passwordHash, confirmToken); err != nil {
 		return err
 	}

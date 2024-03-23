@@ -33,6 +33,10 @@ type (
 	}
 
 	Email struct {
-		EmailAPIKey string `env:"EMAIL_API_KEY"`
+		SMTPUsername string `env:"SMTP_USERNAME"`
+		SMTPPassword string `env:"SMTP_PASSWORD"`
+		SMTPHost     string `env:"SMTP_HOST"`
+		SMTPPort     string `env:"SMTP_PORT"`
+		SenderEmail  string `env:"EMAIL="`
 	}
 )

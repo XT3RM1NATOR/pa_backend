@@ -3,13 +3,28 @@ package utils
 import (
 	"errors"
 	"github.com/golang-jwt/jwt/v4"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"time"
 )
 
-func GenerateJWTToken(id int, secretKey string) (string, error) {
+func GenerateJWTAccessToken(id primitive.ObjectID, secretKey string) (string, error) {
 	claims := jwt.MapClaims{
 		"id":  id,
-		"exp": time.Now().Add(time.Hour * 24).Unix(),
+		"exp": time.Now().Add(time.Minute * 90).Unix(),
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	signedToken, err := token.SignedString([]byte(secretKey))
+	if err != nil {
+		return "", err
+	}
+	return signedToken, nil
+}
+
+func GenerateJWTRefreshToken(id primitive.ObjectID, secretKey string) (string, error) {
+	claims := jwt.MapClaims{
+		"id":  id,
+		"exp": time.Now().Add(time.Hour * 24 * 90).Unix(),
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
