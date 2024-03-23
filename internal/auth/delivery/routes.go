@@ -12,6 +12,5 @@ func RegisterAuthRoutes(e *echo.Echo, cfg *config.Config, db *mongo.Database) {
 	authGroup.POST("/signin", signInHandler)
 	authGroup.POST("/signup", signUpHandler)
 	authGroup.POST("/verify", verifyHandler)
-	authGroup.POST("/query-for-token", queryForTokenHandler)
 	authGroup.POST("/recover", recoverHandler)
 }
