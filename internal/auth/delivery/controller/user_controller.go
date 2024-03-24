@@ -104,10 +104,10 @@ func (uc *UserController) GoogleLogin(c echo.Context) error {
 // GoogleCallback TODO: change the passing of refresh and access tokens to some other solution like sessions
 func (uc *UserController) GoogleCallback(c echo.Context) error {
 	code := c.QueryParam("code")
-	acessToken, refreshToken, err := uc.userService.GoogleAuthCallback(code)
+	accessToken, refreshToken, err := uc.userService.GoogleAuthCallback(code)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
 	}
 
-	return c.Redirect(http.StatusFound, "/")
+	return c.Redirect(http.StatusFound, "https://...com/?tokens="+accessToken+"#"+refreshToken)
 }

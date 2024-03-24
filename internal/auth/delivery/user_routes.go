@@ -23,7 +23,6 @@ func RegisterAuthRoutes(e *echo.Echo, cfg *config.Config, db *mongo.Database) {
 	authGroup.POST("/recover", userController.ForgotPassword)
 	authGroup.POST("/reset", userController.ResetPassword)
 
-	authGroup.GET("/auth/google", userController.GoogleAuthRedirect)
-	authGroup.GET("/auth/google/callback", userController.GoogleAuthCallback)
-
+	authGroup.GET("/auth/google", userController.GoogleLogin)
+	authGroup.GET("/auth/google/callback", userController.GoogleCallback)
 }
