@@ -12,6 +12,7 @@ type Config struct {
 	MongoDB MongoDB
 	Auth    Auth
 	Email   Email
+	OAuth2  OAuth2
 }
 
 type (
@@ -37,6 +38,12 @@ type (
 		SMTPPassword string `env:"SMTP_PASSWORD"`
 		SMTPHost     string `env:"SMTP_HOST"`
 		SMTPPort     string `env:"SMTP_PORT"`
-		SenderEmail  string `env:"EMAIL="`
+	}
+
+	OAuth2 struct {
+		StateText          string `env:"STATE_TEXT"`
+		GoogleClientId     string `env:"GOOGLE_CLIENT_ID"`
+		GoogleRedirectURI  string `env:"GOOGLE_REDIRECT_URI"`
+		GoogleClientSecret string `env:"GOOGLE_CLIENT_SECRET"`
 	}
 )

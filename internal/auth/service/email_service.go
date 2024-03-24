@@ -11,16 +11,14 @@ type EmailService struct {
 	SMTPPassword string
 	SMTPHost     string
 	SMTPPort     string
-	SenderEmail  string
 }
 
-func NewEmailService(username, password, host, port, senderEmail string) *EmailService {
+func NewEmailService(username, password, host, port string) *EmailService {
 	return &EmailService{
 		SMTPUsername: username,
 		SMTPPassword: password,
 		SMTPHost:     host,
 		SMTPPort:     port,
-		SenderEmail:  senderEmail,
 	}
 }
 
@@ -35,6 +33,7 @@ func (es *EmailService) SendResetPasswordEmail(recipientEmail, resetLink string)
 	body := fmt.Sprintf("Click the following link to reset your password: %s", resetLink)
 	return es.sendEmail(recipientEmail, subject, body)
 }
+
 func (es *EmailService) sendEmail(to, subject, body string) error {
 	auth := smtp.PlainAuth("", es.SMTPUsername, es.SMTPPassword, es.SMTPHost)
 
@@ -43,7 +42,7 @@ func (es *EmailService) sendEmail(to, subject, body string) error {
 		"\r\n" +
 		body)
 
-	err := smtp.SendMail(es.SMTPHost+":"+es.SMTPPort, auth, es.SenderEmail, []string{to}, message)
+	err := smtp.SendMail(es.SMTPHost+":"+es.SMTPPort, auth, es.SMTPUsername, []string{to}, message)
 	if err != nil {
 		return errors.New("failed to send email: " + err.Error())
 	}

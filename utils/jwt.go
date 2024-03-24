@@ -35,7 +35,20 @@ func GenerateJWTRefreshToken(id primitive.ObjectID, secretKey string) (string, e
 	return signedToken, nil
 }
 
-func ValidateJWTToken(signedToken string, secretKey string) (int, error) {
+func GenerateJWTStateToken(secretKey, state string) (string, error) {
+	claims := jwt.MapClaims{
+		"state": state,
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	signedToken, err := token.SignedString([]byte(secretKey))
+	if err != nil {
+		return "", err
+	}
+	return signedToken, nil
+}
+
+func ValidateJWTToken(signedToken, secretKey string) (int, error) {
 	parsedToken, err := jwt.Parse(signedToken, func(token *jwt.Token) (interface{}, error) {
 		return []byte(secretKey), nil
 	})
@@ -48,4 +61,18 @@ func ValidateJWTToken(signedToken string, secretKey string) (int, error) {
 		return id, nil
 	}
 	return -1, errors.New("invalid token")
+}
+
+func ValidateJWTStateToken(signedToken, secretKey, state string) (bool, error) {
+	parsedToken, err := jwt.Parse(signedToken, func(token *jwt.Token) (interface{}, error) {
+		return []byte(secretKey), nil
+	})
+	if err != nil {
+		return false, err
+	}
+
+	if claims, ok := parsedToken.Claims.(jwt.MapClaims); ok && parsedToken.Valid {
+		return state == claims["state"].(string), nil
+	}
+	return false, errors.New("invalid token")
 }
