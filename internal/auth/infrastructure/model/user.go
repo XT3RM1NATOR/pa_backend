@@ -18,4 +18,5 @@ type User struct {
 type Token struct {
 	ConfirmToken string `bson:"confirmToken"`
 	ResetToken   string `bson:"resetToken"`
+	RefreshToken string `bson:"refreshToken"`
 }

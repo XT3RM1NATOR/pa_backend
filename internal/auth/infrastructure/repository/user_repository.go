@@ -23,7 +23,7 @@ func NewUserRepository(db *mongo.Database, collection string) *UserRepository {
 	}
 }
 
-func (ur *UserRepository) CreateUser(email string, passwordHash string, confirmToken string) error {
+func (ur *UserRepository) CreateUser(email string, passwordHash string, confirmToken string) (*model.User, error) {
 	user := &model.User{
 		Email:        email,
 		PasswordHash: passwordHash,
@@ -34,17 +34,26 @@ func (ur *UserRepository) CreateUser(email string, passwordHash string, confirmT
 		CreatedAt: primitive.NewDateTimeFromTime(time.Now()),
 	}
 
-	_, err := ur.database.Collection(ur.collection).InsertOne(context.Background(), user)
-	return err
+	result, err := ur.database.Collection(ur.collection).InsertOne(context.Background(), user)
+	if err != nil {
+		return nil, err
+	}
+
+	err = ur.database.Collection(ur.collection).FindOne(context.Background(), bson.M{"_id": result.InsertedID}).Decode(user)
+	if err != nil {
+		return nil, err
+	}
+
+	return user, nil
 }
 
-func (ur *UserRepository) CreateOauth2User(email, authSource, name string) (primitive.ObjectID, error) {
+func (ur *UserRepository) CreateOauth2User(email, authSource, name string) (*model.User, error) {
 	existingUser, err := ur.GetUserByEmail(email)
 	if err != nil {
-		return primitive.ObjectID{}, err
+		return nil, err
 	}
 	if existingUser != nil {
-		return existingUser.ID, nil
+		return existingUser, nil
 	}
 
 	user := &model.User{
@@ -57,15 +66,15 @@ func (ur *UserRepository) CreateOauth2User(email, authSource, name string) (prim
 
 	result, err := ur.database.Collection(ur.collection).InsertOne(context.Background(), user)
 	if err != nil {
-		return primitive.ObjectID{}, err
+		return nil, err
 	}
 
-	userId, ok := result.InsertedID.(primitive.ObjectID)
-	if !ok {
-		return primitive.ObjectID{}, errors.New("could not convert InsertedID to primitive.ObjectID")
+	err = ur.database.Collection(ur.collection).FindOne(context.Background(), bson.M{"_id": result.InsertedID}).Decode(user)
+	if err != nil {
+		return nil, err
 	}
 
-	return userId, nil
+	return user, nil
 }
 
 func (ur *UserRepository) GetUserByEmail(email string) (*model.User, error) {
@@ -80,29 +89,31 @@ func (ur *UserRepository) GetUserByEmail(email string) (*model.User, error) {
 	return &user, nil
 }
 
-func (ur *UserRepository) GetUserByResetToken(token string) (*model.User, error) {
+func (ur *UserRepository) GetUserById(id primitive.ObjectID) (*model.User, error) {
 	var user model.User
-	err := ur.database.Collection(ur.collection).FindOne(
-		context.Background(),
-		bson.M{"token.resetToken": token},
-	).Decode(&user)
+	err := ur.database.Collection(ur.collection).FindOne(context.Background(), bson.M{"_id": id}).Decode(&user)
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
-			return nil, nil
+			return nil, errors.New("user not found")
 		}
 		return nil, err
 	}
 	return &user, nil
 }
 
-func (ur *UserRepository) UpdateUser(user *model.User) error {
-	_, err := ur.database.Collection(ur.collection).ReplaceOne(context.Background(), bson.M{"_id": user.ID}, user)
-	return err
-}
-
 func (ur *UserRepository) SetResetToken(user *model.User, token string) error {
 	user.Token.ResetToken = token
-	return ur.UpdateUser(user)
+	return ur.updateUser(user)
+}
+
+func (ur *UserRepository) SetRefreshToken(user *model.User, token string) error {
+	user.Token.RefreshToken = token
+	return ur.updateUser(user)
+}
+
+func (ur *UserRepository) ClearRefreshToken(user *model.User) error {
+	user.Token.RefreshToken = ""
+	return ur.updateUser(user)
 }
 
 func (ur *UserRepository) ClearResetToken(user *model.User, password string) error {
@@ -113,16 +124,13 @@ func (ur *UserRepository) ClearResetToken(user *model.User, password string) err
 
 	user.PasswordHash = passwordHash
 	user.Token.ResetToken = ""
-	return ur.UpdateUser(user)
+	return ur.updateUser(user)
 }
 
-func (ur *UserRepository) UpdatePassword(user *model.User, newPassword string) error {
-	hashedPassword, err := utils.HashPassword(newPassword)
-	if err != nil {
-		return err
-	}
-	user.PasswordHash = hashedPassword
-	return ur.UpdateUser(user)
+func (ur *UserRepository) ConfirmUser(userId primitive.ObjectID) error {
+	update := bson.M{"$set": bson.M{"isConfirmed": true, "confirmToken": ""}}
+	_, err := ur.database.Collection(ur.collection).UpdateOne(context.Background(), bson.M{"_id": userId}, update)
+	return err
 }
 
 func (ur *UserRepository) GetUserByConfirmToken(token string) (*model.User, error) {
@@ -140,8 +148,7 @@ func (ur *UserRepository) GetUserByConfirmToken(token string) (*model.User, erro
 	return &user, nil
 }
 
-func (ur *UserRepository) ConfirmUser(user *model.User) error {
-	update := bson.M{"$set": bson.M{"isConfirmed": true, "confirmToken": ""}}
-	_, err := ur.database.Collection(ur.collection).UpdateOne(context.Background(), bson.M{"_id": user.ID}, update)
+func (ur *UserRepository) updateUser(user *model.User) error {
+	_, err := ur.database.Collection(ur.collection).ReplaceOne(context.Background(), bson.M{"_id": user.ID}, user)
 	return err
 }

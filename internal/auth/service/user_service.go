@@ -28,17 +28,25 @@ func (us *UserService) GoogleAuthCallback(code string) (string, string, error) {
 		return "", "", err
 	}
 
-	userId, err := us.userRepo.CreateOauth2User(email, "google", fullName)
+	var refreshToken string
+	user, err := us.userRepo.CreateOauth2User(email, "google", fullName)
 	if err != nil {
 		return "", "", err
 	}
 
-	accessToken, err := utils.GenerateJWTAccessToken(userId, us.config.Auth.JWTSecretKey)
-	if err != nil {
-		return "", "", err
+	if user.Token.RefreshToken != "" {
+		refreshToken = user.Token.RefreshToken
+	} else {
+		if refreshToken, err = utils.GenerateJWTToken("refresh_token", user.ID, us.config.Auth.JWTSecretKey); err != nil {
+			return "", "", err
+		}
+
+		if err = us.userRepo.SetRefreshToken(user, refreshToken); err != nil {
+			return "", "", err
+		}
 	}
 
-	refreshToken, err := utils.GenerateJWTRefreshToken(userId, us.config.Auth.JWTSecretKey)
+	accessToken, err := utils.GenerateJWTToken("access_token", user.ID, us.config.Auth.JWTSecretKey)
 	if err != nil {
 		return "", "", err
 	}
@@ -48,17 +56,12 @@ func (us *UserService) GoogleAuthCallback(code string) (string, string, error) {
 
 // GoogleLogin TODO: add the actual state, which will be random
 func (us *UserService) GoogleLogin() (string, error) {
-	stateToken, err := utils.GenerateJWTStateToken(us.config.Auth.JWTSecretKey, us.config.OAuth2.StateText)
-	if err != nil {
-		return "", err
-	}
-
 	authURL := "https://accounts.google.com/o/oauth2/auth" +
 		"?client_id=" + us.config.OAuth2.GoogleClientId +
 		"&redirect_uri=" + us.config.OAuth2.GoogleRedirectURI +
 		"&response_type=code" +
 		"&scope=openid%20email%20profile" +
-		"&state=" + stateToken
+		"&state=" + "state"
 
 	return authURL, nil
 }
@@ -80,8 +83,20 @@ func (us *UserService) Login(email, password string) (string, string, error) {
 		return "", "", errors.New("email not confirmed")
 	}
 
-	accessToken, err := utils.GenerateJWTAccessToken(user.ID, us.config.Auth.JWTSecretKey)
-	refreshToken, err := utils.GenerateJWTRefreshToken(user.ID, us.config.Auth.JWTSecretKey)
+	var refreshToken string
+	if user.Token.RefreshToken != "" {
+		refreshToken = user.Token.RefreshToken
+	} else {
+		if refreshToken, err = utils.GenerateJWTToken("refresh_token", user.ID, us.config.Auth.JWTSecretKey); err != nil {
+			return "", "", err
+		}
+
+		if err = us.userRepo.SetRefreshToken(user, refreshToken); err != nil {
+			return "", "", err
+		}
+	}
+
+	accessToken, err := utils.GenerateJWTToken("access_token", user.ID, us.config.Auth.JWTSecretKey)
 	if err != nil {
 		return "", "", err
 	}
@@ -97,6 +112,7 @@ func (us *UserService) RegisterUser(email string, password string) error {
 	if existingUser != nil {
 		return errors.New("user already exists")
 	}
+
 	confirmToken, err := utils.GenerateToken()
 	if err != nil {
 		return err
@@ -112,7 +128,7 @@ func (us *UserService) RegisterUser(email string, password string) error {
 		return err
 	}
 
-	if err := us.userRepo.CreateUser(email, passwordHash, confirmToken); err != nil {
+	if _, err := us.userRepo.CreateUser(email, passwordHash, confirmToken); err != nil {
 		return err
 	}
 
@@ -128,7 +144,7 @@ func (us *UserService) ConfirmUser(token string) error {
 		return errors.New("invalid confirmation token")
 	}
 
-	if err := us.userRepo.ConfirmUser(user); err != nil {
+	if err := us.userRepo.ConfirmUser(user.ID); err != nil {
 		return err
 	}
 
@@ -136,17 +152,17 @@ func (us *UserService) ConfirmUser(token string) error {
 }
 
 func (us *UserService) ForgotPassword(email string) error {
-	resetToken, err := utils.GenerateToken()
-	if err != nil {
-		return err
-	}
-
 	user, err := us.userRepo.GetUserByEmail(email)
 	if err != nil {
 		return err
 	}
 	if user == nil {
 		return errors.New("user not found")
+	}
+
+	resetToken, err := utils.GenerateJWTToken("reset_token", user.ID, us.config.Auth.JWTSecretKey)
+	if err != nil {
+		return err
 	}
 
 	if err := us.userRepo.SetResetToken(user, resetToken); err != nil {
@@ -162,13 +178,19 @@ func (us *UserService) ForgotPassword(email string) error {
 }
 
 func (us *UserService) ResetPassword(token, newPassword string) error {
-	user, err := us.userRepo.GetUserByResetToken(token)
+	userId, err := utils.ValidateJWTToken("reset_token", token, us.config.Auth.JWTSecretKey)
+	if err != nil {
+		return err
+	}
+
+	user, err := us.userRepo.GetUserById(userId)
 	if err != nil {
 		return err
 	}
 	if user == nil {
 		return errors.New("invalid reset password token")
 	}
+
 	passwordHash, err := utils.HashPassword(newPassword)
 	if err != nil {
 		return errors.New("error hashing the password")
