@@ -6,6 +6,7 @@ import (
 	"github.com/Point-AI/backend/config"
 	"github.com/Point-AI/backend/internal/auth/infrastructure/repository"
 	"github.com/Point-AI/backend/utils"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type UserService struct {
@@ -104,7 +105,7 @@ func (us *UserService) Login(email, password string) (string, string, error) {
 	return accessToken, refreshToken, nil
 }
 
-func (us *UserService) RegisterUser(email string, password string) error {
+func (us *UserService) RegisterUser(email string, password string, fullName string) error {
 	existingUser, err := us.userRepo.GetUserByEmail(email)
 	if err != nil {
 		return err
@@ -123,12 +124,12 @@ func (us *UserService) RegisterUser(email string, password string) error {
 		return err
 	}
 
-	confirmationLink := fmt.Sprintf("https://your-domain.com/confirm?token=%s", confirmToken)
+	confirmationLink := fmt.Sprintf("%s/confirm?token=%s", us.config.Website.WebURL, confirmToken)
 	if err := us.emailService.SendConfirmationEmail(email, confirmationLink); err != nil {
 		return err
 	}
 
-	if _, err := us.userRepo.CreateUser(email, passwordHash, confirmToken); err != nil {
+	if err := us.userRepo.CreateUser(email, passwordHash, confirmToken, fullName); err != nil {
 		return err
 	}
 
@@ -169,7 +170,7 @@ func (us *UserService) ForgotPassword(email string) error {
 		return err
 	}
 
-	resetLink := fmt.Sprintf("https://your-domain.com/reset-password?token=%s", resetToken) // Adjust the URL accordingly
+	resetLink := fmt.Sprintf("%s/reset-password?token=%s", us.config.Website.WebURL, resetToken) // Adjust the URL accordingly
 	if err := us.emailService.SendResetPasswordEmail(email, resetLink); err != nil {
 		return err
 	}
@@ -183,22 +184,40 @@ func (us *UserService) ResetPassword(token, newPassword string) error {
 		return err
 	}
 
-	user, err := us.userRepo.GetUserById(userId)
-	if err != nil {
-		return err
-	}
-	if user == nil {
-		return errors.New("invalid reset password token")
-	}
-
 	passwordHash, err := utils.HashPassword(newPassword)
 	if err != nil {
 		return errors.New("error hashing the password")
 	}
 
-	if err := us.userRepo.ClearResetToken(user, passwordHash); err != nil {
+	if err := us.userRepo.ClearResetToken(userId, passwordHash); err != nil {
 		return err
 	}
 
 	return nil
+}
+
+func (us *UserService) RenewAccessToken(refreshToken string) (string, error) {
+	userId, err := utils.ValidateJWTToken("refresh_token", refreshToken, us.config.Auth.JWTSecretKey)
+	if err != nil {
+		return "", err
+	}
+
+	user, err := us.userRepo.GetUserById(userId)
+	if err != nil {
+		return "", err
+	}
+	if user == nil || user.Token.RefreshToken != refreshToken {
+		return "", errors.New("invalid refresh token")
+	}
+
+	accessToken, err := utils.GenerateJWTToken("access_token", user.ID, us.config.Auth.JWTSecretKey)
+	if err != nil {
+		return "", err
+	}
+
+	return accessToken, nil
+}
+
+func (us *UserService) Logout(userId primitive.ObjectID) error {
+	return us.userRepo.ClearRefreshToken(userId)
 }

@@ -5,6 +5,7 @@ import (
 	"github.com/Point-AI/backend/internal/auth/delivery/controller"
 	"github.com/Point-AI/backend/internal/auth/infrastructure/repository"
 	"github.com/Point-AI/backend/internal/auth/service"
+	"github.com/Point-AI/backend/middleware"
 	"github.com/labstack/echo/v4"
 	"go.mongodb.org/mongo-driver/mongo"
 )
@@ -18,11 +19,13 @@ func RegisterAuthRoutes(e *echo.Echo, cfg *config.Config, db *mongo.Database) {
 	authGroup := e.Group("/auth")
 
 	authGroup.POST("/signup", userController.RegisterUser)
-	authGroup.POST("/verify/:token", userController.ConfirmUser)
+	authGroup.GET("/verify/:token", userController.ConfirmUser)
 	authGroup.POST("/signin", userController.Login)
+	authGroup.POST("/logout", userController.Logout, middleware.ValidateAccessTokenMiddleware(cfg.Auth.JWTSecretKey))
 	authGroup.POST("/recover", userController.ForgotPassword)
 	authGroup.POST("/reset", userController.ResetPassword)
+	authGroup.POST("/renew", userController.RenewAccessToken)
 
-	authGroup.GET("/auth/google", userController.GoogleLogin)
-	authGroup.GET("/auth/google/callback", userController.GoogleCallback)
+	authGroup.GET("/oauth2/google", userController.GoogleLogin)
+	authGroup.GET("/oauth2/google/callback", userController.GoogleCallback)
 }

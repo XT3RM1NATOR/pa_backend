@@ -10,7 +10,7 @@ type User struct {
 	PasswordHash string             `bson:"passwordHash"`
 	IsConfirmed  bool               `bson:"isConfirmed"`
 	AuthSource   string             `bson:"authSource"`
-	Name         string             `bson:"name"`
+	FullName     string             `bson:"name"`
 	Token        Token              `bson:"token"`
 	CreatedAt    primitive.DateTime `bson:"createdAt"`
 }

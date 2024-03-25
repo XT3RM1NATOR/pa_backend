@@ -13,6 +13,7 @@ type Config struct {
 	Auth    Auth
 	Email   Email
 	OAuth2  OAuth2
+	Website Website
 }
 
 type (
@@ -45,5 +46,9 @@ type (
 		GoogleClientId     string `env:"GOOGLE_CLIENT_ID"`
 		GoogleRedirectURI  string `env:"GOOGLE_REDIRECT_URI"`
 		GoogleClientSecret string `env:"GOOGLE_CLIENT_SECRET"`
+	}
+
+	Website struct {
+		WebURL string `env:"WEB_URL"`
 	}
 )
