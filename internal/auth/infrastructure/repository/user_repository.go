@@ -25,15 +25,7 @@ func NewUserRepository(db *mongo.Database, collection string) *UserRepository {
 }
 
 func (ur *UserRepository) CreateUser(email, passwordHash, confirmToken, fullName string) error {
-	existingUser, err := ur.GetUserByEmail(email)
-	if err != nil {
-		return err
-	}
-	if existingUser != nil {
-		return errors.New("user already exists")
-	}
-
-	_, err = mail.ParseAddress(email)
+	_, err := mail.ParseAddress(email)
 	if err != nil {
 		return err
 	}

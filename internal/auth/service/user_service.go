@@ -97,6 +97,14 @@ func (us *UserService) Login(email, password string) (string, string, error) {
 }
 
 func (us *UserService) RegisterUser(email string, password string, fullName string) error {
+	existingUser, err := us.userRepo.GetUserByEmail(email)
+	if err != nil {
+		return err
+	}
+	if existingUser != nil {
+		return errors.New("user already exists")
+	}
+
 	confirmToken, err := utils.GenerateToken()
 	if err != nil {
 		return err
