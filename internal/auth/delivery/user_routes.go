@@ -26,6 +26,8 @@ func RegisterAuthRoutes(e *echo.Echo, cfg *config.Config, db *mongo.Database) {
 	authGroup.POST("/reset", userController.ResetPassword)
 	authGroup.POST("/renew", userController.RenewAccessToken)
 
-	authGroup.GET("/oauth2/google", userController.GoogleLogin)
+	// TODO: change to get
+	authGroup.GET("/oauth2/google/tokens", userController.GoogleTokens)
+	authGroup.POST("/oauth2/google", userController.GoogleLogin)
 	authGroup.GET("/oauth2/google/callback", userController.GoogleCallback)
 }

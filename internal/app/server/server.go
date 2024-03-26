@@ -20,11 +20,7 @@ func RunHTTPServer(cfg *config.Config, db *mongo.Database) {
 		Format: "${time_rfc3339_nano} [${status}] ${method} ${uri} (${latency_human})\n",
 		Output: logger.Out,
 	}))
-
-	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
-		AllowOrigins: []string{"*"},
-		AllowMethods: []string{echo.GET, echo.PUT, echo.POST, echo.DELETE},
-	}))
+	e.Use(middleware.CORS())
 
 	authDelivery.RegisterAuthRoutes(e, cfg, db)
 	//integrationsDelivery.RegisterIntegrationsRoutes(e, cfg, db)

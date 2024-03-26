@@ -1,24 +1,28 @@
 package model
 
-type UserInput struct {
+type UserRequest struct {
 	Email    string `json:"email"`
 	FullName string `json:"fullName"`
 	Password string `json:"password"`
 }
 
-type ForgotPasswordInput struct {
+type ForgotPasswordRequest struct {
 	Email string `json:"email"`
 }
 
-type PasswordResetInput struct {
+type PasswordResetRequest struct {
 	Token       string `json:"token"`
 	NewPassword string `json:"new_password"`
 }
 
-type RenewAccessTokenInput struct {
+type RenewAccessTokenRequest struct {
 	RefreshToken string `json:"refresh_token"`
 }
 
-type AccessTokenInput struct {
+type AccessTokenRequest struct {
 	AccessToken string `json:"access_token"`
+}
+
+type OAuth2TokenRequest struct {
+	OAuth2Token string `json:"oAuth2Token"`
 }

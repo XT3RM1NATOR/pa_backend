@@ -23,13 +23,12 @@ func NewUserController(userService *service.UserService, cfg *config.Config) *Us
 }
 
 func (uc *UserController) RegisterUser(c echo.Context) error {
-	var userInput model.UserInput
-	if err := c.Bind(&userInput); err != nil {
+	var request model.UserRequest
+	if err := c.Bind(&request); err != nil {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
 	}
-	fmt.Println(userInput)
 
-	if err := uc.userService.RegisterUser(userInput.Email, userInput.Password, userInput.FullName); err != nil {
+	if err := uc.userService.RegisterUser(request.Email, request.Password, request.FullName); err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
 	}
 
@@ -50,20 +49,32 @@ func (uc *UserController) ConfirmUser(c echo.Context) error {
 }
 
 func (uc *UserController) Login(c echo.Context) error {
-	var userInput model.UserInput
-	if err := c.Bind(&userInput); err != nil {
+	var request model.UserRequest
+	if err := c.Bind(&request); err != nil {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
 	}
 
-	accessToken, refreshToken, err := uc.userService.Login(userInput.Email, userInput.Password)
+	accessToken, refreshToken, err := uc.userService.Login(request.Email, request.Password)
 	if err != nil {
 		return c.JSON(http.StatusUnauthorized, map[string]string{"error": err.Error()})
 	}
 
-	fmt.Println(map[string]string{
+	return c.JSON(http.StatusOK, map[string]string{
 		"access_token":  accessToken,
 		"refresh_token": refreshToken,
 	})
+}
+
+func (uc *UserController) GoogleTokens(c echo.Context) error {
+	var request model.OAuth2TokenRequest
+	if err := c.Bind(&request); err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
+	}
+
+	accessToken, refreshToken, err := uc.userService.GoogleTokens(request.OAuth2Token)
+	if err != nil {
+		return c.JSON(http.StatusUnauthorized, map[string]string{"error": err.Error()})
+	}
 
 	return c.JSON(http.StatusOK, map[string]string{
 		"access_token":  accessToken,
@@ -72,12 +83,12 @@ func (uc *UserController) Login(c echo.Context) error {
 }
 
 func (uc *UserController) ForgotPassword(c echo.Context) error {
-	var forgotPasswordInput model.ForgotPasswordInput
-	if err := c.Bind(&forgotPasswordInput); err != nil {
+	var request model.ForgotPasswordRequest
+	if err := c.Bind(&request); err != nil {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
 	}
 
-	if err := uc.userService.ForgotPassword(forgotPasswordInput.Email); err != nil {
+	if err := uc.userService.ForgotPassword(request.Email); err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
 	}
 
@@ -85,12 +96,12 @@ func (uc *UserController) ForgotPassword(c echo.Context) error {
 }
 
 func (uc *UserController) ResetPassword(c echo.Context) error {
-	var passwordResetInput model.PasswordResetInput
-	if err := c.Bind(&passwordResetInput); err != nil {
+	var request model.PasswordResetRequest
+	if err := c.Bind(&request); err != nil {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
 	}
 
-	if err := uc.userService.ResetPassword(passwordResetInput.Token, passwordResetInput.NewPassword); err != nil {
+	if err := uc.userService.ResetPassword(request.Token, request.NewPassword); err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
 	}
 
@@ -107,12 +118,12 @@ func (uc *UserController) Logout(c echo.Context) error {
 }
 
 func (uc *UserController) RenewAccessToken(c echo.Context) error {
-	var renewAccessTokenInput model.RenewAccessTokenInput
-	if err := c.Bind(&renewAccessTokenInput); err != nil {
+	var request model.RenewAccessTokenRequest
+	if err := c.Bind(&request); err != nil {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
 	}
 
-	accessToken, err := uc.userService.RenewAccessToken(renewAccessTokenInput.RefreshToken)
+	accessToken, err := uc.userService.RenewAccessToken(request.RefreshToken)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
 	}
@@ -129,13 +140,12 @@ func (uc *UserController) GoogleLogin(c echo.Context) error {
 	return c.JSON(http.StatusOK, map[string]string{"url": authURL})
 }
 
-// GoogleCallback TODO: change the passing of refresh and access tokens to some other solution like sessions
 func (uc *UserController) GoogleCallback(c echo.Context) error {
 	code := c.QueryParam("code")
-	accessToken, refreshToken, err := uc.userService.GoogleAuthCallback(code)
+	oAuth2Token, err := uc.userService.GoogleAuthCallback(code)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
 	}
 
-	return c.Redirect(http.StatusFound, "https://...com/?tokens="+accessToken+"#"+refreshToken)
+	return c.Redirect(http.StatusFound, fmt.Sprintf("%s/?oauth2token="+oAuth2Token, uc.config.Website.WebURL))
 }

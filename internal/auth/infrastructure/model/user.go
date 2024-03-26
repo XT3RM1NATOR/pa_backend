@@ -11,12 +11,13 @@ type User struct {
 	IsConfirmed  bool               `bson:"isConfirmed"`
 	AuthSource   string             `bson:"authSource"`
 	FullName     string             `bson:"name"`
-	Token        Token              `bson:"token"`
+	Tokens       Tokens             `bson:"tokens"`
 	CreatedAt    primitive.DateTime `bson:"createdAt"`
 }
 
-type Token struct {
+type Tokens struct {
 	ConfirmToken string `bson:"confirmToken"`
+	OAuth2Token  string `bson:"oAuth2Token"`
 	ResetToken   string `bson:"resetToken"`
 	RefreshToken string `bson:"refreshToken"`
 }
