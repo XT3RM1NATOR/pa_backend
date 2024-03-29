@@ -22,6 +22,17 @@ func NewUserController(userService *service.UserService, cfg *config.Config) *Us
 	}
 }
 
+// RegisterUser registers a new user.
+// @Summary Registers user
+// @Description Registers a new user with provided email and password.
+// @Tags accounts
+// @Accept json
+// @Produce json
+// @Param request body model.UserRequest true "User registration request"
+// @Success 201 {object} map[string]string "User registered successfully"
+// @Failure 400 {object} map[string]string "Bad request"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Router /auth/signup [post]
 func (uc *UserController) RegisterUser(c echo.Context) error {
 	var request model.UserRequest
 	if err := c.Bind(&request); err != nil {
@@ -35,6 +46,17 @@ func (uc *UserController) RegisterUser(c echo.Context) error {
 	return c.JSON(http.StatusCreated, map[string]string{"message": "user registered successfully"})
 }
 
+// ConfirmUser confirms a user's registration.
+// @Summary Confirms user registration
+// @Description Confirms a user's registration using the confirmation token.
+// @Tags accounts
+// @Accept json
+// @Produce json
+// @Param token path string true "Confirmation token"
+// @Success 200 {object} map[string]string "User confirmed successfully"
+// @Failure 400 {object} map[string]string "Bad request"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Router /auth/verify/{token} [get]
 func (uc *UserController) ConfirmUser(c echo.Context) error {
 	token := c.Param("token")
 	if token == "" {
@@ -48,6 +70,18 @@ func (uc *UserController) ConfirmUser(c echo.Context) error {
 	return c.JSON(http.StatusOK, map[string]string{"message": "user confirmed successfully"})
 }
 
+// Login handles user login.
+// @Summary User login
+// @Description Logs in a user with the provided email and password.
+// @Tags accounts
+// @Accept json
+// @Produce json
+// @Param request body model.UserRequest true "User login request"
+// @Success 200 {object} map[string]string "User logged in successfully"
+// @Failure 400 {object} map[string]string "Bad request"
+// @Failure 401 {object} map[string]string "Unauthorized"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Router /auth/signin [post]
 func (uc *UserController) Login(c echo.Context) error {
 	var request model.UserRequest
 	if err := c.Bind(&request); err != nil {
@@ -65,6 +99,18 @@ func (uc *UserController) Login(c echo.Context) error {
 	})
 }
 
+// GoogleTokens exchanges OAuth2 tokens for Google tokens.
+// @Summary Exchange OAuth2 tokens for Google tokens
+// @Description Exchanges OAuth2 tokens for Google access and refresh tokens.
+// @Tags accounts
+// @Accept json
+// @Produce json
+// @Param request body model.OAuth2TokenRequest true "OAuth2 token request"
+// @Success 200 {object} map[string]string "Tokens exchanged successfully"
+// @Failure 400 {object} map[string]string "Bad request"
+// @Failure 401 {object} map[string]string "Unauthorized"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Router /auth/oauth2/google/tokens [get]
 func (uc *UserController) GoogleTokens(c echo.Context) error {
 	var request model.OAuth2TokenRequest
 	if err := c.Bind(&request); err != nil {
@@ -82,6 +128,17 @@ func (uc *UserController) GoogleTokens(c echo.Context) error {
 	})
 }
 
+// ForgotPassword initiates the process for resetting a user's password.
+// @Summary Forgot password
+// @Description Initiates the process for resetting a user's password.
+// @Tags accounts
+// @Accept json
+// @Produce json
+// @Param request body model.ForgotPasswordRequest true "Forgot password request"
+// @Success 200 {object} map[string]string "Password reset email sent successfully"
+// @Failure 400 {object} map[string]string "Bad request"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Router /auth/recover [post]
 func (uc *UserController) ForgotPassword(c echo.Context) error {
 	var request model.ForgotPasswordRequest
 	if err := c.Bind(&request); err != nil {
@@ -95,6 +152,17 @@ func (uc *UserController) ForgotPassword(c echo.Context) error {
 	return c.JSON(http.StatusOK, map[string]string{"message": "password reset email sent successfully"})
 }
 
+// ResetPassword resets a user's password.
+// @Summary Reset password
+// @Description Resets a user's password using the reset token and new password.
+// @Tags accounts
+// @Accept json
+// @Produce json
+// @Param request body model.PasswordResetRequest true "Password reset request"
+// @Success 200 {object} map[string]string "Password reset successfully"
+// @Failure 400 {object} map[string]string "Bad request"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Router /auth/reset [post]
 func (uc *UserController) ResetPassword(c echo.Context) error {
 	var request model.PasswordResetRequest
 	if err := c.Bind(&request); err != nil {
@@ -108,6 +176,15 @@ func (uc *UserController) ResetPassword(c echo.Context) error {
 	return c.JSON(http.StatusOK, map[string]string{"message": "password reset successfully"})
 }
 
+// Logout logs out a user.
+// @Summary Logout
+// @Description Logs out a user by invalidating the access token.
+// @Tags accounts
+// @Accept json
+// @Produce json
+// @Success 200 {object} map[string]string "Successfully logged out"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Router /auth/logout [post]
 func (uc *UserController) Logout(c echo.Context) error {
 	userId := c.Request().Context().Value("userID").(primitive.ObjectID)
 	err := uc.userService.Logout(userId)
@@ -117,6 +194,17 @@ func (uc *UserController) Logout(c echo.Context) error {
 	return c.JSON(http.StatusOK, map[string]string{"message": "successfully logged out"})
 }
 
+// RenewAccessToken renews a user's access token using a refresh token.
+// @Summary Renew access token
+// @Description Renews a user's access token using a refresh token.
+// @Tags accounts
+// @Accept json
+// @Produce json
+// @Param request body model.RenewAccessTokenRequest true "Access token renewal request"
+// @Success 200 {object} map[string]string "Access token renewed successfully"
+// @Failure 400 {object} map[string]string "Bad request"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Router /auth/renew [put]
 func (uc *UserController) RenewAccessToken(c echo.Context) error {
 	var request model.RenewAccessTokenRequest
 	if err := c.Bind(&request); err != nil {
@@ -131,6 +219,15 @@ func (uc *UserController) RenewAccessToken(c echo.Context) error {
 	return c.JSON(http.StatusOK, map[string]string{"access_token": accessToken})
 }
 
+// GoogleLogin initiates the OAuth2 login flow with Google.
+// @Summary Google login
+// @Description Initiates the OAuth2 login flow with Google.
+// @Tags accounts
+// @Accept json
+// @Produce json
+// @Success 200 {object} map[string]string "URL to initiate Google login"
+// @Failure 400 {object} map[string]string "Bad request"
+// @Router /auth/oauth2/google [post]
 func (uc *UserController) GoogleLogin(c echo.Context) error {
 	authURL, err := uc.userService.GoogleLogin()
 	if err != nil {
@@ -140,6 +237,17 @@ func (uc *UserController) GoogleLogin(c echo.Context) error {
 	return c.JSON(http.StatusOK, map[string]string{"url": authURL})
 }
 
+// GoogleCallback handles the callback from Google OAuth2 login.
+// @Summary Google OAuth2 callback
+// @Description Handles the callback from Google OAuth2 login.
+// @Tags accounts
+// @Accept json
+// @Produce json
+// @Param code query string true "Authorization code from Google"
+// @Success 302 {object} map[string]string "Redirect to website URL with OAuth2 token"
+// @Failure 400 {object} map[string]string "Bad request"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Router /auth/oauth2/google/callback [get]
 func (uc *UserController) GoogleCallback(c echo.Context) error {
 	code := c.QueryParam("code")
 	oAuth2Token, err := uc.userService.GoogleAuthCallback(code)
