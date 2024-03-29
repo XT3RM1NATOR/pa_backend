@@ -2,7 +2,6 @@ package model
 
 type UserRequest struct {
 	Email    string `json:"email"`
-	FullName string `json:"fullName"`
 	Password string `json:"password"`
 }
 

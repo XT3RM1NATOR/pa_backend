@@ -8,7 +8,7 @@ import (
 	"io"
 )
 
-func ExtractGoogleData(clientID, clientSecret, code string) (string, string, error) {
+func ExtractGoogleData(clientID, clientSecret, code string) (string, error) {
 	config := &oauth2.Config{
 		ClientID:     clientID,
 		ClientSecret: clientSecret,
@@ -19,30 +19,28 @@ func ExtractGoogleData(clientID, clientSecret, code string) (string, string, err
 
 	token, err := config.Exchange(context.TODO(), code)
 	if err != nil {
-		return "", "", err
+		return "", err
 	}
 
 	client := config.Client(context.TODO(), token)
 	resp, err := client.Get("https://www.googleapis.com/oauth2/v3/userinfo")
 	if err != nil {
-		return "", "", err
+		return "", err
 	}
 	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return "", "", err
+		return "", err
 	}
 
 	var profile struct {
-		Email   string `json:"email"`
-		Name    string `json:"name"`
-		Surname string `json:"surname"`
+		Email string `json:"email"`
 	}
 	err = json.Unmarshal(body, &profile)
 	if err != nil {
-		return "", "", err
+		return "", err
 	}
 
-	return profile.Email, profile.Name + " " + profile.Surname, nil
+	return profile.Email, nil
 }

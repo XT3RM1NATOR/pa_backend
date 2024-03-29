@@ -24,7 +24,7 @@ func NewUserRepository(db *mongo.Database, collection string) *UserRepository {
 	}
 }
 
-func (ur *UserRepository) CreateUser(email, passwordHash, confirmToken, fullName string) error {
+func (ur *UserRepository) CreateUser(email, passwordHash, confirmToken string) error {
 	_, err := mail.ParseAddress(email)
 	if err != nil {
 		return err
@@ -33,7 +33,6 @@ func (ur *UserRepository) CreateUser(email, passwordHash, confirmToken, fullName
 	user := &model.User{
 		Email:        email,
 		PasswordHash: passwordHash,
-		FullName:     fullName,
 		IsConfirmed:  false,
 		Tokens: model.Tokens{
 			ConfirmToken: confirmToken,
@@ -45,7 +44,7 @@ func (ur *UserRepository) CreateUser(email, passwordHash, confirmToken, fullName
 	return err
 }
 
-func (ur *UserRepository) CreateOauth2User(email, authSource, name string) (string, error) {
+func (ur *UserRepository) CreateOauth2User(email, authSource string) (string, error) {
 	existingUser, err := ur.GetUserByEmail(email)
 	if err != nil {
 		return "", err
@@ -69,7 +68,6 @@ func (ur *UserRepository) CreateOauth2User(email, authSource, name string) (stri
 	user := &model.User{
 		Email:       email,
 		AuthSource:  authSource,
-		FullName:    name,
 		Tokens:      model.Tokens{OAuth2Token: oAuth2Token},
 		IsConfirmed: true,
 		CreatedAt:   primitive.NewDateTimeFromTime(time.Now()),

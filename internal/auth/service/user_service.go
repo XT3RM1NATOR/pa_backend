@@ -25,12 +25,12 @@ func NewUserService(userRepo *repository.UserRepository, emailService *EmailServ
 }
 
 func (us *UserService) GoogleAuthCallback(code string) (string, error) {
-	email, fullName, err := utils.ExtractGoogleData(us.config.OAuth2.GoogleClientId, us.config.OAuth2.GoogleClientSecret, code)
+	email, err := utils.ExtractGoogleData(us.config.OAuth2.GoogleClientId, us.config.OAuth2.GoogleClientSecret, code)
 	if err != nil {
 		return "", err
 	}
 
-	oAuth2Token, err := us.userRepo.CreateOauth2User(email, "google", fullName)
+	oAuth2Token, err := us.userRepo.CreateOauth2User(email, "google")
 	if err != nil {
 		return "", err
 	}
@@ -96,7 +96,7 @@ func (us *UserService) Login(email, password string) (string, string, error) {
 	return accessToken, refreshToken, nil
 }
 
-func (us *UserService) RegisterUser(email string, password string, fullName string) error {
+func (us *UserService) RegisterUser(email string, password string) error {
 	existingUser, err := us.userRepo.GetUserByEmail(email)
 	if err != nil {
 		return err
@@ -120,7 +120,7 @@ func (us *UserService) RegisterUser(email string, password string, fullName stri
 		return err
 	}
 
-	if err := us.userRepo.CreateUser(email, passwordHash, confirmToken, fullName); err != nil {
+	if err := us.userRepo.CreateUser(email, passwordHash, confirmToken); err != nil {
 		return err
 	}
 
