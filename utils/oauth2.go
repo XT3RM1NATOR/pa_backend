@@ -13,7 +13,7 @@ func ExtractGoogleData(clientID, clientSecret, code string) (string, error) {
 		ClientID:     clientID,
 		ClientSecret: clientSecret,
 		Endpoint:     google.Endpoint,
-		RedirectURL:  "http://localhost:8080/placeholder",
+		RedirectURL:  "https://31c8-195-158-30-66.ngrok-free.app/auth/oauth2/gooogle/callback",
 		Scopes:       []string{"email"},
 	}
 

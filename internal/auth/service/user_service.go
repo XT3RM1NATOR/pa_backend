@@ -8,6 +8,7 @@ import (
 	"github.com/Point-AI/backend/internal/auth/infrastructure/repository"
 	"github.com/Point-AI/backend/utils"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"log"
 )
 
 type UserService struct {
@@ -26,28 +27,18 @@ func NewUserService(userRepo *repository.UserRepository, emailService *EmailServ
 
 func (us *UserService) GoogleAuthCallback(code string) (string, error) {
 	email, err := utils.ExtractGoogleData(us.config.OAuth2.GoogleClientId, us.config.OAuth2.GoogleClientSecret, code)
+	log.Println(err)
 	if err != nil {
 		return "", err
 	}
 
 	oAuth2Token, err := us.userRepo.CreateOauth2User(email, "google")
+	log.Println(err)
 	if err != nil {
 		return "", err
 	}
 
 	return oAuth2Token, nil
-}
-
-// GoogleLogin TODO: add the actual state, which will be random
-func (us *UserService) GoogleLogin() (string, error) {
-	authURL := "https://accounts.google.com/o/oauth2/auth" +
-		"?client_id=" + us.config.OAuth2.GoogleClientId +
-		"&redirect_uri=" + us.config.OAuth2.GoogleRedirectURI +
-		"&response_type=code" +
-		"&scope=openid%20email%20profile" +
-		"&state=" + "state"
-
-	return authURL, nil
 }
 
 func (us *UserService) GoogleTokens(token string) (string, string, error) {
