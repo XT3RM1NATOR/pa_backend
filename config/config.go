@@ -44,7 +44,7 @@ type (
 	OAuth2 struct {
 		StateText          string `env:"STATE_TEXT"`
 		GoogleClientId     string `env:"GOOGLE_CLIENT_ID"`
-		GoogleRedirectURI  string `env:"GOOGLE_REDIRECT_URI"`
+		GoogleRedirectURL  string `env:"GOOGLE_REDIRECT_URL"`
 		GoogleClientSecret string `env:"GOOGLE_CLIENT_SECRET"`
 	}
 

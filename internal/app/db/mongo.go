@@ -2,7 +2,7 @@ package db
 
 import (
 	"context"
-	"fmt"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 
@@ -10,25 +10,21 @@ import (
 )
 
 func ConnectToDB(cfg *config.Config) *mongo.Database {
-	//uri := fmt.Sprintf("mongodb://%s:%s@%s:%s/%s",
-	//	cfg.MongoDB.User,
-	//	cfg.MongoDB.Password,
-	//	cfg.MongoDB.Host,
-	//	cfg.MongoDB.Port,
-	//	cfg.MongoDB.Database,
-	//)
-	uri := fmt.Sprintf("mongodb://%s/%s",
-		cfg.MongoDB.Host,
-		cfg.MongoDB.Database,
-	)
+	//uri := fmt.Sprintf("mongodb+srv://pointai:%s@pointai.lglqz3w.mongodb.net/?retryWrites=true&w=majority&appName=pointai", cfg.MongoDB.Password)
 
-	clientOptions := options.Client().ApplyURI(uri)
-	client, err := mongo.Connect(context.Background(), clientOptions)
+	opts := options.Client().ApplyURI("mongodb+srv://pointai:pointai@pointai.lglqz3w.mongodb.net/?retryWrites=true&w=majority&appName=pointai")
+	client, err := mongo.Connect(context.TODO(), opts)
 	if err != nil {
 		panic(err)
 	}
 
-	if err := client.Ping(context.Background(), nil); err != nil {
+	defer func() {
+		if err = client.Disconnect(context.TODO()); err != nil {
+			panic(err)
+		}
+	}()
+
+	if err := client.Database("admin").RunCommand(context.TODO(), bson.D{{"ping", 1}}).Err(); err != nil {
 		panic(err)
 	}
 
