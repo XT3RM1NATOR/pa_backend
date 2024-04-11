@@ -1,0 +1,329 @@
+basePath: /
+definitions:
+  model.ErrorResponse:
+    properties:
+      error:
+        type: string
+    type: object
+  model.ForgotPasswordRequest:
+    properties:
+      email:
+        type: string
+    type: object
+  model.OAuth2TokenRequest:
+    properties:
+      oAuth2Token:
+        type: string
+    type: object
+  model.PasswordResetRequest:
+    properties:
+      new_password:
+        type: string
+      token:
+        type: string
+    type: object
+  model.RenewAccessTokenRequest:
+    properties:
+      refresh_token:
+        type: string
+    type: object
+  model.SuccessResponse:
+    properties:
+      message:
+        type: string
+    type: object
+  model.TokenResponse:
+    properties:
+      access_token:
+        type: string
+      refresh_token:
+        description: Optional field for some responses
+        type: string
+    type: object
+  model.UserRequest:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+    type: object
+externalDocs:
+  description: OpenAPI 2.0
+host: petstore.swagger.io
+info:
+  contact:
+    email: support@swagger.io
+    name: API Support
+    url: http://www.swagger.io/support
+  description: This is the backend server for PointAI.
+  license:
+    name: .
+    url: .
+  termsOfService: http://swagger.io/terms/
+  title: PointAI
+  version: "1.0"
+paths:
+  /auth/logout:
+    post:
+      consumes:
+      - application/json
+      description: Logs out a user by invalidating the access token.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Successfully logged out
+          schema:
+            $ref: '#/definitions/model.SuccessResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+      summary: Logout
+      tags:
+      - Auth
+  /auth/oauth2/google/callback:
+    get:
+      consumes:
+      - application/json
+      description: Handles the callback from Google OAuth2 login.
+      parameters:
+      - description: Authorization code from Google
+        in: query
+        name: code
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "302":
+          description: Redirect to website URL with OAuth2 token
+          schema:
+            $ref: '#/definitions/model.SuccessResponse'
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+      summary: Google OAuth2 callback
+      tags:
+      - Auth
+  /auth/oauth2/google/tokens:
+    get:
+      consumes:
+      - application/json
+      description: Exchanges OAuth2 tokens for Google access and refresh tokens.
+      parameters:
+      - description: OAuth2 token request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.OAuth2TokenRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Tokens exchanged successfully
+          schema:
+            $ref: '#/definitions/model.TokenResponse'
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+      summary: Exchange OAuth2 tokens for Google tokens
+      tags:
+      - Auth
+  /auth/recover:
+    post:
+      consumes:
+      - application/json
+      description: Initiates the process for resetting a user's password.
+      parameters:
+      - description: Forgot password request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.ForgotPasswordRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Password reset email sent successfully
+          schema:
+            $ref: '#/definitions/model.SuccessResponse'
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+      summary: Forgot password
+      tags:
+      - Auth
+  /auth/renew:
+    put:
+      consumes:
+      - application/json
+      description: Renews a user's access token using a refresh token.
+      parameters:
+      - description: Access token renewal request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.RenewAccessTokenRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Access token renewed successfully
+          schema:
+            $ref: '#/definitions/model.TokenResponse'
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+      summary: Renew access token
+      tags:
+      - Auth
+  /auth/reset:
+    post:
+      consumes:
+      - application/json
+      description: Resets a user's password using the reset token and new password.
+      parameters:
+      - description: Password reset request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.PasswordResetRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Password reset successfully
+          schema:
+            $ref: '#/definitions/model.SuccessResponse'
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+      summary: Reset password
+      tags:
+      - Auth
+  /auth/signin:
+    post:
+      consumes:
+      - application/json
+      description: Logs in a user with the provided email and password.
+      parameters:
+      - description: User login request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.UserRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: User logged in successfully
+          schema:
+            $ref: '#/definitions/model.TokenResponse'
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+      summary: User login
+      tags:
+      - Auth
+  /auth/signup:
+    post:
+      consumes:
+      - application/json
+      description: Registers a new user with provided email and password.
+      parameters:
+      - description: User registration request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.UserRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: User registered successfully
+          schema:
+            $ref: '#/definitions/model.SuccessResponse'
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+      tags:
+      - Auth
+  /auth/verify/{token}:
+    get:
+      consumes:
+      - application/json
+      description: Confirms a user's registration using the confirmation token.
+      parameters:
+      - description: Confirmation token
+        in: path
+        name: token
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: User confirmed successfully
+          schema:
+            $ref: '#/definitions/model.SuccessResponse'
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+      tags:
+      - Auth
+swagger: "2.0"

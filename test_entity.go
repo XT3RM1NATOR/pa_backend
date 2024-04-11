@@ -6,15 +6,13 @@ import (
 )
 
 type Project struct {
-	ID          string               `json:"id"`
-	Name        string               `json:"name"`
-	Description string               `json:"description"`
-	Logo        string               `json:"logo"`
-	Emoji       string               `json:"emoji"`
-	OwnerID     string               `json:"owner_id"`
-	Team        []primitive.ObjectID `json:"team"`
-	CreatedAt   time.Time            `json:"created_at"`
-	UpdatedAt   time.Time            `json:"updated_at"`
+	ID        string               `json:"id"`
+	Name      string               `json:"name"`
+	Logo      string               `json:"logo"`
+	OwnerID   string               `json:"owner_id"`
+	Team      []primitive.ObjectID `json:"team"`
+	CreatedAt time.Time            `json:"created_at"`
+	UpdatedAt time.Time            `json:"updated_at"`
 }
 
 type User struct {

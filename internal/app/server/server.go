@@ -46,7 +46,6 @@ func RunHTTPServer(cfg *config.Config, db *mongo.Database) {
 	}
 
 	e.Use(middleware.CORSWithConfig(corsConfig))
-	e.GET("/swagger/*", echoSwagger.WrapHandler)
 
 	ur := repository.NewUserRepository(db, "user")
 
@@ -58,6 +57,7 @@ func RunHTTPServer(cfg *config.Config, db *mongo.Database) {
 	authDelivery.RegisterAuthRoutes(e, cfg, uc)
 	//integrationsDelivery.RegisterIntegrationsRoutes(e, cfg, db)
 	//messangerDelivery.RegisterMessangerAdminRoutes(e, cfg, db)
+	e.GET("/swagger/*", echoSwagger.WrapHandler)
 
 	// Start server
 	if err := e.Start(cfg.Server.Port); err != nil {
