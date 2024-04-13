@@ -4,11 +4,10 @@ import (
 	"github.com/Point-AI/backend/config"
 	_ "github.com/Point-AI/backend/docs"
 	authDelivery "github.com/Point-AI/backend/internal/auth/delivery"
-	"github.com/Point-AI/backend/internal/auth/delivery/controller"
-	"github.com/Point-AI/backend/internal/auth/infrastructure/repository"
-	"github.com/Point-AI/backend/internal/auth/service"
+	systemDelivery "github.com/Point-AI/backend/internal/system/delivery"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
+	"github.com/minio/minio-go/v7"
 	"github.com/sirupsen/logrus"
 	echoSwagger "github.com/swaggo/echo-swagger"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -29,7 +28,7 @@ import (
 // @host petstore.swagger.io
 // @externalDocs.description  OpenAPI 2.0
 // @BasePath /
-func RunHTTPServer(cfg *config.Config, db *mongo.Database) {
+func RunHTTPServer(cfg *config.Config, db *mongo.Database, str *minio.Client) {
 	e := echo.New()
 
 	logger := logrus.New()
@@ -46,20 +45,13 @@ func RunHTTPServer(cfg *config.Config, db *mongo.Database) {
 	}
 
 	e.Use(middleware.CORSWithConfig(corsConfig))
-
-	ur := repository.NewUserRepository(db, "user")
-
-	es := service.NewEmailService(cfg.Email.SMTPUsername, cfg.Email.SMTPPassword, cfg.Email.SMTPHost, cfg.Email.SMTPPort)
-	us := service.NewUserService(ur, es, cfg)
-
-	uc := controller.NewUserController(us, cfg)
-
-	authDelivery.RegisterAuthRoutes(e, cfg, uc)
-	//integrationsDelivery.RegisterIntegrationsRoutes(e, cfg, db)
-	//messangerDelivery.RegisterMessangerAdminRoutes(e, cfg, db)
 	e.GET("/swagger/*", echoSwagger.WrapHandler)
 
-	// Start server
+	authDelivery.RegisterAuthRoutes(e, cfg, db)
+	systemDelivery.RegisterSystemRoutes(e, cfg, db, str)
+	//integrationsDelivery.RegisterIntegrationsRoutes(e, cfg, db)
+	//messangerDelivery.RegisterMessangerAdminRoutes(e, cfg, db)
+
 	if err := e.Start(cfg.Server.Port); err != nil {
 		panic(err)
 	}

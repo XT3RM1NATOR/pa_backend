@@ -14,15 +14,18 @@ type Config struct {
 	Email   Email
 	OAuth2  OAuth2
 	Website Website
+	MinIo   MinIo
 }
 
 type (
 	MongoDB struct {
-		Host     string `env:"DB_HOST"`
-		Port     string `env:"DB_PORT"`
-		User     string `env:"DB_USER"`
-		Password string `env:"DB_PASSWORD"`
-		Database string `env:"DB_NAME"`
+		Host              string `env:"DB_HOST"`
+		Port              string `env:"DB_PORT"`
+		User              string `env:"DB_USER"`
+		Password          string `env:"DB_PASSWORD"`
+		Database          string `env:"DB_NAME"`
+		UserCollection    string `env:"DB_USER_COLLECTION"`
+		ProjectCollection string `env:"DB_PROJECT_COLLECTION"`
 	}
 
 	Server struct {
@@ -50,5 +53,12 @@ type (
 
 	Website struct {
 		WebURL string `env:"WEB_URL"`
+	}
+
+	MinIo struct {
+		Endpoint   string `env:"MINIO_ENDPOINT"`
+		AccessKey  string `env:"MINIO_ACCESS_KEY"`
+		SecretKey  string `env:"MINIO_SECRET_KEY"`
+		BucketName string `env:"MINIO_BUCKET_NAME"`
 	}
 )

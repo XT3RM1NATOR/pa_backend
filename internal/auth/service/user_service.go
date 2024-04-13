@@ -4,28 +4,29 @@ import (
 	"errors"
 	"fmt"
 	"github.com/Point-AI/backend/config"
-	"github.com/Point-AI/backend/internal/auth/infrastructure/model"
-	"github.com/Point-AI/backend/internal/auth/infrastructure/repository"
+	"github.com/Point-AI/backend/internal/auth/domain/entity"
+	_interface "github.com/Point-AI/backend/internal/auth/domain/interface"
+	"github.com/Point-AI/backend/internal/auth/service/interface"
 	"github.com/Point-AI/backend/utils"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"log"
 )
 
-type UserService struct {
-	userRepo     *repository.UserRepository
-	emailService *EmailService
+type UserServiceImpl struct {
+	userRepo     infrastructureInterface.UserRepository
+	emailService _interface.EmailService
 	config       *config.Config
 }
 
-func NewUserService(userRepo *repository.UserRepository, emailService *EmailService, cfg *config.Config) *UserService {
-	return &UserService{
+func NewUserServiceImpl(userRepo infrastructureInterface.UserRepository, emailService _interface.EmailService, cfg *config.Config) _interface.UserService {
+	return &UserServiceImpl{
 		userRepo:     userRepo,
 		emailService: emailService,
 		config:       cfg,
 	}
 }
 
-func (us *UserService) GoogleAuthCallback(code string) (string, error) {
+func (us *UserServiceImpl) GoogleAuthCallback(code string) (string, error) {
 	email, err := utils.ExtractGoogleData(us.config.OAuth2.GoogleClientId, us.config.OAuth2.GoogleClientSecret, code)
 	log.Println(err)
 	if err != nil {
@@ -41,7 +42,7 @@ func (us *UserService) GoogleAuthCallback(code string) (string, error) {
 	return oAuth2Token, nil
 }
 
-func (us *UserService) GoogleTokens(token string) (string, string, error) {
+func (us *UserServiceImpl) GoogleTokens(token string) (string, string, error) {
 	user, err := us.userRepo.GetUserByOAuth2Token(token)
 	if err != nil {
 		return "", "", err
@@ -58,7 +59,7 @@ func (us *UserService) GoogleTokens(token string) (string, string, error) {
 	return accessToken, refreshToken, nil
 }
 
-func (us *UserService) Login(email, password string) (string, string, error) {
+func (us *UserServiceImpl) Login(email, password string) (string, string, error) {
 	user, err := us.userRepo.GetUserByEmail(email)
 	if err != nil {
 		return "", "", err
@@ -87,7 +88,7 @@ func (us *UserService) Login(email, password string) (string, string, error) {
 	return accessToken, refreshToken, nil
 }
 
-func (us *UserService) RegisterUser(email string, password string) error {
+func (us *UserServiceImpl) RegisterUser(email string, password string) error {
 	existingUser, err := us.userRepo.GetUserByEmail(email)
 	if err != nil {
 		return err
@@ -118,7 +119,7 @@ func (us *UserService) RegisterUser(email string, password string) error {
 	return nil
 }
 
-func (us *UserService) ConfirmUser(token string) error {
+func (us *UserServiceImpl) ConfirmUser(token string) error {
 	user, err := us.userRepo.GetUserByConfirmToken(token)
 	if err != nil {
 		return err
@@ -134,7 +135,7 @@ func (us *UserService) ConfirmUser(token string) error {
 	return nil
 }
 
-func (us *UserService) ForgotPassword(email string) error {
+func (us *UserServiceImpl) ForgotPassword(email string) error {
 	user, err := us.userRepo.GetUserByEmail(email)
 	if err != nil {
 		return err
@@ -160,7 +161,7 @@ func (us *UserService) ForgotPassword(email string) error {
 	return nil
 }
 
-func (us *UserService) ResetPassword(token, newPassword string) error {
+func (us *UserServiceImpl) ResetPassword(token, newPassword string) error {
 	userId, err := utils.ValidateJWTToken("reset_token", token, us.config.Auth.JWTSecretKey)
 	if err != nil {
 		return err
@@ -178,7 +179,7 @@ func (us *UserService) ResetPassword(token, newPassword string) error {
 	return nil
 }
 
-func (us *UserService) RenewAccessToken(refreshToken string) (string, error) {
+func (us *UserServiceImpl) RenewAccessToken(refreshToken string) (string, error) {
 	userId, err := utils.ValidateJWTToken("refresh_token", refreshToken, us.config.Auth.JWTSecretKey)
 	if err != nil {
 		return "", err
@@ -200,11 +201,11 @@ func (us *UserService) RenewAccessToken(refreshToken string) (string, error) {
 	return accessToken, nil
 }
 
-func (us *UserService) Logout(userId primitive.ObjectID) error {
+func (us *UserServiceImpl) Logout(userId primitive.ObjectID) error {
 	return us.userRepo.ClearRefreshToken(userId)
 }
 
-func (us *UserService) setRefreshToken(user *model.User) (string, string, error) {
+func (us *UserServiceImpl) setRefreshToken(user *entity.User) (string, string, error) {
 	var refreshToken string
 	var err error
 	if user.Tokens.RefreshToken != "" {

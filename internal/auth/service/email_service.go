@@ -1,51 +1,29 @@
 package service
 
 import (
-	"errors"
 	"fmt"
-	"net/smtp"
+	_interface "github.com/Point-AI/backend/internal/auth/domain/interface"
+	infrastructureInterface "github.com/Point-AI/backend/internal/auth/service/interface"
 )
 
-type EmailService struct {
-	SMTPUsername string
-	SMTPPassword string
-	SMTPHost     string
-	SMTPPort     string
+type EmailServiceImpl struct {
+	emailClient infrastructureInterface.EmailClient
 }
 
-func NewEmailService(username, password, host, port string) *EmailService {
-	return &EmailService{
-		SMTPUsername: username,
-		SMTPPassword: password,
-		SMTPHost:     host,
-		SMTPPort:     port,
+func NewEmailServiceImpl(emailClient infrastructureInterface.EmailClient) _interface.EmailService {
+	return &EmailServiceImpl{
+		emailClient: emailClient,
 	}
 }
 
-func (es *EmailService) SendConfirmationEmail(recipientEmail, confirmationLink string) error {
+func (es *EmailServiceImpl) SendConfirmationEmail(recipientEmail, confirmationLink string) error {
 	subject := "Confirm your email"
 	body := fmt.Sprintf("Click the following link to confirm your email: %s", confirmationLink)
-	return es.sendEmail(recipientEmail, subject, body)
+	return es.emailClient.SendEmail(recipientEmail, subject, body)
 }
 
-func (es *EmailService) SendResetPasswordEmail(recipientEmail, resetLink string) error {
+func (es *EmailServiceImpl) SendResetPasswordEmail(recipientEmail, resetLink string) error {
 	subject := "Reset your password"
 	body := fmt.Sprintf("Click the following link to reset your password: %s", resetLink)
-	return es.sendEmail(recipientEmail, subject, body)
-}
-
-func (es *EmailService) sendEmail(to, subject, body string) error {
-	auth := smtp.PlainAuth("", es.SMTPUsername, es.SMTPPassword, es.SMTPHost)
-
-	message := []byte("To: " + to + "\r\n" +
-		"Subject: " + subject + "\r\n" +
-		"\r\n" +
-		body)
-
-	err := smtp.SendMail(es.SMTPHost+":"+es.SMTPPort, auth, es.SMTPUsername, []string{to}, message)
-	if err != nil {
-		return errors.New("failed to send email: " + err.Error())
-	}
-
-	return nil
+	return es.emailClient.SendEmail(recipientEmail, subject, body)
 }

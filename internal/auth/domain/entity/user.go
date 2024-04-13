@@ -1,4 +1,4 @@
-package model
+package entity
 
 import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -7,17 +7,17 @@ import (
 type User struct {
 	ID           primitive.ObjectID `bson:"_id,omitempty"`
 	Email        string             `bson:"email"`
-	PasswordHash string             `bson:"passwordHash"`
-	IsConfirmed  bool               `bson:"isConfirmed"`
-	AuthSource   string             `bson:"authSource"`
+	PasswordHash string             `bson:"password"`
+	IsConfirmed  bool               `bson:"is_confirmed"`
+	AuthSource   string             `bson:"auth_source"`
 	FullName     string             `bson:"name"`
 	Tokens       Tokens             `bson:"tokens"`
-	CreatedAt    primitive.DateTime `bson:"createdAt"`
+	CreatedAt    primitive.DateTime `bson:"created_at"`
 }
 
 type Tokens struct {
-	ConfirmToken string `bson:"confirmToken"`
-	OAuth2Token  string `bson:"oAuth2Token"`
-	ResetToken   string `bson:"resetToken"`
-	RefreshToken string `bson:"refreshToken"`
+	ConfirmToken string `bson:"confirm_token"`
+	OAuth2Token  string `bson:"oauth2_token"`
+	ResetToken   string `bson:"reset_token"`
+	RefreshToken string `bson:"refresh_token"`
 }

@@ -1,38 +1,8 @@
 package test
 
 import (
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"time"
 )
-
-type Project struct {
-	ID        string               `json:"id"`
-	Name      string               `json:"name"`
-	Logo      string               `json:"logo"`
-	OwnerID   string               `json:"owner_id"`
-	Team      []primitive.ObjectID `json:"team"`
-	CreatedAt time.Time            `json:"created_at"`
-	UpdatedAt time.Time            `json:"updated_at"`
-}
-
-type User struct {
-	ID           primitive.ObjectID `bson:"_id,omitempty"`
-	Email        string             `bson:"email"`
-	PasswordHash string             `bson:"passwordHash"`
-	IsConfirmed  bool               `bson:"isConfirmed"`
-	AuthSource   string             `bson:"authSource"`
-	FullName     string             `bson:"name"`
-	Tokens       Tokens             `bson:"tokens"`
-	UserRole     UserRole           `bson:"user_role"`
-	CreatedAt    primitive.DateTime `bson:"createdAt"`
-}
-
-type Tokens struct {
-	ConfirmToken string `bson:"confirmToken"`
-	OAuth2Token  string `bson:"oAuth2Token"`
-	ResetToken   string `bson:"resetToken"`
-	RefreshToken string `bson:"refreshToken"`
-}
 
 type Integrations struct {
 	ID        string

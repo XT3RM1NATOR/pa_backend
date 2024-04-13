@@ -28,7 +28,7 @@ type OAuth2TokenRequest struct {
 	OAuth2Token string `json:"oAuth2Token"`
 }
 
-// Response
+// Responses
 
 type ErrorResponse struct {
 	Error string `json:"error"`

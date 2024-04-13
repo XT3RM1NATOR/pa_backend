@@ -4,18 +4,18 @@ import (
 	"fmt"
 	"github.com/Point-AI/backend/config"
 	"github.com/Point-AI/backend/internal/auth/delivery/model"
-	"github.com/Point-AI/backend/internal/auth/service"
+	_interface "github.com/Point-AI/backend/internal/auth/domain/interface"
 	"github.com/labstack/echo/v4"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"net/http"
 )
 
 type UserController struct {
-	userService *service.UserService
+	userService _interface.UserService
 	config      *config.Config
 }
 
-func NewUserController(userService *service.UserService, cfg *config.Config) *UserController {
+func NewUserController(userService _interface.UserService, cfg *config.Config) *UserController {
 	return &UserController{
 		userService: userService,
 		config:      cfg,

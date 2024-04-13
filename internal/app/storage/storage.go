@@ -1,22 +1,33 @@
 package storage
 
+import (
+	"context"
+	"fmt"
+	"github.com/Point-AI/backend/config"
+	"github.com/minio/minio-go/v7"
+	"github.com/minio/minio-go/v7/pkg/credentials"
+)
 
-minioClient, err := minio.New(endpoint, &minio.Options{
-Creds:  credentials.NewStaticV4(accessKeyID, secretAccessKey, ""),
-Secure: useSSL,
-})
-if err != nil {
-log.Fatalln("Failed to create MinIO client:", err)
-}
+func ConnectToStorage(cfg *config.Config) *minio.Client {
+	minioClient, err := minio.New(cfg.MinIo.Endpoint, &minio.Options{
+		Creds: credentials.NewStaticV4(cfg.MinIo.AccessKey, cfg.MinIo.SecretKey, ""),
+		//Secure: cfg.MinIo.UseSSL,
+	})
+	if err != nil {
+		panic(fmt.Errorf("failed to create MinIO client: %w", err))
+	}
 
-// Test connection
-ctx := context.Background()
-found, err := minioClient.BucketExists(ctx, "test-bucket")
-if err != nil {
-log.Fatalln("Error checking bucket existence:", err)
-}
-if found {
-fmt.Println("Bucket 'test-bucket' exists!")
-} else {
-fmt.Println("Bucket 'test-bucket' does not exist.")
+	ctx := context.Background()
+	found, err := minioClient.BucketExists(ctx, cfg.MinIo.BucketName)
+	if err != nil {
+		panic(fmt.Errorf("error checking bucket existence: %w", err))
+	}
+	if !found {
+		err := minioClient.MakeBucket(ctx, cfg.MinIo.BucketName, minio.MakeBucketOptions{})
+		if err != nil {
+			panic(fmt.Errorf("failed to create bucket: %w", err))
+		}
+	}
+
+	return minioClient
 }
