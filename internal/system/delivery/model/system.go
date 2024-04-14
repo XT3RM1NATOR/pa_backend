@@ -13,6 +13,10 @@ type LeaveProjectRequest struct {
 	ProjectID string `json:"project_id"`
 }
 
+type GetProjectByIdRequest struct {
+	ProjectID string `json:"project_id"`
+}
+
 // Responses
 
 type ErrorResponse struct {

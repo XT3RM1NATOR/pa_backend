@@ -49,13 +49,15 @@ func (sc *SystemController) LeaveProject(c echo.Context) error {
 	return c.JSON(http.StatusOK, model.SuccessResponse{Message: "project left successfully"})
 }
 
+// TODO: who can view the project? Everybody? What info should be there?
 //func (sc *SystemController) GetProjectByID(c echo.Context) error {
-//	var request model.UserRequest
+//	var request model.GetProjectByIdRequest
 //	if err := c.Bind(&request); err != nil {
 //		return c.JSON(http.StatusBadRequest, model.ErrorResponse{Error: err.Error()})
 //	}
 //}
-//
+
+// TODO: all projects of a company? of a user? should it be different endpoints?
 //func (sc *SystemController) GetAllProjects(c echo.Context) error {
 //	var request model.UserRequest
 //	if err := c.Bind(&request); err != nil {
