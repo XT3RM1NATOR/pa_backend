@@ -35,13 +35,20 @@ func (sc *SystemController) CreateProject(c echo.Context) error {
 	return c.JSON(http.StatusCreated, model.SuccessResponse{Message: "project added successfully"})
 }
 
-//func (sc *SystemController) QuitProject(c echo.Context) error {
-//	var request model.UserRequest
-//	if err := c.Bind(&request); err != nil {
-//		return c.JSON(http.StatusBadRequest, model.ErrorResponse{Error: err.Error()})
-//	}
-//}
-//
+func (sc *SystemController) LeaveProject(c echo.Context) error {
+	var request model.LeaveProjectRequest
+	if err := c.Bind(&request); err != nil {
+		return c.JSON(http.StatusBadRequest, model.ErrorResponse{Error: err.Error()})
+	}
+
+	userId := c.Request().Context().Value("userID").(primitive.ObjectID)
+	if err := sc.systemService.LeaveProject(request.ProjectID, userId); err != nil {
+		return c.JSON(http.StatusInternalServerError, model.ErrorResponse{Error: err.Error()})
+	}
+
+	return c.JSON(http.StatusOK, model.SuccessResponse{Message: "project left successfully"})
+}
+
 //func (sc *SystemController) GetProjectByID(c echo.Context) error {
 //	var request model.UserRequest
 //	if err := c.Bind(&request); err != nil {

@@ -66,3 +66,28 @@ func (sr *SystemRepositoryImpl) ValidateTeam(team []string) ([]primitive.ObjectI
 
 	return userIds, nil
 }
+
+func (sr *SystemRepositoryImpl) FindProjectById(projectId string) (entity.Project, error) {
+	var project entity.Project
+	err := sr.database.Collection(sr.config.MongoDB.ProjectCollection).FindOne(context.Background(), bson.M{"project_id": projectId}).Decode(&project)
+	if err != nil {
+		return project, err
+	}
+
+	return project, nil
+}
+
+func (sr *SystemRepositoryImpl) RemoveUserFromProject(project entity.Project, userId primitive.ObjectID) error {
+	filter := bson.M{"_id": project.ID, "team": userId}
+	update := bson.M{"$pull": bson.M{"team": userId}}
+
+	res, err := sr.database.Collection(sr.config.MongoDB.ProjectCollection).UpdateOne(context.Background(), filter, update)
+	if err != nil {
+		return err
+	}
+	if res.MatchedCount == 0 {
+		return errors.New("user ID not found in the project team")
+	}
+
+	return nil
+}

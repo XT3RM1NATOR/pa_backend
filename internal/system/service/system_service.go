@@ -47,10 +47,19 @@ func (ss *SystemServiceImpl) CreateProject(logo []byte, team []string, ownerId p
 	return nil
 }
 
-//func (ss *SystemServiceImpl) QuitProject() error {
-//	// Implement logic for quitting a project
-//}
-//
+func (ss *SystemServiceImpl) LeaveProject(projectId string, userId primitive.ObjectID) error {
+	project, err := ss.systemRepo.FindProjectById(projectId)
+	if err != nil {
+		return err
+	}
+
+	if err := ss.systemRepo.RemoveUserFromProject(project, userId); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 //func (ss *SystemServiceImpl) GetProjectByID() error {
 //	// Implement logic to get a project by ID
 //}

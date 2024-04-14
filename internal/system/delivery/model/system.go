@@ -9,6 +9,10 @@ type CreateProjectRequest struct {
 	ProjectID string   `json:"project_id"`
 }
 
+type LeaveProjectRequest struct {
+	ProjectID string `json:"project_id"`
+}
+
 // Responses
 
 type ErrorResponse struct {
