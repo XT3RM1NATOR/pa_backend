@@ -35,15 +35,12 @@ func (sr *SystemRepositoryImpl) CreateProject(team []primitive.ObjectID, project
 		CreatedAt: primitive.NewDateTimeFromTime(time.Now()),
 	}
 
-	err := sr.database.Collection(sr.config.MongoDB.ProjectCollection).FindOne(context.Background(), bson.M{"projectId": email}).Decode(&user)
-	if err != nil {
-		if errors.Is(err, mongo.ErrNoDocuments) {
-			return nil, errors.New("user not found for email: " + email)
-		}
-		return nil, err
+	err := sr.database.Collection(sr.config.MongoDB.ProjectCollection).FindOne(context.Background(), bson.M{"project_id": projectId}).Decode(&project)
+	if err != nil && !errors.Is(err, mongo.ErrNoDocuments) {
+		return err
 	}
 
-	_, err := sr.database.Collection(sr.collection).InsertOne(context.Background(), project)
+	_, err = sr.database.Collection(sr.collection).InsertOne(context.Background(), project)
 	if err != nil {
 		return err
 	}
