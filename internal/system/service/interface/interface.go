@@ -7,11 +7,17 @@ import (
 
 type StorageClient interface {
 	SaveFile(fileBytes []byte, bucketName, objectName string) error
+	LoadFile(fileName, bucketName string) ([]byte, error)
 }
 
 type SystemRepository interface {
-	ValidateTeam(team []string) ([]primitive.ObjectID, error)
-	CreateProject(team []primitive.ObjectID, projectId, name string, ownerId primitive.ObjectID) error
+	ValidateTeam(team map[string]string, ownerId primitive.ObjectID) (map[primitive.ObjectID]entity.ProjectRole, error)
+	CreateProject(team map[primitive.ObjectID]entity.ProjectRole, projectId, name string) error
 	RemoveUserFromProject(project entity.Project, userId primitive.ObjectID) error
-	FindProjectById(projectId string) (entity.Project, error)
+	FindProjectByProjectId(projectId string) (entity.Project, error)
+	DeleteProject(id primitive.ObjectID) error
+	FindProjectsByUser(userID primitive.ObjectID) ([]entity.Project, error)
+	FindUserByEmail(email string) (primitive.ObjectID, error)
+	FindUserById(userID primitive.ObjectID) (string, error)
+	AddUsersToProject(project entity.Project, teamRoles map[primitive.ObjectID]entity.ProjectRole) error
 }

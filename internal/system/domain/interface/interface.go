@@ -1,15 +1,18 @@
 package _interface
 
-import "go.mongodb.org/mongo-driver/bson/primitive"
+import (
+	"github.com/Point-AI/backend/internal/system/infrastructure/model"
+	"go.mongodb.org/mongo-driver/bson/primitive"
+)
 
 type SystemService interface {
-	CreateProject(logo []byte, team []string, ownerId primitive.ObjectID, projectId, name string) error
+	CreateProject(logo []byte, team map[string]string, ownerId primitive.ObjectID, projectId, name string) error
 	LeaveProject(projectId string, userId primitive.ObjectID) error
 	GetProjectByID() error
-	GetAllProjects() error
+	GetAllProjects(userId primitive.ObjectID) ([]model.Project, error)
 	UpdateProjectByID() error
-	AddProjectMember() error
+	AddProjectMembers(userId primitive.ObjectID, team map[string]string, projectId string) error
 	UpdateProjectMember() error
-	DeleteProjectMember() error
-	DeleteProjectByID() error
+	DeleteProjectMember(userId primitive.ObjectID, projectId, memberEmail string) error
+	DeleteProjectByID(projectId string, userId primitive.ObjectID) error
 }

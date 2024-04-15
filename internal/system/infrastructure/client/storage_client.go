@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/Point-AI/backend/internal/system/service/interface"
 	"github.com/minio/minio-go/v7"
+	"io"
 )
 
 type StorageClientImpl struct {
@@ -29,4 +30,20 @@ func (sc *StorageClientImpl) SaveFile(fileBytes []byte, bucketName, objectName s
 	}
 
 	return nil
+}
+
+func (sc *StorageClientImpl) LoadFile(fileName, bucketName string) ([]byte, error) {
+	ctx := context.Background()
+	reader, err := sc.str.GetObject(ctx, bucketName, fileName, minio.GetObjectOptions{})
+	if err != nil {
+		return nil, err
+	}
+	defer reader.Close()
+
+	fileBytes, err := io.ReadAll(reader)
+	if err != nil {
+		return nil, err
+	}
+
+	return fileBytes, nil
 }

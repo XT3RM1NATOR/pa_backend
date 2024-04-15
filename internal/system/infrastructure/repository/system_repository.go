@@ -26,48 +26,46 @@ func NewSystemRepositoryImpl(db *mongo.Database, cfg *config.Config, collection 
 	}
 }
 
-func (sr *SystemRepositoryImpl) CreateProject(team []primitive.ObjectID, projectId, name string, ownerId primitive.ObjectID) error {
+func (sr *SystemRepositoryImpl) CreateProject(team map[primitive.ObjectID]entity.ProjectRole, projectId, name string) error {
 	project := &entity.Project{
 		Name:      name,
 		Team:      team,
-		OwnerID:   ownerId,
 		ProjectID: projectId,
 		CreatedAt: primitive.NewDateTimeFromTime(time.Now()),
 	}
 
-	err := sr.database.Collection(sr.config.MongoDB.ProjectCollection).FindOne(context.Background(), bson.M{"project_id": projectId}).Decode(&project)
-	if err != nil && !errors.Is(err, mongo.ErrNoDocuments) {
+	if _, err := sr.database.Collection(sr.collection).InsertOne(context.Background(), project); err != nil {
 		return err
 	}
-
-	_, err = sr.database.Collection(sr.collection).InsertOne(context.Background(), project)
-	if err != nil {
-		return err
-	}
-
 	return nil
 }
 
-func (sr *SystemRepositoryImpl) ValidateTeam(team []string) ([]primitive.ObjectID, error) {
-	userIds := make([]primitive.ObjectID, 0, len(team))
+func (sr *SystemRepositoryImpl) ValidateTeam(team map[string]string, ownerId primitive.ObjectID) (map[primitive.ObjectID]entity.ProjectRole, error) {
+	userRoles := make(map[primitive.ObjectID]entity.ProjectRole)
+	userRoles[ownerId] = entity.RoleAdmin
 
-	for _, email := range team {
+	for email, role := range team {
 		var user entity.User
 		err := sr.database.Collection(sr.config.MongoDB.UserCollection).FindOne(context.Background(), bson.M{"email": email}).Decode(&user)
 		if err != nil {
 			if errors.Is(err, mongo.ErrNoDocuments) {
-				return nil, errors.New("user not found for email: " + email)
+				continue
 			}
 			return nil, err
 		}
 
-		userIds = append(userIds, user.ID)
+		switch role {
+		case string(entity.RoleAdmin), string(entity.RoleMember), string(entity.RoleObserver):
+			userRoles[user.ID] = entity.ProjectRole(role)
+		default:
+			userRoles[user.ID] = entity.RoleMember
+		}
 	}
 
-	return userIds, nil
+	return userRoles, nil
 }
 
-func (sr *SystemRepositoryImpl) FindProjectById(projectId string) (entity.Project, error) {
+func (sr *SystemRepositoryImpl) FindProjectByProjectId(projectId string) (entity.Project, error) {
 	var project entity.Project
 	err := sr.database.Collection(sr.config.MongoDB.ProjectCollection).FindOne(context.Background(), bson.M{"project_id": projectId}).Decode(&project)
 	if err != nil {
@@ -78,8 +76,7 @@ func (sr *SystemRepositoryImpl) FindProjectById(projectId string) (entity.Projec
 }
 
 func (sr *SystemRepositoryImpl) RemoveUserFromProject(project entity.Project, userId primitive.ObjectID) error {
-	filter := bson.M{"_id": project.ID, "team": userId}
-	update := bson.M{"$pull": bson.M{"team": userId}}
+	filter, update := bson.M{"_id": project.ID}, bson.M{"$unset": bson.M{"team." + userId.Hex(): ""}}
 
 	res, err := sr.database.Collection(sr.config.MongoDB.ProjectCollection).UpdateOne(context.Background(), filter, update)
 	if err != nil {
@@ -90,4 +87,75 @@ func (sr *SystemRepositoryImpl) RemoveUserFromProject(project entity.Project, us
 	}
 
 	return nil
+}
+
+func (sr *SystemRepositoryImpl) AddUsersToProject(project entity.Project, teamRoles map[primitive.ObjectID]entity.ProjectRole) error {
+	for userID, role := range teamRoles {
+		if _, exists := project.Team[userID]; !exists {
+			project.Team[userID] = role
+		}
+	}
+	filter, update := bson.M{"_id": project.ID}, bson.M{"$set": bson.M{"team": project.Team}}
+
+	res, err := sr.database.Collection(sr.config.MongoDB.ProjectCollection).UpdateOne(context.Background(), filter, update)
+	if err != nil {
+		return err
+	}
+	if res.MatchedCount == 0 {
+		return errors.New("project not found")
+	}
+
+	return nil
+}
+
+func (sr *SystemRepositoryImpl) DeleteProject(id primitive.ObjectID) error {
+	res, err := sr.database.Collection(sr.config.MongoDB.ProjectCollection).DeleteOne(context.Background(), bson.M{"_id": id})
+	if err != nil {
+		return err
+	}
+
+	if res.DeletedCount == 0 {
+		return errors.New("project not found")
+	}
+
+	return nil
+}
+
+func (sr *SystemRepositoryImpl) FindProjectsByUser(userID primitive.ObjectID) ([]entity.Project, error) {
+	filter := bson.M{
+		"team." + userID.Hex(): bson.M{"$exists": true},
+	}
+
+	cursor, err := sr.database.Collection(sr.config.MongoDB.ProjectCollection).Find(context.Background(), filter)
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(context.Background())
+
+	var projects []entity.Project
+	if err := cursor.All(context.Background(), &projects); err != nil {
+		return nil, err
+	}
+
+	return projects, nil
+}
+
+func (sr *SystemRepositoryImpl) FindUserById(userID primitive.ObjectID) (string, error) {
+	var user entity.User
+	err := sr.database.Collection(sr.config.MongoDB.UserCollection).FindOne(context.Background(), bson.M{"_id": userID}).Decode(&user)
+	if err != nil {
+		return "", err
+	}
+
+	return user.Email, nil
+}
+
+func (sr *SystemRepositoryImpl) FindUserByEmail(email string) (primitive.ObjectID, error) {
+	var user entity.User
+	err := sr.database.Collection(sr.config.MongoDB.UserCollection).FindOne(context.Background(), bson.M{"email": email}).Decode(&user)
+	if err != nil {
+		return primitive.ObjectID{}, err
+	}
+
+	return user.ID, nil
 }
