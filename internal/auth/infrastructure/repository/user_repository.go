@@ -3,7 +3,8 @@ package repository
 import (
 	"context"
 	"errors"
-	"github.com/Point-AI/backend/internal/auth/infrastructure/model"
+	"github.com/Point-AI/backend/internal/auth/domain/entity"
+	"github.com/Point-AI/backend/internal/auth/service/interface"
 	"github.com/Point-AI/backend/utils"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -12,29 +13,29 @@ import (
 	"time"
 )
 
-type UserRepository struct {
+type UserRepositoryImpl struct {
 	database   *mongo.Database
 	collection string
 }
 
-func NewUserRepository(db *mongo.Database, collection string) *UserRepository {
-	return &UserRepository{
+func NewUserRepositoryImpl(db *mongo.Database, collection string) infrastructureInterface.UserRepository {
+	return &UserRepositoryImpl{
 		database:   db,
 		collection: collection,
 	}
 }
 
-func (ur *UserRepository) CreateUser(email, passwordHash, confirmToken string) error {
+func (ur *UserRepositoryImpl) CreateUser(email, passwordHash, confirmToken string) error {
 	_, err := mail.ParseAddress(email)
 	if err != nil {
 		return err
 	}
 
-	user := &model.User{
+	user := &entity.User{
 		Email:        email,
 		PasswordHash: passwordHash,
 		IsConfirmed:  false,
-		Tokens: model.Tokens{
+		Tokens: entity.Tokens{
 			ConfirmToken: confirmToken,
 		},
 		CreatedAt: primitive.NewDateTimeFromTime(time.Now()),
@@ -44,7 +45,7 @@ func (ur *UserRepository) CreateUser(email, passwordHash, confirmToken string) e
 	return err
 }
 
-func (ur *UserRepository) CreateOauth2User(email, authSource string) (string, error) {
+func (ur *UserRepositoryImpl) CreateOauth2User(email, authSource string) (string, error) {
 	existingUser, err := ur.GetUserByEmail(email)
 	if err != nil {
 		return "", err
@@ -65,10 +66,10 @@ func (ur *UserRepository) CreateOauth2User(email, authSource string) (string, er
 		return oAuth2Token, nil
 	}
 
-	user := &model.User{
+	user := &entity.User{
 		Email:       email,
 		AuthSource:  authSource,
-		Tokens:      model.Tokens{OAuth2Token: oAuth2Token},
+		Tokens:      entity.Tokens{OAuth2Token: oAuth2Token},
 		IsConfirmed: true,
 		CreatedAt:   primitive.NewDateTimeFromTime(time.Now()),
 	}
@@ -80,8 +81,8 @@ func (ur *UserRepository) CreateOauth2User(email, authSource string) (string, er
 	return oAuth2Token, nil
 }
 
-func (ur *UserRepository) GetUserByEmail(email string) (*model.User, error) {
-	var user model.User
+func (ur *UserRepositoryImpl) GetUserByEmail(email string) (*entity.User, error) {
+	var user entity.User
 	err := ur.database.Collection(ur.collection).FindOne(context.Background(), bson.M{"email": email}).Decode(&user)
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
@@ -92,8 +93,8 @@ func (ur *UserRepository) GetUserByEmail(email string) (*model.User, error) {
 	return &user, nil
 }
 
-func (ur *UserRepository) GetUserById(id primitive.ObjectID) (*model.User, error) {
-	var user model.User
+func (ur *UserRepositoryImpl) GetUserById(id primitive.ObjectID) (*entity.User, error) {
+	var user entity.User
 	err := ur.database.Collection(ur.collection).FindOne(context.Background(), bson.M{"_id": id}).Decode(&user)
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
@@ -104,11 +105,11 @@ func (ur *UserRepository) GetUserById(id primitive.ObjectID) (*model.User, error
 	return &user, nil
 }
 
-func (ur *UserRepository) GetUserByOAuth2Token(token string) (*model.User, error) {
-	var user model.User
+func (ur *UserRepositoryImpl) GetUserByOAuth2Token(token string) (*entity.User, error) {
+	var user entity.User
 	err := ur.database.Collection(ur.collection).FindOne(
 		context.Background(),
-		bson.M{"tokens.oAuth2Token": token},
+		bson.M{"tokens.oauth2_token": token},
 	).Decode(&user)
 	if err != nil {
 		return nil, err
@@ -116,11 +117,11 @@ func (ur *UserRepository) GetUserByOAuth2Token(token string) (*model.User, error
 	return &user, nil
 }
 
-func (ur *UserRepository) GetUserByConfirmToken(token string) (*model.User, error) {
-	var user model.User
+func (ur *UserRepositoryImpl) GetUserByConfirmToken(token string) (*entity.User, error) {
+	var user entity.User
 	err := ur.database.Collection(ur.collection).FindOne(
 		context.Background(),
-		bson.M{"tokens.confirmToken": token},
+		bson.M{"tokens.confirm_token": token},
 	).Decode(&user)
 	if err != nil {
 		return nil, err
@@ -128,43 +129,43 @@ func (ur *UserRepository) GetUserByConfirmToken(token string) (*model.User, erro
 	return &user, nil
 }
 
-func (ur *UserRepository) SetResetToken(user *model.User, token string) error {
+func (ur *UserRepositoryImpl) SetResetToken(user *entity.User, token string) error {
 	user.Tokens.ResetToken = token
 	return ur.updateUser(user)
 }
 
-func (ur *UserRepository) SetRefreshToken(user *model.User, token string) error {
+func (ur *UserRepositoryImpl) SetRefreshToken(user *entity.User, token string) error {
 	user.Tokens.RefreshToken = token
 	user.Tokens.OAuth2Token = ""
 	return ur.updateUser(user)
 }
 
-func (ur *UserRepository) ClearResetToken(id primitive.ObjectID, password string) error {
+func (ur *UserRepositoryImpl) ClearResetToken(id primitive.ObjectID, password string) error {
 	update := bson.M{"$set": bson.M{
-		"password":          password,
-		"tokens.resetToken": "",
+		"password":           password,
+		"tokens.reset_token": "",
 	},
 	}
 	_, err := ur.database.Collection(ur.collection).UpdateOne(context.Background(), bson.M{"_id": id}, update)
 	return err
 }
 
-func (ur *UserRepository) ClearRefreshToken(id primitive.ObjectID) error {
-	update := bson.M{"$set": bson.M{"tokens.refreshToken": ""}}
+func (ur *UserRepositoryImpl) ClearRefreshToken(id primitive.ObjectID) error {
+	update := bson.M{"$set": bson.M{"tokens.refresh_token": ""}}
 	_, err := ur.database.Collection(ur.collection).UpdateOne(context.Background(), bson.M{"_id": id}, update)
 	return err
 }
 
-func (ur *UserRepository) ConfirmUser(userId primitive.ObjectID) error {
+func (ur *UserRepositoryImpl) ConfirmUser(userId primitive.ObjectID) error {
 	update := bson.M{"$set": bson.M{
-		"isConfirmed":         true,
-		"tokens.confirmToken": "",
+		"is_confirmed":         true,
+		"tokens.confirm_token": "",
 	}}
 	_, err := ur.database.Collection(ur.collection).UpdateOne(context.Background(), bson.M{"_id": userId}, update)
 	return err
 }
 
-func (ur *UserRepository) updateUser(user *model.User) error {
+func (ur *UserRepositoryImpl) updateUser(user *entity.User) error {
 	_, err := ur.database.Collection(ur.collection).ReplaceOne(context.Background(), bson.M{"_id": user.ID}, user)
 	return err
 }

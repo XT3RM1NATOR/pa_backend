@@ -1,14 +1,23 @@
 package main
 
 import (
-	"github.com/Point-AI/backend/config"
-	"github.com/Point-AI/backend/internal/app/db"
-	"github.com/Point-AI/backend/internal/app/server"
+	"github.com/ahmdrz/goinsta/v2"
+	"log"
 )
 
 func main() {
-	cfg := config.Load()
-	mongodb := db.ConnectToDB(cfg)
+	//cfg := config.Load()
+	//mongodb := db.ConnectToDB(cfg)
+	//str := storage.ConnectToStorage(cfg)
+	//
+	//server.RunHTTPServer(cfg, mongodb, str)
 
-	server.RunHTTPServer(cfg, mongodb)
+	insta := goinsta.New("mika_shamshidov", "Milkshake12)")
+	err := insta.Login()
+	if err != nil {
+		log.Fatal("failed logging in")
+	}
+
+	insta.Account.Following()
+
 }
