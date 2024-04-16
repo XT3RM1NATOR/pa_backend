@@ -8,6 +8,8 @@ import (
 type StorageClient interface {
 	SaveFile(fileBytes []byte, bucketName, objectName string) error
 	LoadFile(fileName, bucketName string) ([]byte, error)
+	UpdateFileName(oldName, newName string, bucketName string) error
+	UpdateFile(newFileBytes []byte, fileName string, bucketName string) error
 }
 
 type SystemRepository interface {
@@ -21,4 +23,5 @@ type SystemRepository interface {
 	FindUserById(userID primitive.ObjectID) (string, error)
 	AddUsersToProject(project entity.Project, teamRoles map[primitive.ObjectID]entity.ProjectRole) error
 	UpdateUsersInProject(project entity.Project, teamRoles map[primitive.ObjectID]entity.ProjectRole) error
+	UpdateProject(project entity.Project) error
 }

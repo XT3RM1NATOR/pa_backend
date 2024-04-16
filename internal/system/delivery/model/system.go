@@ -19,6 +19,12 @@ type UpdateProjectMemberRequest struct {
 	ProjectId string            `json:"project_id"`
 }
 
+type UpdateProjectRequest struct {
+	Name      string `json:"name"`
+	Logo      []byte `json:"logo"`
+	ProjectID string `json:"project_id"`
+}
+
 // Responses
 
 type ErrorResponse struct {

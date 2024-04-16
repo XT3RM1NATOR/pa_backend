@@ -28,7 +28,7 @@ func RegisterSystemRoutes(e *echo.Echo, cfg *config.Config, db *mongo.Database, 
 	projectGroup.GET("/:id", sc.GetProjectByID, middleware.ValidateAccessTokenMiddleware(cfg.Auth.JWTSecretKey))
 	projectGroup.GET("", sc.GetAllProjects, middleware.ValidateAccessTokenMiddleware(cfg.Auth.JWTSecretKey))
 	projectGroup.PUT("/update", sc.UpdateProjectMember, middleware.ValidateAccessTokenMiddleware(cfg.Auth.JWTSecretKey))
-	projectGroup.PUT("/:id", sc.UpdateProjectByID, middleware.ValidateAccessTokenMiddleware(cfg.Auth.JWTSecretKey))
+	projectGroup.PUT("/:id", sc.UpdateProject, middleware.ValidateAccessTokenMiddleware(cfg.Auth.JWTSecretKey))
 	projectGroup.PUT("/leave/:id", sc.LeaveProject, middleware.ValidateAccessTokenMiddleware(cfg.Auth.JWTSecretKey))
 	projectGroup.DELETE("/member/:id/:email", sc.DeleteProjectMember, middleware.ValidateAccessTokenMiddleware(cfg.Auth.JWTSecretKey))
 	projectGroup.DELETE("/project/:id", sc.DeleteProjectByID, middleware.ValidateAccessTokenMiddleware(cfg.Auth.JWTSecretKey))

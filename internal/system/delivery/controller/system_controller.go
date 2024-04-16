@@ -84,13 +84,21 @@ func (sc *SystemController) GetAllProjects(c echo.Context) error {
 	return c.JSON(http.StatusOK, responseProjects)
 }
 
-//
-//	func (sc *SystemController) UpdateProjectByID(c echo.Context) error {
-//		var request model.UserRequest
-//		if err := c.Bind(&request); err != nil {
-//			return c.JSON(http.StatusBadRequest, model.ErrorResponse{Error: err.Error()})
-//		}
-//	}
+func (sc *SystemController) UpdateProject(c echo.Context) error {
+	projectID := c.Param("id")
+	userId := c.Request().Context().Value("userId").(primitive.ObjectID)
+
+	var request model.UpdateProjectRequest
+	if err := c.Bind(&request); err != nil {
+		return c.JSON(http.StatusBadRequest, model.ErrorResponse{Error: err.Error()})
+	}
+
+	if err := sc.systemService.UpdateProject(userId, projectID, request.Logo, request.ProjectID, request.Name); err != nil {
+		return c.JSON(http.StatusInternalServerError, model.ErrorResponse{Error: err.Error()})
+	}
+
+	return c.JSON(http.StatusOK, model.SuccessResponse{Message: "project updated successfully"})
+}
 
 func (sc *SystemController) AddProjectMembers(c echo.Context) error {
 	userId := c.Request().Context().Value("userId").(primitive.ObjectID)

@@ -176,3 +176,17 @@ func (sr *SystemRepositoryImpl) FindUserByEmail(email string) (primitive.ObjectI
 
 	return user.ID, nil
 }
+
+func (sr *SystemRepositoryImpl) UpdateProject(project entity.Project) error {
+	filter, update := bson.M{"_id": project.ID}, bson.M{"$set": project}
+
+	res, err := sr.database.Collection(sr.config.MongoDB.ProjectCollection).ReplaceOne(context.Background(), filter, update)
+	if err != nil {
+		return err
+	}
+	if res.MatchedCount == 0 {
+		return errors.New("project not found")
+	}
+
+	return nil
+}

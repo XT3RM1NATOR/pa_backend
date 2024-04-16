@@ -99,10 +99,43 @@ func (ss *SystemServiceImpl) GetAllProjects(userId primitive.ObjectID) ([]model.
 	return fmtProjects, err
 }
 
-//
-//func (ss *SystemServiceImpl) UpdateProjectByID() error {
-//	// Implement logic to update a project by ID
-//}
+func (ss *SystemServiceImpl) UpdateProject(userId primitive.ObjectID, newLogo []byte, projectId, newProjectId, newName string) error {
+	project, err := ss.systemRepo.FindProjectByProjectId(projectId)
+	if err != nil {
+		return err
+	}
+
+	if ss.isOwner(project.Team[userId]) || ss.isAdmin(project.Team[userId]) {
+		if newProjectId != "" {
+			if err := utils.ValidateProjectId(projectId); err != nil {
+				return err
+			}
+			if err := ss.storageClient.UpdateFileName(projectId, newProjectId, ss.config.MinIo.BucketName); err != nil {
+				return err
+			}
+			project.ProjectID = newProjectId
+		}
+
+		if newLogo != nil {
+			if err := utils.ValidatePhoto(newLogo); err != nil {
+				return err
+			}
+			if err := ss.storageClient.UpdateFile(newLogo, project.ProjectID, ss.config.MinIo.BucketName); err != nil {
+				return err
+			}
+		}
+
+		if newName != "" {
+			project.Name = newName
+		}
+
+		if err := ss.systemRepo.UpdateProject(project); err != nil {
+			return err
+		}
+		return nil
+	}
+	return errors.New("unauthorized to make the changes")
+}
 
 func (ss *SystemServiceImpl) AddProjectMembers(userId primitive.ObjectID, team map[string]string, projectId string) error {
 	project, err := ss.systemRepo.FindProjectByProjectId(projectId)
@@ -183,7 +216,7 @@ func (ss *SystemServiceImpl) formatProjects(projects []entity.Project) ([]model.
 	formattedProjects := make([]model.Project, len(projects))
 
 	for i, p := range projects {
-		logo, _ := ss.storageClient.LoadFile(p.ProjectID+".jpg", ss.config.MinIo.BucketName)
+		logo, _ := ss.storageClient.LoadFile(p.ProjectID, ss.config.MinIo.BucketName)
 		formattedProject := model.Project{
 			Name:      p.Name,
 			ProjectID: p.ProjectID,
