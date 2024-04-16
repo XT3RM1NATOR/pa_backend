@@ -4,7 +4,6 @@ import (
 	"errors"
 	"github.com/Point-AI/backend/config"
 	"github.com/Point-AI/backend/internal/system/domain/entity"
-	"github.com/Point-AI/backend/internal/system/infrastructure/client"
 	"github.com/Point-AI/backend/internal/system/infrastructure/model"
 	infrastructureInterface "github.com/Point-AI/backend/internal/system/service/interface"
 	"github.com/Point-AI/backend/utils"
@@ -18,7 +17,7 @@ type SystemServiceImpl struct {
 	config        *config.Config
 }
 
-func NewSystemServiceImpl(cfg *config.Config, storageClient *client.StorageClientImpl, systemRepo infrastructureInterface.SystemRepository) *SystemServiceImpl {
+func NewSystemServiceImpl(cfg *config.Config, storageClient infrastructureInterface.StorageClient, systemRepo infrastructureInterface.SystemRepository) *SystemServiceImpl {
 	return &SystemServiceImpl{
 		systemRepo:    systemRepo,
 		storageClient: storageClient,
@@ -69,9 +68,23 @@ func (ss *SystemServiceImpl) LeaveProject(projectId string, userId primitive.Obj
 	return nil
 }
 
-//func (ss *SystemServiceImpl) GetProjectByID() error {
-//	// Implement logic to get a project by ID
-//}
+func (ss *SystemServiceImpl) GetProjectById(projectId string, userId primitive.ObjectID) (model.Project, error) {
+	project, err := ss.systemRepo.FindProjectByProjectId(projectId)
+	if err != nil {
+		return model.Project{}, err
+	}
+
+	if _, exists := project.Team[userId]; !exists {
+		return model.Project{}, errors.New("user is not in the project")
+	}
+
+	fmtProject, err := ss.formatProjects([]entity.Project{project})
+	if err != nil {
+		return model.Project{}, err
+	}
+
+	return fmtProject[0], nil
+}
 
 func (ss *SystemServiceImpl) GetAllProjects(userId primitive.ObjectID) ([]model.Project, error) {
 	projects, err := ss.systemRepo.FindProjectsByUser(userId)
@@ -97,7 +110,7 @@ func (ss *SystemServiceImpl) AddProjectMembers(userId primitive.ObjectID, team m
 		return err
 	}
 
-	if ss.isAdmin(project.Team[userId]) {
+	if ss.isAdmin(project.Team[userId]) || ss.isOwner(project.Team[userId]) {
 		teamRoles, err := ss.systemRepo.ValidateTeam(team, userId)
 		if err != nil {
 			return err
@@ -111,14 +124,25 @@ func (ss *SystemServiceImpl) AddProjectMembers(userId primitive.ObjectID, team m
 	return nil
 }
 
-//
-//func (ss *SystemServiceImpl) UpdateProjectMember() error {
-//	// Implement logic to update a project member
-//}
-//
-//func (ss *SystemServiceImpl) LeaveProject() error {
-//	// Implement logic to update a project member
-//}
+func (ss *SystemServiceImpl) UpdateProjectMembers(userId primitive.ObjectID, team map[string]string, projectId string) error {
+	project, err := ss.systemRepo.FindProjectByProjectId(projectId)
+	if err != nil {
+		return err
+	}
+
+	if ss.isAdmin(project.Team[userId]) || ss.isOwner(project.Team[userId]) {
+		teamRoles, err := ss.systemRepo.ValidateTeam(team, userId)
+		if err != nil {
+			return err
+		}
+
+		if err := ss.systemRepo.UpdateUsersInProject(project, teamRoles); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
 
 func (ss *SystemServiceImpl) DeleteProjectMember(userId primitive.ObjectID, projectId, memberEmail string) error {
 	project, err := ss.systemRepo.FindProjectByProjectId(projectId)
@@ -126,7 +150,7 @@ func (ss *SystemServiceImpl) DeleteProjectMember(userId primitive.ObjectID, proj
 		return err
 	}
 
-	if ss.isAdmin(project.Team[userId]) {
+	if ss.isAdmin(project.Team[userId]) || ss.isOwner(project.Team[userId]) {
 		userId, err := ss.systemRepo.FindUserByEmail(memberEmail)
 		if err != nil {
 			return err
@@ -146,7 +170,7 @@ func (ss *SystemServiceImpl) DeleteProjectByID(projectId string, userId primitiv
 		return err
 	}
 
-	if ss.isAdmin(project.Team[userId]) {
+	if ss.isOwner(project.Team[userId]) {
 		if err := ss.systemRepo.DeleteProject(project.ID); err != nil {
 			return err
 		}
@@ -174,4 +198,8 @@ func (ss *SystemServiceImpl) formatProjects(projects []entity.Project) ([]model.
 
 func (ss *SystemServiceImpl) isAdmin(userRole entity.ProjectRole) bool {
 	return userRole == entity.RoleAdmin
+}
+
+func (ss *SystemServiceImpl) isOwner(userRole entity.ProjectRole) bool {
+	return userRole == entity.RoleOwner
 }

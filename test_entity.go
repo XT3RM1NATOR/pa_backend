@@ -67,11 +67,3 @@ type WhatsAppIntegration struct {
 	InstanceId string
 	IsActive   bool
 }
-
-type UserRole string
-
-const (
-	Owner  UserRole = "Owner"
-	Admin  UserRole = "Admin"
-	Member UserRole = "Member"
-)

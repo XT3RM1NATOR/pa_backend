@@ -13,16 +13,14 @@ import (
 )
 
 type SystemRepositoryImpl struct {
-	database   *mongo.Database
-	config     *config.Config
-	collection string
+	database *mongo.Database
+	config   *config.Config
 }
 
-func NewSystemRepositoryImpl(db *mongo.Database, cfg *config.Config, collection string) infrastructureInterface.SystemRepository {
+func NewSystemRepositoryImpl(db *mongo.Database, cfg *config.Config) infrastructureInterface.SystemRepository {
 	return &SystemRepositoryImpl{
-		database:   db,
-		config:     cfg,
-		collection: collection,
+		database: db,
+		config:   cfg,
 	}
 }
 
@@ -34,7 +32,7 @@ func (sr *SystemRepositoryImpl) CreateProject(team map[primitive.ObjectID]entity
 		CreatedAt: primitive.NewDateTimeFromTime(time.Now()),
 	}
 
-	if _, err := sr.database.Collection(sr.collection).InsertOne(context.Background(), project); err != nil {
+	if _, err := sr.database.Collection(sr.config.MongoDB.ProjectCollection).InsertOne(context.Background(), project); err != nil {
 		return err
 	}
 	return nil
@@ -92,6 +90,25 @@ func (sr *SystemRepositoryImpl) RemoveUserFromProject(project entity.Project, us
 func (sr *SystemRepositoryImpl) AddUsersToProject(project entity.Project, teamRoles map[primitive.ObjectID]entity.ProjectRole) error {
 	for userID, role := range teamRoles {
 		if _, exists := project.Team[userID]; !exists {
+			project.Team[userID] = role
+		}
+	}
+	filter, update := bson.M{"_id": project.ID}, bson.M{"$set": bson.M{"team": project.Team}}
+
+	res, err := sr.database.Collection(sr.config.MongoDB.ProjectCollection).UpdateOne(context.Background(), filter, update)
+	if err != nil {
+		return err
+	}
+	if res.MatchedCount == 0 {
+		return errors.New("project not found")
+	}
+
+	return nil
+}
+
+func (sr *SystemRepositoryImpl) UpdateUsersInProject(project entity.Project, teamRoles map[primitive.ObjectID]entity.ProjectRole) error {
+	for userID, role := range teamRoles {
+		if _, exists := project.Team[userID]; exists {
 			project.Team[userID] = role
 		}
 	}

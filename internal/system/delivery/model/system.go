@@ -14,6 +14,11 @@ type AddProjectMemberRequest struct {
 	ProjectId string            `json:"project_id"`
 }
 
+type UpdateProjectMemberRequest struct {
+	Team      map[string]string `json:"team"`
+	ProjectId string            `json:"project_id"`
+}
+
 // Responses
 
 type ErrorResponse struct {
@@ -24,7 +29,7 @@ type SuccessResponse struct {
 	Message string `json:"message"`
 }
 
-type GetAllProjectsResponse struct {
+type ProjectResponse struct {
 	Name      string            `json:"name"`
 	Logo      []byte            `json:"logo"`
 	Team      map[string]string `json:"team"`

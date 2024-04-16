@@ -46,14 +46,22 @@ func (sc *SystemController) LeaveProject(c echo.Context) error {
 	return c.JSON(http.StatusOK, model.SuccessResponse{Message: "project left successfully"})
 }
 
-// TODO: who can view the project? Everybody? What info should be there?
-//func (sc *SystemController) GetProjectByID(c echo.Context) error {
-//	var request model.GetProjectByIdRequest
-//	if err := c.Bind(&request); err != nil {
-//		return c.JSON(http.StatusBadRequest, model.ErrorResponse{Error: err.Error()})
-//	}
-//}
+func (sc *SystemController) GetProjectByID(c echo.Context) error {
+	projectID := c.Param("id")
+	userId := c.Request().Context().Value("userId").(primitive.ObjectID)
 
+	project, err := sc.systemService.GetProjectById(projectID, userId)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, model.ErrorResponse{Error: err.Error()})
+	}
+
+	return c.JSON(http.StatusOK, model.ProjectResponse{
+		Name:      project.Name,
+		Logo:      project.Logo,
+		Team:      project.Team,
+		ProjectID: project.ProjectID,
+	})
+}
 func (sc *SystemController) GetAllProjects(c echo.Context) error {
 	userId := c.Request().Context().Value("userId").(primitive.ObjectID)
 
@@ -62,9 +70,9 @@ func (sc *SystemController) GetAllProjects(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, model.ErrorResponse{Error: err.Error()})
 	}
 
-	var responseProjects []model.GetAllProjectsResponse
+	var responseProjects []model.ProjectResponse
 	for _, project := range projects {
-		responseProject := model.GetAllProjectsResponse{
+		responseProject := model.ProjectResponse{
 			Name:      project.Name,
 			Logo:      project.Logo,
 			Team:      project.Team,
@@ -85,8 +93,9 @@ func (sc *SystemController) GetAllProjects(c echo.Context) error {
 //	}
 
 func (sc *SystemController) AddProjectMembers(c echo.Context) error {
-	var request model.AddProjectMemberRequest
 	userId := c.Request().Context().Value("userId").(primitive.ObjectID)
+
+	var request model.AddProjectMemberRequest
 	if err := c.Bind(&request); err != nil {
 		return c.JSON(http.StatusBadRequest, model.ErrorResponse{Error: err.Error()})
 	}
@@ -98,20 +107,20 @@ func (sc *SystemController) AddProjectMembers(c echo.Context) error {
 	return c.JSON(http.StatusOK, model.SuccessResponse{Message: "users added successfully"})
 }
 
-//
-//	func (sc *SystemController) UpdateProjectMember(c echo.Context) error {
-//		var request model.UserRequest
-//		if err := c.Bind(&request); err != nil {
-//			return c.JSON(http.StatusBadRequest, model.ErrorResponse{Error: err.Error()})
-//		}
-//	}
-//
-//	func (sc *SystemController) LeaveProject(c echo.Context) error {
-//		var request model.UserRequest
-//		if err := c.Bind(&request); err != nil {
-//			return c.JSON(http.StatusBadRequest, model.ErrorResponse{Error: err.Error()})
-//		}
-//	}
+func (sc *SystemController) UpdateProjectMember(c echo.Context) error {
+	userId := c.Request().Context().Value("userId").(primitive.ObjectID)
+
+	var request model.UpdateProjectMemberRequest
+	if err := c.Bind(&request); err != nil {
+		return c.JSON(http.StatusBadRequest, model.ErrorResponse{Error: err.Error()})
+	}
+
+	if err := sc.systemService.UpdateProjectMembers(userId, request.Team, request.ProjectId); err != nil {
+		return c.JSON(http.StatusInternalServerError, model.ErrorResponse{Error: err.Error()})
+	}
+
+	return c.JSON(http.StatusOK, model.SuccessResponse{Message: "users updated successfully"})
+}
 
 func (sc *SystemController) DeleteProjectMember(c echo.Context) error {
 	memberEmail := c.Param("email")

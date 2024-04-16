@@ -20,4 +20,5 @@ type SystemRepository interface {
 	FindUserByEmail(email string) (primitive.ObjectID, error)
 	FindUserById(userID primitive.ObjectID) (string, error)
 	AddUsersToProject(project entity.Project, teamRoles map[primitive.ObjectID]entity.ProjectRole) error
+	UpdateUsersInProject(project entity.Project, teamRoles map[primitive.ObjectID]entity.ProjectRole) error
 }

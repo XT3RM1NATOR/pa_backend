@@ -5,9 +5,9 @@ import "go.mongodb.org/mongo-driver/bson/primitive"
 type ProjectRole string
 
 const (
-	RoleAdmin    ProjectRole = "admin"
-	RoleMember   ProjectRole = "member"
-	RoleObserver ProjectRole = "observer"
+	RoleAdmin  ProjectRole = "admin"
+	RoleMember ProjectRole = "member"
+	RoleOwner  ProjectRole = "owner"
 )
 
 type Project struct {
