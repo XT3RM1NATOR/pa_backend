@@ -13,16 +13,18 @@ import (
 )
 
 type UserServiceImpl struct {
-	userRepo     infrastructureInterface.UserRepository
-	emailService _interface.EmailService
-	config       *config.Config
+	userRepo      infrastructureInterface.UserRepository
+	emailService  _interface.EmailService
+	storageClient infrastructureInterface.StorageClient
+	config        *config.Config
 }
 
-func NewUserServiceImpl(userRepo infrastructureInterface.UserRepository, emailService _interface.EmailService, cfg *config.Config) _interface.UserService {
+func NewUserServiceImpl(userRepo infrastructureInterface.UserRepository, storageClient infrastructureInterface.StorageClient, emailService _interface.EmailService, cfg *config.Config) _interface.UserService {
 	return &UserServiceImpl{
-		userRepo:     userRepo,
-		emailService: emailService,
-		config:       cfg,
+		userRepo:      userRepo,
+		emailService:  emailService,
+		storageClient: storageClient,
+		config:        cfg,
 	}
 }
 
@@ -226,4 +228,15 @@ func (us *UserServiceImpl) setRefreshToken(user *entity.User) (string, string, e
 	}
 
 	return accessToken, refreshToken, nil
+}
+
+func (us *UserServiceImpl) GetUserProfile(userId primitive.ObjectID) (*entity.User, []byte, error) {
+	user, err := us.userRepo.GetUserById(userId)
+	if err != nil {
+		return &entity.User{}, nil, err
+	}
+
+	logo, _ := us.storageClient.LoadFile(userId.Hex(), us.config.MinIo.BucketName)
+
+	return user, logo, nil
 }

@@ -1,5 +1,7 @@
 package model
 
+import "go.mongodb.org/mongo-driver/bson/primitive"
+
 // Requests
 
 type UserRequest struct {
@@ -45,4 +47,11 @@ type TokenResponse struct {
 
 type URLResponse struct {
 	URL string `json:"url"`
+}
+
+type UserProfileResponse struct {
+	Email     string             `json:"email"`
+	FullName  string             `json:"name"`
+	Logo      []byte             `json:"logo"`
+	CreatedAt primitive.DateTime `json:"created_at"`
 }

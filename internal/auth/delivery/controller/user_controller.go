@@ -184,7 +184,7 @@ func (uc *UserController) ResetPassword(c echo.Context) error {
 // @Failure 500 {object} model.ErrorResponse "Internal server error"
 // @Router /auth/logout [post]
 func (uc *UserController) Logout(c echo.Context) error {
-	userId := c.Request().Context().Value("userID").(primitive.ObjectID)
+	userId := c.Request().Context().Value("userId").(primitive.ObjectID)
 	err := uc.userService.Logout(userId)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, model.ErrorResponse{Error: err.Error()})
@@ -236,4 +236,27 @@ func (uc *UserController) GoogleCallback(c echo.Context) error {
 	}
 
 	return c.Redirect(http.StatusFound, fmt.Sprintf("%s/?oauth2token="+oAuth2Token, uc.config.Website.WebURL))
+}
+
+// GetProfile returns the user profile.
+// @Summary returns the user profile.
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Success 200 {object} model.UserProfileResponse "user profile data"
+// @Failure 500 {object} model.ErrorResponse "Internal server error"
+// @Router /auth/profile [get]
+func (uc *UserController) GetProfile(c echo.Context) error {
+	userId := c.Request().Context().Value("userId").(primitive.ObjectID)
+	user, logo, err := uc.userService.GetUserProfile(userId)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, model.ErrorResponse{Error: err.Error()})
+	}
+
+	return c.JSON(http.StatusOK, model.UserProfileResponse{
+		Email:     user.Email,
+		FullName:  user.FullName,
+		Logo:      logo,
+		CreatedAt: user.CreatedAt,
+	})
 }

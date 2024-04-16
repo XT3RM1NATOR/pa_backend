@@ -5,6 +5,13 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
+type StorageClient interface {
+	SaveFile(fileBytes []byte, bucketName, objectName string) error
+	LoadFile(fileName, bucketName string) ([]byte, error)
+	UpdateFileName(oldName, newName string, bucketName string) error
+	UpdateFile(newFileBytes []byte, fileName string, bucketName string) error
+}
+
 type UserRepository interface {
 	CreateUser(email, passwordHash, confirmToken string) error
 	CreateOauth2User(email, authSource string) (string, error)

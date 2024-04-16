@@ -1,6 +1,7 @@
 package _interface
 
 import (
+	"github.com/Point-AI/backend/internal/auth/domain/entity"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
@@ -14,6 +15,7 @@ type UserService interface {
 	ResetPassword(token, newPassword string) error
 	RenewAccessToken(refreshToken string) (string, error)
 	Logout(userId primitive.ObjectID) error
+	GetUserProfile(userId primitive.ObjectID) (*entity.User, []byte, error)
 }
 
 type EmailService interface {
