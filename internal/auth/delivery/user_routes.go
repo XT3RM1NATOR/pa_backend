@@ -12,13 +12,13 @@ import (
 )
 
 func RegisterAuthRoutes(e *echo.Echo, cfg *config.Config, db *mongo.Database) {
+	authGroup := e.Group("/auth")
+
 	ur := repository.NewUserRepositoryImpl(db, cfg.MongoDB.UserCollection)
 	ec := client.NewEmailClientImpl(cfg.Email.SMTPUsername, cfg.Email.SMTPPassword, cfg.Email.SMTPHost, cfg.Email.SMTPPort)
 	es := service.NewEmailServiceImpl(ec)
 	us := service.NewUserServiceImpl(ur, es, cfg)
 	uc := controller.NewUserController(us, cfg)
-
-	authGroup := e.Group("/auth")
 
 	authGroup.POST("/signup", uc.RegisterUser)
 	authGroup.POST("/verify/:token", uc.ConfirmUser)

@@ -15,11 +15,9 @@ import (
 func RegisterSystemRoutes(e *echo.Echo, cfg *config.Config, db *mongo.Database, str *minio.Client) {
 	systemGroup := e.Group("/system")
 
-	strc := client.NewStorageClientImpl(str)
+	src := client.NewStorageClientImpl(str)
 	sr := repository.NewSystemRepositoryImpl(db, cfg)
-
-	ss := service.NewSystemServiceImpl(cfg, strc, sr)
-
+	ss := service.NewSystemServiceImpl(cfg, src, sr)
 	sc := controller.NewSystemController(ss, cfg)
 
 	projectGroup := systemGroup.Group("/project")
