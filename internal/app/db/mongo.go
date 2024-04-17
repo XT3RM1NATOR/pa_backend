@@ -20,17 +20,10 @@ func ConnectToDB(cfg *config.Config) *mongo.Database {
 	if err != nil {
 		panic(err)
 	}
-	defer func() {
-		if err = client.Disconnect(context.TODO()); err != nil {
-			panic(err)
-		}
-	}()
 
 	if err := client.Database("admin").RunCommand(context.TODO(), bson.D{{"ping", 1}}).Err(); err != nil {
 		panic(err)
 	}
-	fmt.Println("Successfully connected to MongoDB!")
-
 	db := client.Database(cfg.MongoDB.Database)
 
 	return db

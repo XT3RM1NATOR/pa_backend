@@ -9,6 +9,7 @@ import (
 	"github.com/Point-AI/backend/internal/auth/service/interface"
 	"github.com/Point-AI/backend/utils"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"log"
 )
 
 type UserServiceImpl struct {
@@ -29,6 +30,7 @@ func NewUserServiceImpl(userRepo infrastructureInterface.UserRepository, storage
 
 func (us *UserServiceImpl) GoogleAuthCallback(code string) (string, error) {
 	email, photo, err := utils.ExtractGoogleData(us.config.OAuth2.GoogleClientId, us.config.OAuth2.GoogleClientSecret, code, us.config.OAuth2.GoogleRedirectURL)
+	log.Println(email, photo, err)
 	if err != nil {
 		return "", err
 	}
@@ -235,7 +237,7 @@ func (us *UserServiceImpl) GetUserProfile(userId primitive.ObjectID) (*entity.Us
 		return &entity.User{}, nil, err
 	}
 
-	logo, _ := us.storageClient.LoadFile(user.Email, us.config.MinIo.BucketName)
+	logo, err := us.storageClient.LoadFile(user.Email, us.config.MinIo.BucketName)
 
 	return user, logo, nil
 }

@@ -24,4 +24,5 @@ type SystemRepository interface {
 	AddUsersToProject(project entity.Project, teamRoles map[primitive.ObjectID]entity.ProjectRole) error
 	UpdateUsersInProject(project entity.Project, teamRoles map[primitive.ObjectID]entity.ProjectRole) error
 	UpdateProject(project entity.Project) error
+	FormatTeam(team map[primitive.ObjectID]entity.ProjectRole) (map[string]string, error)
 }

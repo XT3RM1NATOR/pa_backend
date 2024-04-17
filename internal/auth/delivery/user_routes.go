@@ -13,8 +13,6 @@ import (
 )
 
 func RegisterAuthRoutes(e *echo.Echo, cfg *config.Config, db *mongo.Database, str *minio.Client) {
-	authGroup := e.Group("/auth")
-
 	ur := repository.NewUserRepositoryImpl(db, cfg.MongoDB.UserCollection)
 	ec := client.NewEmailClientImpl(cfg.Email.SMTPUsername, cfg.Email.SMTPPassword, cfg.Email.SMTPHost, cfg.Email.SMTPPort)
 	sc := client.NewStorageClientImpl(str)
@@ -22,6 +20,7 @@ func RegisterAuthRoutes(e *echo.Echo, cfg *config.Config, db *mongo.Database, st
 	us := service.NewUserServiceImpl(ur, sc, es, cfg)
 	uc := controller.NewUserController(us, cfg)
 
+	authGroup := e.Group("/auth")
 	authGroup.POST("/signup", uc.RegisterUser)
 	authGroup.POST("/verify/:token", uc.ConfirmUser)
 	authGroup.POST("/signin", uc.Login)
@@ -31,6 +30,6 @@ func RegisterAuthRoutes(e *echo.Echo, cfg *config.Config, db *mongo.Database, st
 	authGroup.PUT("/renew", uc.RenewAccessToken)
 	authGroup.GET("/profile", uc.GetProfile, middleware.ValidateAccessTokenMiddleware(cfg.Auth.JWTSecretKey))
 
-	authGroup.GET("/oauth2/gooogle/callback", uc.GoogleCallback)
+	authGroup.GET("/oauth2/google/callback", uc.GoogleCallback)
 	authGroup.GET("/oauth2/google/tokens", uc.GoogleTokens)
 }

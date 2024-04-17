@@ -51,13 +51,35 @@ func (sr *SystemRepositoryImpl) ValidateTeam(team map[string]string, ownerId pri
 			}
 			return nil, err
 		}
+		if _, exists := userRoles[user.ID]; exists {
+			continue
+		}
 
 		switch role {
-		case string(entity.RoleAdmin), string(entity.RoleMember), string(entity.RoleObserver):
+		case string(entity.RoleAdmin), string(entity.RoleMember), string(entity.RoleOwner):
 			userRoles[user.ID] = entity.ProjectRole(role)
 		default:
 			userRoles[user.ID] = entity.RoleMember
 		}
+	}
+
+	return userRoles, nil
+}
+
+func (sr *SystemRepositoryImpl) FormatTeam(team map[primitive.ObjectID]entity.ProjectRole) (map[string]string, error) {
+	userRoles := make(map[string]string)
+
+	for id, role := range team {
+		var user entity.User
+		err := sr.database.Collection(sr.config.MongoDB.UserCollection).FindOne(context.Background(), bson.M{"_id": id}).Decode(&user)
+		if err != nil {
+			if errors.Is(err, mongo.ErrNoDocuments) {
+				continue
+			}
+			return nil, err
+		}
+
+		userRoles[user.Email] = string(role)
 	}
 
 	return userRoles, nil

@@ -11,7 +11,7 @@ var (
 )
 
 func Load() *Config {
-	if err := godotenv.Load("../../.env"); err != nil {
+	if err := godotenv.Load(".env"); err != nil {
 		panic("Error loading .env file: " + err.Error())
 	}
 

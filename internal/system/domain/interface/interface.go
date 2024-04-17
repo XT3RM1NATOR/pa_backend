@@ -13,5 +13,6 @@ type SystemService interface {
 	DeleteProjectMember(userId primitive.ObjectID, projectId, memberEmail string) error
 	DeleteProjectByID(projectId string, userId primitive.ObjectID) error
 	GetProjectById(projectId string, userId primitive.ObjectID) (model.Project, error)
+	UpdateProject(userId primitive.ObjectID, newLogo []byte, projectId, newProjectId, newName string) error
 	UpdateProjectMembers(userId primitive.ObjectID, team map[string]string, projectId string) error
 }

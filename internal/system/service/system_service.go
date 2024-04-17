@@ -30,8 +30,10 @@ func (ss *SystemServiceImpl) CreateProject(logo []byte, team map[string]string, 
 		return err
 	}
 
-	if err := utils.ValidatePhoto(logo); err != nil {
-		return err
+	if logo != nil {
+		if err := utils.ValidatePhoto(logo); err != nil {
+			return err
+		}
 	}
 
 	teamRoles, err := ss.systemRepo.ValidateTeam(team, ownerId)
@@ -214,12 +216,14 @@ func (ss *SystemServiceImpl) DeleteProjectByID(projectId string, userId primitiv
 
 func (ss *SystemServiceImpl) formatProjects(projects []entity.Project) ([]model.Project, error) {
 	formattedProjects := make([]model.Project, len(projects))
-
 	for i, p := range projects {
 		logo, _ := ss.storageClient.LoadFile(p.ProjectID, ss.config.MinIo.BucketName)
+		team, _ := ss.systemRepo.FormatTeam(p.Team)
+
 		formattedProject := model.Project{
 			Name:      p.Name,
 			ProjectID: p.ProjectID,
+			Team:      team,
 			Logo:      logo,
 		}
 

@@ -93,7 +93,7 @@ func (sc *SystemController) UpdateProject(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, model.ErrorResponse{Error: err.Error()})
 	}
 
-	if err := sc.systemService.UpdateProject(userId, projectID, request.Logo, request.ProjectID, request.Name); err != nil {
+	if err := sc.systemService.UpdateProject(userId, request.Logo, projectID, request.ProjectID, request.Name); err != nil {
 		return c.JSON(http.StatusInternalServerError, model.ErrorResponse{Error: err.Error()})
 	}
 
