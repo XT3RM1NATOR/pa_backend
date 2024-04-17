@@ -9,7 +9,6 @@ import (
 	"github.com/Point-AI/backend/internal/auth/service/interface"
 	"github.com/Point-AI/backend/utils"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"log"
 )
 
 type UserServiceImpl struct {
@@ -29,17 +28,17 @@ func NewUserServiceImpl(userRepo infrastructureInterface.UserRepository, storage
 }
 
 func (us *UserServiceImpl) GoogleAuthCallback(code string) (string, error) {
-	email, err := utils.ExtractGoogleData(us.config.OAuth2.GoogleClientId, us.config.OAuth2.GoogleClientSecret, code)
-	log.Println(err)
+	email, photo, err := utils.ExtractGoogleData(us.config.OAuth2.GoogleClientId, us.config.OAuth2.GoogleClientSecret, code, us.config.OAuth2.GoogleRedirectURL)
 	if err != nil {
 		return "", err
 	}
 
 	oAuth2Token, err := us.userRepo.CreateOauth2User(email, "google")
-	log.Println(err)
 	if err != nil {
 		return "", err
 	}
+
+	us.storageClient.SaveFile(photo, us.config.MinIo.BucketName, email)
 
 	return oAuth2Token, nil
 }
@@ -155,7 +154,7 @@ func (us *UserServiceImpl) ForgotPassword(email string) error {
 		return err
 	}
 
-	resetLink := fmt.Sprintf("%s/reset-password?token=%s", us.config.Website.WebURL, resetToken) // Adjust the URL accordingly
+	resetLink := fmt.Sprintf("%s/reset-password?token=%s", us.config.Website.WebURL, resetToken)
 	if err := us.emailService.SendResetPasswordEmail(email, resetLink); err != nil {
 		return err
 	}
@@ -236,7 +235,7 @@ func (us *UserServiceImpl) GetUserProfile(userId primitive.ObjectID) (*entity.Us
 		return &entity.User{}, nil, err
 	}
 
-	logo, _ := us.storageClient.LoadFile(userId.Hex(), us.config.MinIo.BucketName)
+	logo, _ := us.storageClient.LoadFile(user.Email, us.config.MinIo.BucketName)
 
 	return user, logo, nil
 }

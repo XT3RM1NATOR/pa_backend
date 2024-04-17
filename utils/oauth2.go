@@ -8,39 +8,40 @@ import (
 	"io"
 )
 
-func ExtractGoogleData(clientID, clientSecret, code string) (string, error) {
+func ExtractGoogleData(clientID, clientSecret, code, redirectURL string) (string, []byte, error) {
 	config := &oauth2.Config{
 		ClientID:     clientID,
 		ClientSecret: clientSecret,
 		Endpoint:     google.Endpoint,
-		RedirectURL:  "https://31c8-195-158-30-66.ngrok-free.app/auth/oauth2/gooogle/callback",
+		RedirectURL:  redirectURL,
 		Scopes:       []string{"email"},
 	}
 
 	token, err := config.Exchange(context.TODO(), code)
 	if err != nil {
-		return "", err
+		return "", nil, err
 	}
 
 	client := config.Client(context.TODO(), token)
 	resp, err := client.Get("https://www.googleapis.com/oauth2/v3/userinfo")
 	if err != nil {
-		return "", err
+		return "", nil, err
 	}
 	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return "", err
+		return "", nil, err
 	}
 
 	var profile struct {
 		Email string `json:"email"`
+		Photo []byte `json:"picture"`
 	}
 	err = json.Unmarshal(body, &profile)
 	if err != nil {
-		return "", err
+		return "", nil, err
 	}
 
-	return profile.Email, nil
+	return profile.Email, profile.Photo, nil
 }
