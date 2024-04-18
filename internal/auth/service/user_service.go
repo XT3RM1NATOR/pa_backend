@@ -30,7 +30,6 @@ func NewUserServiceImpl(userRepo infrastructureInterface.UserRepository, storage
 
 func (us *UserServiceImpl) GoogleAuthCallback(code string) (string, error) {
 	email, photo, err := utils.ExtractGoogleData(us.config.OAuth2.GoogleClientId, us.config.OAuth2.GoogleClientSecret, code, us.config.OAuth2.GoogleRedirectURL)
-	log.Println(email, photo, err)
 	if err != nil {
 		return "", err
 	}
@@ -184,6 +183,7 @@ func (us *UserServiceImpl) ResetPassword(token, newPassword string) error {
 
 func (us *UserServiceImpl) RenewAccessToken(refreshToken string) (string, error) {
 	userId, err := utils.ValidateJWTToken("refresh_token", refreshToken, us.config.Auth.JWTSecretKey)
+	log.Println(userId, err)
 	if err != nil {
 		return "", err
 	}

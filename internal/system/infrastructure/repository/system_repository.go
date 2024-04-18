@@ -5,6 +5,7 @@ import (
 	"errors"
 	"github.com/Point-AI/backend/config"
 	"github.com/Point-AI/backend/internal/system/domain/entity"
+	"github.com/Point-AI/backend/internal/system/infrastructure/model"
 	"github.com/Point-AI/backend/internal/system/service/interface"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -145,6 +146,34 @@ func (sr *SystemRepositoryImpl) UpdateUsersInProject(project entity.Project, tea
 	}
 
 	return nil
+}
+
+func (sr *SystemRepositoryImpl) GetUserProfiles(project entity.Project) ([]model.User, error) {
+	var users []model.User
+
+	for userId, role := range project.Team {
+		user, err := sr.findUserByID(userId)
+		if err == nil {
+			users = append(users, model.User{
+				Email:    user.Email,
+				FullName: user.FullName,
+				Role:     string(role),
+			})
+		}
+	}
+
+	return users, nil
+}
+
+func (sr *SystemRepositoryImpl) findUserByID(userID primitive.ObjectID) (entity.User, error) {
+	var user entity.User
+
+	err := sr.database.Collection(sr.config.MongoDB.UserCollection).FindOne(context.Background(), bson.M{"_id": userID}).Decode(&user)
+	if errors.Is(err, mongo.ErrNoDocuments) {
+		return user, errors.New("user not found")
+	}
+
+	return user, nil
 }
 
 func (sr *SystemRepositoryImpl) DeleteProject(id primitive.ObjectID) error {

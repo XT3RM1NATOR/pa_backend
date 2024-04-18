@@ -2,6 +2,7 @@ package infrastructureInterface
 
 import (
 	"github.com/Point-AI/backend/internal/system/domain/entity"
+	"github.com/Point-AI/backend/internal/system/infrastructure/model"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
@@ -25,4 +26,5 @@ type SystemRepository interface {
 	UpdateUsersInProject(project entity.Project, teamRoles map[primitive.ObjectID]entity.ProjectRole) error
 	UpdateProject(project entity.Project) error
 	FormatTeam(team map[primitive.ObjectID]entity.ProjectRole) (map[string]string, error)
+	GetUserProfiles(project entity.Project) ([]model.User, error)
 }

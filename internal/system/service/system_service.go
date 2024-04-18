@@ -41,6 +41,7 @@ func (ss *SystemServiceImpl) CreateProject(logo []byte, team map[string]string, 
 		return err
 	}
 
+	// TODO: change non-unique id bug
 	_, err = ss.systemRepo.FindProjectByProjectId(projectId)
 	if err != nil && !errors.Is(err, mongo.ErrNoDocuments) {
 		return err
@@ -70,6 +71,7 @@ func (ss *SystemServiceImpl) LeaveProject(projectId string, userId primitive.Obj
 	return nil
 }
 
+// GetProjectById TODO: update function not to return team
 func (ss *SystemServiceImpl) GetProjectById(projectId string, userId primitive.ObjectID) (model.Project, error) {
 	project, err := ss.systemRepo.FindProjectByProjectId(projectId)
 	if err != nil {
@@ -212,6 +214,29 @@ func (ss *SystemServiceImpl) DeleteProjectByID(projectId string, userId primitiv
 	}
 
 	return errors.New("user does not have a valid permission")
+}
+
+func (ss *SystemServiceImpl) GetUserProfiles(projectId string, userId primitive.ObjectID) ([]model.User, error) {
+	project, err := ss.systemRepo.FindProjectByProjectId(projectId)
+	if err != nil {
+		return nil, err
+	}
+
+	if _, exists := project.Team[userId]; exists {
+		users, err := ss.systemRepo.GetUserProfiles(project)
+		if err != nil {
+			return nil, err
+		}
+
+		for i := range users {
+			user := &users[i]
+			user.Logo, _ = ss.storageClient.LoadFile(user.Email, ss.config.MinIo.BucketName)
+		}
+
+		return users, nil
+	}
+
+	return nil, errors.New("user does not have a valid permission")
 }
 
 func (ss *SystemServiceImpl) formatProjects(projects []entity.Project) ([]model.Project, error) {

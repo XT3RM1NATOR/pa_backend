@@ -26,7 +26,6 @@ func NewSystemController(systemService _interface.SystemService, cfg *config.Con
 // @Tags System
 // @Accept json
 // @Produce json
-// @Param Authorization header string true "Bearer token"
 // @Param request body CreateProjectRequest true "Project details"
 // @Success 201 {object} model.SuccessResponse "Project added successfully"
 // @Failure 400 {object} model.ErrorResponse "Bad request"
@@ -51,7 +50,6 @@ func (sc *SystemController) CreateProject(c echo.Context) error {
 // @Tags System
 // @Accept json
 // @Produce json
-// @Param Authorization header string true "Bearer token"
 // @Param id path string true "Project ID"
 // @Success 200 {object} model.SuccessResponse "Project left successfully"
 // @Failure 500 {object} model.ErrorResponse "Internal server error"
@@ -72,7 +70,6 @@ func (sc *SystemController) LeaveProject(c echo.Context) error {
 // @Tags System
 // @Accept json
 // @Produce json
-// @Param Authorization header string true "Bearer token"
 // @Param id path string true "Project ID"
 // @Success 200 {object} model.ProjectResponse "Project details"
 // @Failure 500 {object} model.ErrorResponse "Internal server error"
@@ -89,7 +86,6 @@ func (sc *SystemController) GetProjectByID(c echo.Context) error {
 	return c.JSON(http.StatusOK, model.ProjectResponse{
 		Name:      project.Name,
 		Logo:      project.Logo,
-		Team:      project.Team,
 		ProjectID: project.ProjectID,
 	})
 }
@@ -99,7 +95,6 @@ func (sc *SystemController) GetProjectByID(c echo.Context) error {
 // @Tags System
 // @Accept json
 // @Produce json
-// @Param Authorization header string true "Bearer token"
 // @Success 200 {array} model.ProjectResponse "List of projects"
 // @Failure 500 {object} model.ErrorResponse "Internal server error"
 // @Router /system/project [get]
@@ -114,9 +109,9 @@ func (sc *SystemController) GetAllProjects(c echo.Context) error {
 	var responseProjects []model.ProjectResponse
 	for _, project := range projects {
 		responseProject := model.ProjectResponse{
-			Name:      project.Name,
-			Logo:      project.Logo,
-			Team:      project.Team,
+			Name: project.Name,
+			Logo: project.Logo,
+			//Team:      project.Team,
 			ProjectID: project.ProjectID,
 		}
 		responseProjects = append(responseProjects, responseProject)
@@ -130,7 +125,6 @@ func (sc *SystemController) GetAllProjects(c echo.Context) error {
 // @Tags System
 // @Accept json
 // @Produce json
-// @Param Authorization header string true "Bearer token"
 // @Param id path string true "Project ID"
 // @Param request body UpdateProjectRequest true "Updated project details"
 // @Success 200 {object} model.SuccessResponse "Project updated successfully"
@@ -158,7 +152,6 @@ func (sc *SystemController) UpdateProject(c echo.Context) error {
 // @Tags System
 // @Accept json
 // @Produce json
-// @Param Authorization header string true "Bearer token"
 // @Param request body AddProjectMemberRequest true "Member details"
 // @Success 200 {object} model.SuccessResponse "Users added successfully"
 // @Failure 400 {object} model.ErrorResponse "Bad request"
@@ -184,7 +177,6 @@ func (sc *SystemController) AddProjectMembers(c echo.Context) error {
 // @Tags System
 // @Accept json
 // @Produce json
-// @Param Authorization header string true "Bearer token"
 // @Param request body UpdateProjectMemberRequest true "Updated member details"
 // @Success 200 {object} model.SuccessResponse "Users updated successfully"
 // @Failure 400 {object} model.ErrorResponse "Bad request"
@@ -210,7 +202,6 @@ func (sc *SystemController) UpdateProjectMember(c echo.Context) error {
 // @Tags System
 // @Accept json
 // @Produce json
-// @Param Authorization header string true "Bearer token"
 // @Param id path string true "Project ID"
 // @Param email path string true "Member email"
 // @Success 200 {object} model.SuccessResponse "Member removed successfully"
@@ -233,7 +224,6 @@ func (sc *SystemController) DeleteProjectMember(c echo.Context) error {
 // @Tags System
 // @Accept json
 // @Produce json
-// @Param Authorization header string true "Bearer token"
 // @Param id path string true "Project ID"
 // @Success 200 {object} model.SuccessResponse "Project deleted successfully"
 // @Failure 500 {object} model.ErrorResponse "Internal server error"
@@ -247,4 +237,36 @@ func (sc *SystemController) DeleteProjectByID(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, model.SuccessResponse{Message: "project deleted successfully"})
+}
+
+// GetUserProfiles Returns users in the project.
+// @Summary Returns users in the project.
+// @Tags System
+// @Accept json
+// @Produce json
+// @Param id path string true "Project ID"
+// @Success 200 {object} model.SuccessResponse "Project deleted successfully"
+// @Failure 500 {object} model.ErrorResponse "Internal server error"
+// @Router /system/project/{id} [delete]
+func (sc *SystemController) GetUserProfiles(c echo.Context) error {
+	projectID := c.Param("id")
+	userId := c.Request().Context().Value("userId").(primitive.ObjectID)
+
+	users, err := sc.systemService.GetUserProfiles(projectID, userId)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, model.ErrorResponse{Error: err.Error()})
+	}
+
+	var userResponses []model.UserResponse
+	for _, user := range users {
+		userResponse := model.UserResponse{
+			Email:    user.Email,
+			FullName: user.FullName,
+			Role:     user.Role,
+			Logo:     user.Logo,
+		}
+		userResponses = append(userResponses, userResponse)
+	}
+
+	return c.JSON(http.StatusOK, userResponses)
 }

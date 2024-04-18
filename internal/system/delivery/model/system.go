@@ -36,8 +36,14 @@ type SuccessResponse struct {
 }
 
 type ProjectResponse struct {
-	Name      string            `json:"name"`
-	Logo      []byte            `json:"logo"`
-	Team      map[string]string `json:"team"`
-	ProjectID string            `json:"project_id"`
+	Name      string `json:"name"`
+	Logo      []byte `json:"logo"`
+	ProjectID string `json:"project_id"`
+}
+
+type UserResponse struct {
+	Email    string `json:"email"`
+	FullName string `json:"name"`
+	Role     string `json:"role"`
+	Logo     []byte `json:"logo"`
 }
