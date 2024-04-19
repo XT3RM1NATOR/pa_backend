@@ -39,7 +39,7 @@ func (us *UserServiceImpl) GoogleAuthCallback(code string) (string, error) {
 		return "", err
 	}
 
-	us.storageClient.SaveFile(photo, us.config.MinIo.BucketName, email)
+	go us.storageClient.SaveFile(photo, us.config.MinIo.BucketName, email)
 
 	return oAuth2Token, nil
 }

@@ -31,5 +31,4 @@ func RegisterSystemRoutes(e *echo.Echo, cfg *config.Config, db *mongo.Database, 
 	projectGroup.DELETE("/leave/:id", sc.LeaveProject, middleware.ValidateAccessTokenMiddleware(cfg.Auth.JWTSecretKey))
 	projectGroup.DELETE("/member/:id/:email", sc.DeleteProjectMember, middleware.ValidateAccessTokenMiddleware(cfg.Auth.JWTSecretKey))
 	projectGroup.DELETE("/project/:id", sc.DeleteProjectByID, middleware.ValidateAccessTokenMiddleware(cfg.Auth.JWTSecretKey))
-
 }

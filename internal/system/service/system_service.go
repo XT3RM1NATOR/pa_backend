@@ -41,21 +41,20 @@ func (ss *SystemServiceImpl) CreateProject(logo []byte, team map[string]string, 
 		return err
 	}
 
-	// TODO: change non-unique id bug
 	_, err = ss.systemRepo.FindProjectByProjectId(projectId)
-	if err != nil && !errors.Is(err, mongo.ErrNoDocuments) {
+	if errors.Is(err, mongo.ErrNoDocuments) {
+		if err := ss.systemRepo.CreateProject(teamRoles, projectId, name); err != nil {
+			return err
+		}
+
+		go ss.storageClient.SaveFile(logo, ss.config.MinIo.BucketName, name)
+
+		return nil
+	} else if err != nil {
 		return err
 	}
 
-	if err := ss.systemRepo.CreateProject(teamRoles, projectId, name); err != nil {
-		return err
-	}
-
-	if err := ss.storageClient.SaveFile(logo, ss.config.MinIo.BucketName, name); err != nil {
-		return err
-	}
-
-	return nil
+	return errors.New("project with this id already exists")
 }
 
 func (ss *SystemServiceImpl) LeaveProject(projectId string, userId primitive.ObjectID) error {
