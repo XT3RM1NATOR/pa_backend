@@ -17,3 +17,8 @@ type SystemService interface {
 	UpdateWorkspaceMembers(userId primitive.ObjectID, team map[string]string, WorkspaceId string) error
 	GetUserProfiles(WorkspaceId string, userId primitive.ObjectID) ([]model.User, error)
 }
+
+type EmailService interface {
+	SendConfirmationEmail(recipientEmail, confirmationLink string) error
+	SendResetPasswordEmail(recipientEmail, resetLink string) error
+}

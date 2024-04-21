@@ -28,3 +28,7 @@ type SystemRepository interface {
 	FormatTeam(team map[primitive.ObjectID]entity.WorkspaceRole) (map[string]string, error)
 	GetUserProfiles(Workspace entity.Workspace) ([]model.User, error)
 }
+
+type EmailClient interface {
+	SendEmail(to, subject, body string) error
+}

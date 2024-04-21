@@ -15,9 +15,11 @@ import (
 func RegisterSystemRoutes(e *echo.Echo, cfg *config.Config, db *mongo.Database, str *minio.Client) {
 	systemGroup := e.Group("/system")
 
+	ec := client.NewEmailClientImpl(cfg.Email.SMTPUsername, cfg.Email.SMTPPassword, cfg.Email.SMTPHost, cfg.Email.SMTPPort)
 	src := client.NewStorageClientImpl(str)
 	sr := repository.NewSystemRepositoryImpl(db, cfg)
-	ss := service.NewSystemServiceImpl(cfg, src, sr)
+	es := service.NewEmailServiceImpl(ec)
+	ss := service.NewSystemServiceImpl(cfg, src, sr, es)
 	sc := controller.NewSystemController(ss, cfg)
 
 	workspaceGroup := systemGroup.Group("/workspace")

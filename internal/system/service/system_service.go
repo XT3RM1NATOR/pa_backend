@@ -4,6 +4,7 @@ import (
 	"errors"
 	"github.com/Point-AI/backend/config"
 	"github.com/Point-AI/backend/internal/system/domain/entity"
+	_interface "github.com/Point-AI/backend/internal/system/domain/interface"
 	"github.com/Point-AI/backend/internal/system/infrastructure/model"
 	infrastructureInterface "github.com/Point-AI/backend/internal/system/service/interface"
 	"github.com/Point-AI/backend/utils"
@@ -14,12 +15,14 @@ import (
 type SystemServiceImpl struct {
 	systemRepo    infrastructureInterface.SystemRepository
 	storageClient infrastructureInterface.StorageClient
+	emailService  _interface.EmailService
 	config        *config.Config
 }
 
-func NewSystemServiceImpl(cfg *config.Config, storageClient infrastructureInterface.StorageClient, systemRepo infrastructureInterface.SystemRepository) *SystemServiceImpl {
+func NewSystemServiceImpl(cfg *config.Config, storageClient infrastructureInterface.StorageClient, systemRepo infrastructureInterface.SystemRepository, emailService _interface.EmailService) *SystemServiceImpl {
 	return &SystemServiceImpl{
 		systemRepo:    systemRepo,
+		emailService:  emailService,
 		storageClient: storageClient,
 		config:        cfg,
 	}
