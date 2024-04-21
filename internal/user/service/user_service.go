@@ -34,7 +34,8 @@ func (us *UserServiceImpl) GoogleAuthCallback(code string) (string, error) {
 		return "", err
 	}
 
-	oAuth2Token, err := us.userRepo.CreateOauth2User(email, "google")
+	invites, _ := us.userRepo.GetAllPendingInvites(email)
+	oAuth2Token, err := us.userRepo.CreateOauth2User(invites, email, "google")
 	if err != nil {
 		return "", err
 	}
@@ -118,7 +119,9 @@ func (us *UserServiceImpl) RegisterUser(email string, password string) error {
 		return err
 	}
 
-	if err := us.userRepo.CreateUser(email, passwordHash, confirmToken); err != nil {
+	invites, _ := us.userRepo.GetAllPendingInvites(email)
+
+	if err := us.userRepo.CreateUser(invites, email, passwordHash, confirmToken); err != nil {
 		return err
 	}
 
@@ -134,7 +137,7 @@ func (us *UserServiceImpl) ConfirmUser(token string) error {
 		return errors.New("invalid confirmation token")
 	}
 
-	if err := us.userRepo.ConfirmUser(user.ID); err != nil {
+	if err := us.userRepo.ConfirmUser(user.Id); err != nil {
 		return err
 	}
 
@@ -150,7 +153,7 @@ func (us *UserServiceImpl) ForgotPassword(email string) error {
 		return errors.New("user not found")
 	}
 
-	resetToken, err := utils.GenerateJWTToken("reset_token", user.ID, us.config.Auth.JWTSecretKey)
+	resetToken, err := utils.GenerateJWTToken("reset_token", user.Id, us.config.Auth.JWTSecretKey)
 	if err != nil {
 		return err
 	}
@@ -200,7 +203,7 @@ func (us *UserServiceImpl) RenewAccessToken(refreshToken string) (string, error)
 		return "", errors.New("invalid refresh token")
 	}
 
-	accessToken, err := utils.GenerateJWTToken("access_token", user.ID, us.config.Auth.JWTSecretKey)
+	accessToken, err := utils.GenerateJWTToken("access_token", user.Id, us.config.Auth.JWTSecretKey)
 	if err != nil {
 		return "", err
 	}
@@ -218,7 +221,7 @@ func (us *UserServiceImpl) setRefreshToken(user *entity.User) (string, string, e
 	if user.Tokens.RefreshToken != "" {
 		refreshToken = user.Tokens.RefreshToken
 	} else {
-		if refreshToken, err = utils.GenerateJWTToken("refresh_token", user.ID, us.config.Auth.JWTSecretKey); err != nil {
+		if refreshToken, err = utils.GenerateJWTToken("refresh_token", user.Id, us.config.Auth.JWTSecretKey); err != nil {
 			return "", "", err
 		}
 
@@ -227,7 +230,7 @@ func (us *UserServiceImpl) setRefreshToken(user *entity.User) (string, string, e
 		}
 	}
 
-	accessToken, err := utils.GenerateJWTToken("access_token", user.ID, us.config.Auth.JWTSecretKey)
+	accessToken, err := utils.GenerateJWTToken("access_token", user.Id, us.config.Auth.JWTSecretKey)
 	if err != nil {
 		return "", "", err
 	}

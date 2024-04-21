@@ -13,8 +13,8 @@ type StorageClient interface {
 }
 
 type UserRepository interface {
-	CreateUser(email, passwordHash, confirmToken string) error
-	CreateOauth2User(email, authSource string) (string, error)
+	CreateUser(pendingInvites []string, email, passwordHash, confirmToken string) error
+	CreateOauth2User(pendingInvites []string, email, authSource string) (string, error)
 	GetUserByEmail(email string) (*entity.User, error)
 	GetUserById(id primitive.ObjectID) (*entity.User, error)
 	GetUserByOAuth2Token(token string) (*entity.User, error)
@@ -25,6 +25,7 @@ type UserRepository interface {
 	ClearRefreshToken(id primitive.ObjectID) error
 	ConfirmUser(userId primitive.ObjectID) error
 	UpdateUser(user *entity.User) error
+	GetAllPendingInvites(email string) ([]string, error)
 }
 
 type EmailClient interface {
