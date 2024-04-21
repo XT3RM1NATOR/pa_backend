@@ -2,8 +2,8 @@ package service
 
 import (
 	"fmt"
-	_interface "github.com/Point-AI/backend/internal/auth/domain/interface"
-	infrastructureInterface "github.com/Point-AI/backend/internal/auth/service/interface"
+	_interface "github.com/Point-AI/backend/internal/user/domain/interface"
+	infrastructureInterface "github.com/Point-AI/backend/internal/user/service/interface"
 )
 
 type EmailServiceImpl struct {

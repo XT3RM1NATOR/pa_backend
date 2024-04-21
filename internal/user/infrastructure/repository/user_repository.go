@@ -3,8 +3,8 @@ package repository
 import (
 	"context"
 	"errors"
-	"github.com/Point-AI/backend/internal/auth/domain/entity"
-	"github.com/Point-AI/backend/internal/auth/service/interface"
+	"github.com/Point-AI/backend/internal/user/domain/entity"
+	"github.com/Point-AI/backend/internal/user/service/interface"
 	"github.com/Point-AI/backend/utils"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"

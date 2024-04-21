@@ -14,8 +14,9 @@ type Workspace struct {
 	ID          primitive.ObjectID                   `bson:"_id,omitempty"`
 	Name        string                               `bson:"name"`
 	Team        map[primitive.ObjectID]WorkspaceRole `bson:"team"`
+	PendingTeam map[string]WorkspaceRole             `bson:"pending"`
 	WorkspaceID string                               `bson:"workspace_id"`
-	CreatedAt   primitive.DateTime                   `bson:"createdAt"`
+	CreatedAt   primitive.DateTime                   `bson:"created_at"`
 }
 
 type User struct {

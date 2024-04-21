@@ -25,15 +25,19 @@ func NewSystemRepositoryImpl(db *mongo.Database, cfg *config.Config) infrastruct
 	}
 }
 
-func (sr *SystemRepositoryImpl) CreateWorkspace(team map[primitive.ObjectID]entity.WorkspaceRole, WorkspaceId, name string) error {
-	Workspace := &entity.Workspace{
+func (sr *SystemRepositoryImpl) CreateWorkspace(ownerId primitive.ObjectID, pendingTeam map[string]entity.WorkspaceRole, workspaceId, name string) error {
+	team := make(map[primitive.ObjectID]entity.WorkspaceRole)
+	team[ownerId] = entity.RoleAdmin
+
+	workspace := &entity.Workspace{
 		Name:        name,
 		Team:        team,
-		WorkspaceID: WorkspaceId,
+		PendingTeam: pendingTeam,
+		WorkspaceID: workspaceId,
 		CreatedAt:   primitive.NewDateTimeFromTime(time.Now()),
 	}
 
-	if _, err := sr.database.Collection(sr.config.MongoDB.WorkspaceCollection).InsertOne(context.Background(), Workspace); err != nil {
+	if _, err := sr.database.Collection(sr.config.MongoDB.WorkspaceCollection).InsertOne(context.Background(), workspace); err != nil {
 		return err
 	}
 	return nil
@@ -226,6 +230,16 @@ func (sr *SystemRepositoryImpl) FindUserByEmail(email string) (primitive.ObjectI
 	}
 
 	return user.ID, nil
+}
+
+func (sr *SystemRepositoryImpl) AddPendingInviteToUser(userId primitive.ObjectID, projectId string) error {
+	filter := bson.M{"_id": userId}
+	update := bson.M{"$addToSet": bson.M{"pending_invites": projectId}}
+	_, err := sr.database.Collection(sr.config.MongoDB.UserCollection).UpdateOne(context.Background(), filter, update)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func (sr *SystemRepositoryImpl) UpdateWorkspace(Workspace entity.Workspace) error {

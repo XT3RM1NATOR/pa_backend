@@ -2,7 +2,7 @@ package client
 
 import (
 	"errors"
-	"github.com/Point-AI/backend/internal/auth/service/interface"
+	"github.com/Point-AI/backend/internal/user/service/interface"
 	"net/smtp"
 )
 

@@ -3,8 +3,8 @@ package controller
 import (
 	"fmt"
 	"github.com/Point-AI/backend/config"
-	"github.com/Point-AI/backend/internal/auth/delivery/model"
-	_interface "github.com/Point-AI/backend/internal/auth/domain/interface"
+	"github.com/Point-AI/backend/internal/user/delivery/model"
+	_interface "github.com/Point-AI/backend/internal/user/domain/interface"
 	"github.com/labstack/echo/v4"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"net/http"
@@ -31,7 +31,7 @@ func NewUserController(userService _interface.UserService, cfg *config.Config) *
 // @Success 201 {object} model.SuccessResponse "User registered successfully"
 // @Failure 400 {object} model.ErrorResponse "Bad request"
 // @Failure 500 {object} model.ErrorResponse "Internal server error"
-// @Router /auth/signup [post]
+// @Router /user/signup [post]
 func (uc *UserController) RegisterUser(c echo.Context) error {
 	var request model.UserRequest
 	if err := c.Bind(&request); err != nil {
@@ -54,7 +54,7 @@ func (uc *UserController) RegisterUser(c echo.Context) error {
 // @Success 200 {object} model.SuccessResponse "User confirmed successfully"
 // @Failure 400 {object} model.ErrorResponse "Bad request"
 // @Failure 500 {object} model.ErrorResponse "Internal server error"
-// @Router /auth/verify/{token} [get]
+// @Router /user/verify/{token} [get]
 func (uc *UserController) ConfirmUser(c echo.Context) error {
 	token := c.Param("token")
 	if token == "" {
@@ -79,7 +79,7 @@ func (uc *UserController) ConfirmUser(c echo.Context) error {
 // @Failure 400 {object} model.ErrorResponse "Bad request"
 // @Failure 401 {object} model.ErrorResponse "Unauthorized"
 // @Failure 500 {object} model.ErrorResponse "Internal server error"
-// @Router /auth/signin [post]
+// @Router /user/signin [post]
 func (uc *UserController) Login(c echo.Context) error {
 	var request model.UserRequest
 	if err := c.Bind(&request); err != nil {
@@ -108,7 +108,7 @@ func (uc *UserController) Login(c echo.Context) error {
 // @Failure 400 {object} model.ErrorResponse "Bad request"
 // @Failure 401 {object} model.ErrorResponse "Unauthorized"
 // @Failure 500 {object} model.ErrorResponse "Internal server error"
-// @Router /auth/oauth2/google/tokens [get]
+// @Router /user/oauth2/google/tokens [get]
 func (uc *UserController) GoogleTokens(c echo.Context) error {
 	var request model.OAuth2TokenRequest
 	if err := c.Bind(&request); err != nil {
@@ -136,7 +136,7 @@ func (uc *UserController) GoogleTokens(c echo.Context) error {
 // @Success 200 {object} model.SuccessResponse "Password reset email sent successfully"
 // @Failure 400 {object} model.ErrorResponse "Bad request"
 // @Failure 500 {object} model.ErrorResponse "Internal server error"
-// @Router /auth/recover [post]
+// @Router /user/recover [post]
 func (uc *UserController) ForgotPassword(c echo.Context) error {
 	var request model.ForgotPasswordRequest
 	if err := c.Bind(&request); err != nil {
@@ -160,7 +160,7 @@ func (uc *UserController) ForgotPassword(c echo.Context) error {
 // @Success 200 {object} model.SuccessResponse "Password reset successfully"
 // @Failure 400 {object} model.ErrorResponse "Bad request"
 // @Failure 500 {object} model.ErrorResponse "Internal server error"
-// @Router /auth/reset [post]
+// @Router /user/reset [post]
 func (uc *UserController) ResetPassword(c echo.Context) error {
 	var request model.PasswordResetRequest
 	if err := c.Bind(&request); err != nil {
@@ -182,7 +182,7 @@ func (uc *UserController) ResetPassword(c echo.Context) error {
 // @Produce json
 // @Success 200 {object} model.SuccessResponse "Successfully logged out"
 // @Failure 500 {object} model.ErrorResponse "Internal server error"
-// @Router /auth/logout [post]
+// @Router /user/logout [post]
 func (uc *UserController) Logout(c echo.Context) error {
 	userId := c.Request().Context().Value("userId").(primitive.ObjectID)
 	err := uc.userService.Logout(userId)
@@ -202,7 +202,7 @@ func (uc *UserController) Logout(c echo.Context) error {
 // @Success 200 {object} model.TokenResponse "Access token renewed successfully"
 // @Failure 400 {object} model.ErrorResponse "Bad request"
 // @Failure 500 {object} model.ErrorResponse "Internal server error"
-// @Router /auth/renew [put]
+// @Router /user/renew [put]
 func (uc *UserController) RenewAccessToken(c echo.Context) error {
 	var request model.RenewAccessTokenRequest
 	if err := c.Bind(&request); err != nil {
@@ -227,7 +227,7 @@ func (uc *UserController) RenewAccessToken(c echo.Context) error {
 // @Success 302 {object} model.SuccessResponse "Redirect to website URL with OAuth2 token"
 // @Failure 400 {object} model.ErrorResponse "Bad request"
 // @Failure 500 {object} model.ErrorResponse "Internal server error"
-// @Router /auth/oauth2/google/callback [get]
+// @Router /user/oauth2/google/callback [get]
 func (uc *UserController) GoogleCallback(c echo.Context) error {
 	code := c.QueryParam("code")
 	oAuth2Token, err := uc.userService.GoogleAuthCallback(code)
@@ -245,7 +245,7 @@ func (uc *UserController) GoogleCallback(c echo.Context) error {
 // @Produce json
 // @Success 200 {object} model.UserProfileResponse "user profile data"
 // @Failure 500 {object} model.ErrorResponse "Internal server error"
-// @Router /auth/profile [get]
+// @Router /user/profile [get]
 func (uc *UserController) GetProfile(c echo.Context) error {
 	userId := c.Request().Context().Value("userId").(primitive.ObjectID)
 	user, logo, err := uc.userService.GetUserProfile(userId)
@@ -269,7 +269,7 @@ func (uc *UserController) GetProfile(c echo.Context) error {
 // @Param request body model.UserUpdateProfileRequest true "Access token renewal request"
 // @Success 200 {object} model.SuccessResponse "user profile data"
 // @Failure 500 {object} model.ErrorResponse "Internal server error"
-// @Router /auth/profile [put]
+// @Router /user/profile [put]
 func (uc *UserController) UpdateProfile(c echo.Context) error {
 	userId := c.Request().Context().Value("userId").(primitive.ObjectID)
 	var request model.UserUpdateProfileRequest

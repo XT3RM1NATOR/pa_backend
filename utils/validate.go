@@ -3,6 +3,7 @@ package utils
 import (
 	"bytes"
 	"errors"
+	"github.com/Point-AI/backend/internal/system/domain/entity"
 	"image"
 )
 
@@ -49,4 +50,18 @@ func ValidatePhoto(photoBytes []byte) error {
 	}
 
 	return nil
+}
+
+func ValidateTeamRoles(team map[string]string) (map[string]entity.WorkspaceRole, error) {
+	userRoles := make(map[string]entity.WorkspaceRole)
+	for email, role := range team {
+		switch role {
+		case string(entity.RoleAdmin), string(entity.RoleMember), string(entity.RoleOwner):
+			userRoles[email] = entity.WorkspaceRole(role)
+		default:
+			userRoles[email] = entity.RoleMember
+		}
+	}
+
+	return userRoles, nil
 }

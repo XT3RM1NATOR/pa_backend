@@ -16,14 +16,8 @@ func NewEmailServiceImpl(emailClient infrastructureInterface.EmailClient) _inter
 	}
 }
 
-func (es *EmailServiceImpl) SendConfirmationEmail(recipientEmail, confirmationLink string) error {
+func (es *EmailServiceImpl) SendInvitationEmail(recipientEmail, inviteLink string) error {
 	subject := "Confirm your email"
-	body := fmt.Sprintf("Click the following link to confirm your email: %s", confirmationLink)
-	return es.emailClient.SendEmail(recipientEmail, subject, body)
-}
-
-func (es *EmailServiceImpl) SendResetPasswordEmail(recipientEmail, resetLink string) error {
-	subject := "Reset your password"
-	body := fmt.Sprintf("Click the following link to reset your password: %s", resetLink)
+	body := fmt.Sprintf("Click the following link to confirm your email: %s", inviteLink)
 	return es.emailClient.SendEmail(recipientEmail, subject, body)
 }

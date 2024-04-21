@@ -24,7 +24,7 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
-        "/auth/logout": {
+        "/user/logout": {
             "post": {
                 "description": "Logs out a user by invalidating the access token.",
                 "consumes": [
@@ -53,7 +53,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/auth/oauth2/google/callback": {
+        "/user/oauth2/google/callback": {
             "get": {
                 "description": "Handles the callback from Google OAuth2 login.",
                 "consumes": [
@@ -97,7 +97,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/auth/oauth2/google/tokens": {
+        "/user/oauth2/google/tokens": {
             "get": {
                 "description": "Exchanges OAuth2 tokens for Google access and refresh tokens.",
                 "consumes": [
@@ -149,7 +149,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/auth/recover": {
+        "/user/recover": {
             "post": {
                 "description": "Initiates the process for resetting a user's password.",
                 "consumes": [
@@ -195,7 +195,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/auth/renew": {
+        "/user/renew": {
             "put": {
                 "description": "Renews a user's access token using a refresh token.",
                 "consumes": [
@@ -241,7 +241,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/auth/reset": {
+        "/user/reset": {
             "post": {
                 "description": "Resets a user's password using the reset token and new password.",
                 "consumes": [
@@ -287,7 +287,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/auth/signin": {
+        "/user/signin": {
             "post": {
                 "description": "Logs in a user with the provided email and password.",
                 "consumes": [
@@ -339,7 +339,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/auth/signup": {
+        "/user/signup": {
             "post": {
                 "description": "Registers a new user with provided email and password.",
                 "consumes": [
@@ -384,7 +384,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/auth/verify/{token}": {
+        "/user/verify/{token}": {
             "get": {
                 "description": "Confirms a user's registration using the confirmation token.",
                 "consumes": [

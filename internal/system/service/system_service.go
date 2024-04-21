@@ -39,18 +39,29 @@ func (ss *SystemServiceImpl) CreateWorkspace(logo []byte, team map[string]string
 		}
 	}
 
-	teamRoles, err := ss.systemRepo.ValidateTeam(team, ownerId)
+	teamRoles, err := utils.ValidateTeamRoles(team)
 	if err != nil {
 		return err
 	}
 
 	_, err = ss.systemRepo.FindWorkspaceByWorkspaceId(workspaceId)
 	if errors.Is(err, mongo.ErrNoDocuments) {
-		if err := ss.systemRepo.CreateWorkspace(teamRoles, workspaceId, name); err != nil {
+		if err := ss.systemRepo.CreateWorkspace(ownerId, teamRoles, workspaceId, name); err != nil {
 			return err
 		}
 
 		go ss.storageClient.SaveFile(logo, ss.config.MinIo.BucketName, name)
+
+		for email, _ := range teamRoles {
+			id, err := ss.systemRepo.FindUserByEmail(email)
+			if errors.Is(err, mongo.ErrNoDocuments) {
+				go ss.emailService.SendInvitationEmail(email, ss.config.Website.BaseURL+"/auth/signup")
+			} else if err == nil {
+				if err = ss.systemRepo.AddPendingInviteToUser(id, workspaceId); err != nil {
+
+				}
+			}
+		}
 
 		return nil
 	} else if err != nil {

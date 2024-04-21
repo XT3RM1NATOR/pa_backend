@@ -15,7 +15,7 @@ type StorageClient interface {
 
 type SystemRepository interface {
 	ValidateTeam(team map[string]string, ownerId primitive.ObjectID) (map[primitive.ObjectID]entity.WorkspaceRole, error)
-	CreateWorkspace(team map[primitive.ObjectID]entity.WorkspaceRole, WorkspaceId, name string) error
+	CreateWorkspace(ownerId primitive.ObjectID, pendingTeam map[string]entity.WorkspaceRole, workspaceId, name string) error
 	RemoveUserFromWorkspace(Workspace entity.Workspace, userId primitive.ObjectID) error
 	FindWorkspaceByWorkspaceId(WorkspaceId string) (entity.Workspace, error)
 	DeleteWorkspace(id primitive.ObjectID) error
@@ -27,6 +27,7 @@ type SystemRepository interface {
 	UpdateWorkspace(Workspace entity.Workspace) error
 	FormatTeam(team map[primitive.ObjectID]entity.WorkspaceRole) (map[string]string, error)
 	GetUserProfiles(Workspace entity.Workspace) ([]model.User, error)
+	AddPendingInviteToUser(userId primitive.ObjectID, projectId string) error
 }
 
 type EmailClient interface {

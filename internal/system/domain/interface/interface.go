@@ -19,6 +19,5 @@ type SystemService interface {
 }
 
 type EmailService interface {
-	SendConfirmationEmail(recipientEmail, confirmationLink string) error
-	SendResetPasswordEmail(recipientEmail, resetLink string) error
+	SendInvitationEmail(recipientEmail, confirmationLink string) error
 }

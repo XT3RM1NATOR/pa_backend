@@ -1,7 +1,7 @@
 package _interface
 
 import (
-	"github.com/Point-AI/backend/internal/auth/domain/entity"
+	"github.com/Point-AI/backend/internal/user/domain/entity"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 

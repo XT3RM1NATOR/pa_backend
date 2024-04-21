@@ -52,7 +52,8 @@ type (
 	}
 
 	Website struct {
-		WebURL string `env:"WEB_URL"`
+		WebURL  string `env:"WEB_URL"`
+		BaseURL string `env:"BASE_URL"`
 	}
 
 	MinIo struct {
