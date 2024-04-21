@@ -25,14 +25,14 @@ func NewSystemRepositoryImpl(db *mongo.Database, cfg *config.Config) infrastruct
 	}
 }
 
-func (sr *SystemRepositoryImpl) CreateWorkspace(ownerId primitive.ObjectID, pendingTeam map[string]entity.WorkspaceRole, workspaceId, name string) error {
+func (sr *SystemRepositoryImpl) CreateWorkspace(ownerId primitive.ObjectID, pendingTeam *map[string]entity.WorkspaceRole, workspaceId, name string) error {
 	team := make(map[primitive.ObjectID]entity.WorkspaceRole)
 	team[ownerId] = entity.RoleAdmin
 
 	workspace := &entity.Workspace{
 		Name:        name,
 		Team:        team,
-		PendingTeam: pendingTeam,
+		PendingTeam: *pendingTeam,
 		WorkspaceId: workspaceId,
 		CreatedAt:   primitive.NewDateTimeFromTime(time.Now()),
 	}
@@ -43,11 +43,11 @@ func (sr *SystemRepositoryImpl) CreateWorkspace(ownerId primitive.ObjectID, pend
 	return nil
 }
 
-func (sr *SystemRepositoryImpl) ValidateTeam(team map[string]string, ownerId primitive.ObjectID) (map[primitive.ObjectID]entity.WorkspaceRole, error) {
+func (sr *SystemRepositoryImpl) ValidateTeam(team *map[string]string, ownerId primitive.ObjectID) (*map[primitive.ObjectID]entity.WorkspaceRole, error) {
 	userRoles := make(map[primitive.ObjectID]entity.WorkspaceRole)
 	userRoles[ownerId] = entity.RoleAdmin
 
-	for email, role := range team {
+	for email, role := range *team {
 		var user entity.User
 		err := sr.database.Collection(sr.config.MongoDB.UserCollection).FindOne(context.Background(), bson.M{"email": email}).Decode(&user)
 		if err != nil {
@@ -68,13 +68,13 @@ func (sr *SystemRepositoryImpl) ValidateTeam(team map[string]string, ownerId pri
 		}
 	}
 
-	return userRoles, nil
+	return &userRoles, nil
 }
 
-func (sr *SystemRepositoryImpl) FormatTeam(team map[primitive.ObjectID]entity.WorkspaceRole) (map[string]string, error) {
+func (sr *SystemRepositoryImpl) FormatTeam(team *map[primitive.ObjectID]entity.WorkspaceRole) (*map[string]string, error) {
 	userRoles := make(map[string]string)
 
-	for id, role := range team {
+	for id, role := range *team {
 		var user entity.User
 		err := sr.database.Collection(sr.config.MongoDB.UserCollection).FindOne(context.Background(), bson.M{"_id": id}).Decode(&user)
 		if err != nil {
@@ -87,21 +87,21 @@ func (sr *SystemRepositoryImpl) FormatTeam(team map[primitive.ObjectID]entity.Wo
 		userRoles[user.Email] = string(role)
 	}
 
-	return userRoles, nil
+	return &userRoles, nil
 }
 
-func (sr *SystemRepositoryImpl) FindWorkspaceByWorkspaceId(WorkspaceId string) (entity.Workspace, error) {
+func (sr *SystemRepositoryImpl) FindWorkspaceByWorkspaceId(workspaceId string) (*entity.Workspace, error) {
 	var workspace entity.Workspace
-	err := sr.database.Collection(sr.config.MongoDB.WorkspaceCollection).FindOne(context.Background(), bson.M{"workspace_id": WorkspaceId}).Decode(&workspace)
+	err := sr.database.Collection(sr.config.MongoDB.WorkspaceCollection).FindOne(context.Background(), bson.M{"workspace_id": workspaceId}).Decode(&workspace)
 	if err != nil {
-		return workspace, err
+		return &workspace, err
 	}
 
-	return workspace, nil
+	return &workspace, nil
 }
 
-func (sr *SystemRepositoryImpl) RemoveUserFromWorkspace(Workspace entity.Workspace, userId primitive.ObjectID) error {
-	filter, update := bson.M{"_id": Workspace.Id}, bson.M{"$unset": bson.M{"team." + userId.Hex(): ""}}
+func (sr *SystemRepositoryImpl) RemoveUserFromWorkspace(workspace *entity.Workspace, userId primitive.ObjectID) error {
+	filter, update := bson.M{"_id": workspace.Id}, bson.M{"$unset": bson.M{"team." + userId.Hex(): ""}}
 
 	res, err := sr.database.Collection(sr.config.MongoDB.WorkspaceCollection).UpdateOne(context.Background(), filter, update)
 	if err != nil {
@@ -114,13 +114,13 @@ func (sr *SystemRepositoryImpl) RemoveUserFromWorkspace(Workspace entity.Workspa
 	return nil
 }
 
-func (sr *SystemRepositoryImpl) AddUsersToWorkspace(Workspace entity.Workspace, teamRoles map[primitive.ObjectID]entity.WorkspaceRole) error {
-	for userId, role := range teamRoles {
-		if _, exists := Workspace.Team[userId]; !exists {
-			Workspace.Team[userId] = role
+func (sr *SystemRepositoryImpl) AddUsersToWorkspace(workspace *entity.Workspace, teamRoles *map[primitive.ObjectID]entity.WorkspaceRole) error {
+	for userId, role := range *teamRoles {
+		if _, exists := workspace.Team[userId]; !exists {
+			workspace.Team[userId] = role
 		}
 	}
-	filter, update := bson.M{"_id": Workspace.Id}, bson.M{"$set": bson.M{"team": Workspace.Team}}
+	filter, update := bson.M{"_id": workspace.Id}, bson.M{"$set": bson.M{"team": workspace.Team}}
 
 	res, err := sr.database.Collection(sr.config.MongoDB.WorkspaceCollection).UpdateOne(context.Background(), filter, update)
 	if err != nil {
@@ -133,13 +133,13 @@ func (sr *SystemRepositoryImpl) AddUsersToWorkspace(Workspace entity.Workspace, 
 	return nil
 }
 
-func (sr *SystemRepositoryImpl) UpdateUsersInWorkspace(Workspace entity.Workspace, teamRoles map[primitive.ObjectID]entity.WorkspaceRole) error {
-	for userId, role := range teamRoles {
-		if _, exists := Workspace.Team[userId]; exists {
-			Workspace.Team[userId] = role
+func (sr *SystemRepositoryImpl) UpdateUsersInWorkspace(workspace *entity.Workspace, teamRoles *map[primitive.ObjectID]entity.WorkspaceRole) error {
+	for userId, role := range *teamRoles {
+		if _, exists := workspace.Team[userId]; exists {
+			workspace.Team[userId] = role
 		}
 	}
-	filter, update := bson.M{"_id": Workspace.Id}, bson.M{"$set": bson.M{"team": Workspace.Team}}
+	filter, update := bson.M{"_id": workspace.Id}, bson.M{"$set": bson.M{"team": workspace.Team}}
 
 	res, err := sr.database.Collection(sr.config.MongoDB.WorkspaceCollection).UpdateOne(context.Background(), filter, update)
 	if err != nil {
@@ -152,7 +152,7 @@ func (sr *SystemRepositoryImpl) UpdateUsersInWorkspace(Workspace entity.Workspac
 	return nil
 }
 
-func (sr *SystemRepositoryImpl) GetUserProfiles(Workspace entity.Workspace) ([]model.User, error) {
+func (sr *SystemRepositoryImpl) GetUserProfiles(Workspace entity.Workspace) (*[]model.User, error) {
 	var users []model.User
 
 	for userId, role := range Workspace.Team {
@@ -166,18 +166,18 @@ func (sr *SystemRepositoryImpl) GetUserProfiles(Workspace entity.Workspace) ([]m
 		}
 	}
 
-	return users, nil
+	return &users, nil
 }
 
-func (sr *SystemRepositoryImpl) findUserById(userId primitive.ObjectID) (entity.User, error) {
+func (sr *SystemRepositoryImpl) findUserById(userId primitive.ObjectID) (*entity.User, error) {
 	var user entity.User
 
 	err := sr.database.Collection(sr.config.MongoDB.UserCollection).FindOne(context.Background(), bson.M{"_id": userId}).Decode(&user)
 	if errors.Is(err, mongo.ErrNoDocuments) {
-		return user, errors.New("user not found")
+		return &user, errors.New("user not found")
 	}
 
-	return user, nil
+	return &user, nil
 }
 
 func (sr *SystemRepositoryImpl) DeleteWorkspace(id primitive.ObjectID) error {
@@ -193,7 +193,40 @@ func (sr *SystemRepositoryImpl) DeleteWorkspace(id primitive.ObjectID) error {
 	return nil
 }
 
-func (sr *SystemRepositoryImpl) FindWorkspacesByUser(userID primitive.ObjectID) ([]entity.Workspace, error) {
+func (sr *SystemRepositoryImpl) ClearPendingStatus(userId primitive.ObjectID, workspaceId string) error {
+	filter := bson.M{"_id": userId}
+	update := bson.M{"$pull": bson.M{"pending_invites": workspaceId}}
+	_, err := sr.database.Collection(sr.config.MongoDB.UserCollection).UpdateOne(context.Background(), filter, update)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (sr *SystemRepositoryImpl) UpdateWorkspaceUserStatus(userId primitive.ObjectID, workspaceId string, status bool) error {
+	email, err := sr.FindUserEmailById(userId)
+	if err != nil {
+		return err
+	}
+
+	workspace, err := sr.FindWorkspaceByWorkspaceId(workspaceId)
+	if err != nil {
+		return err
+	}
+
+	if status {
+		workspace.Team[userId] = workspace.PendingTeam[email]
+	}
+	delete(workspace.PendingTeam, email)
+
+	if err := sr.UpdateWorkspace(workspace); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (sr *SystemRepositoryImpl) FindWorkspacesByUser(userID primitive.ObjectID) (*[]entity.Workspace, error) {
 	filter := bson.M{
 		"team." + userID.Hex(): bson.M{"$exists": true},
 	}
@@ -204,15 +237,15 @@ func (sr *SystemRepositoryImpl) FindWorkspacesByUser(userID primitive.ObjectID) 
 	}
 	defer cursor.Close(context.Background())
 
-	var Workspaces []entity.Workspace
-	if err := cursor.All(context.Background(), &Workspaces); err != nil {
+	var workspaces []entity.Workspace
+	if err := cursor.All(context.Background(), &workspaces); err != nil {
 		return nil, err
 	}
 
-	return Workspaces, nil
+	return &workspaces, nil
 }
 
-func (sr *SystemRepositoryImpl) FindUserById(userId primitive.ObjectID) (string, error) {
+func (sr *SystemRepositoryImpl) FindUserEmailById(userId primitive.ObjectID) (string, error) {
 	var user entity.User
 	err := sr.database.Collection(sr.config.MongoDB.UserCollection).FindOne(context.Background(), bson.M{"_id": userId}).Decode(&user)
 	if err != nil {
@@ -242,8 +275,8 @@ func (sr *SystemRepositoryImpl) AddPendingInviteToUser(userId primitive.ObjectID
 	return nil
 }
 
-func (sr *SystemRepositoryImpl) UpdateWorkspace(Workspace entity.Workspace) error {
-	filter, update := bson.M{"_id": Workspace.Id}, bson.M{"$set": Workspace}
+func (sr *SystemRepositoryImpl) UpdateWorkspace(workspace *entity.Workspace) error {
+	filter, update := bson.M{"_id": workspace.Id}, bson.M{"$set": workspace}
 
 	res, err := sr.database.Collection(sr.config.MongoDB.WorkspaceCollection).ReplaceOne(context.Background(), filter, update)
 	if err != nil {

@@ -46,7 +46,7 @@ func (ss *SystemServiceImpl) CreateWorkspace(logo []byte, team map[string]string
 
 	_, err = ss.systemRepo.FindWorkspaceByWorkspaceId(workspaceId)
 	if errors.Is(err, mongo.ErrNoDocuments) {
-		if err := ss.systemRepo.CreateWorkspace(ownerId, teamRoles, workspaceId, name); err != nil {
+		if err := ss.systemRepo.CreateWorkspace(ownerId, &teamRoles, workspaceId, name); err != nil {
 			return err
 		}
 
@@ -95,7 +95,7 @@ func (ss *SystemServiceImpl) GetWorkspaceById(workspaceId string, userId primiti
 		return model.Workspace{}, errors.New("user is not in the Workspace")
 	}
 
-	fmtWorkspace, err := ss.formatWorkspaces([]entity.Workspace{workspace})
+	fmtWorkspace, err := ss.formatWorkspaces([]entity.Workspace{*workspace})
 	if err != nil {
 		return model.Workspace{}, err
 	}
@@ -109,7 +109,7 @@ func (ss *SystemServiceImpl) GetAllWorkspaces(userId primitive.ObjectID) ([]mode
 		return []model.Workspace{}, err
 	}
 
-	fmtWorkspaces, err := ss.formatWorkspaces(workspaces)
+	fmtWorkspaces, err := ss.formatWorkspaces(*workspaces)
 	if err != nil {
 		return []model.Workspace{}, err
 	}
@@ -127,17 +127,17 @@ func (ss *SystemServiceImpl) UpdateWorkspace(userId primitive.ObjectID, newLogo 
 			if err := utils.ValidateWorkspaceId(workspaceId); err != nil {
 				return err
 			}
-			if err := ss.storageClient.UpdateFileName(workspace.WorkspaceID, newWorkspaceId, ss.config.MinIo.BucketName); err != nil {
+			if err := ss.storageClient.UpdateFileName(workspace.WorkspaceId, newWorkspaceId, ss.config.MinIo.BucketName); err != nil {
 				return err
 			}
-			workspace.WorkspaceID = newWorkspaceId
+			workspace.WorkspaceId = newWorkspaceId
 		}
 
 		if newLogo != nil {
 			if err := utils.ValidatePhoto(newLogo); err != nil {
 				return err
 			}
-			if err := ss.storageClient.UpdateFile(newLogo, workspace.WorkspaceID, ss.config.MinIo.BucketName); err != nil {
+			if err := ss.storageClient.UpdateFile(newLogo, workspace.WorkspaceId, ss.config.MinIo.BucketName); err != nil {
 				return err
 			}
 		}
@@ -161,7 +161,7 @@ func (ss *SystemServiceImpl) AddWorkspaceMembers(userId primitive.ObjectID, team
 	}
 
 	if ss.isAdmin(workspace.Team[userId]) || ss.isOwner(workspace.Team[userId]) {
-		teamRoles, err := ss.systemRepo.ValidateTeam(team, userId)
+		teamRoles, err := ss.systemRepo.ValidateTeam(&team, userId)
 		if err != nil {
 			return err
 		}
@@ -181,7 +181,7 @@ func (ss *SystemServiceImpl) UpdateWorkspaceMembers(userId primitive.ObjectID, t
 	}
 
 	if ss.isAdmin(workspace.Team[userId]) || ss.isOwner(workspace.Team[userId]) {
-		teamRoles, err := ss.systemRepo.ValidateTeam(team, userId)
+		teamRoles, err := ss.systemRepo.ValidateTeam(&team, userId)
 		if err != nil {
 			return err
 		}
@@ -221,7 +221,7 @@ func (ss *SystemServiceImpl) DeleteWorkspaceByID(workspaceId string, userId prim
 	}
 
 	if ss.isOwner(workspace.Team[userId]) {
-		if err := ss.systemRepo.DeleteWorkspace(workspace.ID); err != nil {
+		if err := ss.systemRepo.DeleteWorkspace(workspace.Id); err != nil {
 			return err
 		}
 	}
@@ -236,17 +236,16 @@ func (ss *SystemServiceImpl) GetUserProfiles(workspaceId string, userId primitiv
 	}
 
 	if _, exists := workspace.Team[userId]; exists {
-		users, err := ss.systemRepo.GetUserProfiles(workspace)
+		users, err := ss.systemRepo.GetUserProfiles(*workspace)
 		if err != nil {
 			return nil, err
 		}
 
-		for i := range users {
-			user := &users[i]
+		for _, user := range *users {
 			user.Logo, _ = ss.storageClient.LoadFile(user.Email, ss.config.MinIo.BucketName)
 		}
 
-		return users, nil
+		return *users, nil
 	}
 
 	return nil, errors.New("user does not have a valid permission")
@@ -255,13 +254,13 @@ func (ss *SystemServiceImpl) GetUserProfiles(workspaceId string, userId primitiv
 func (ss *SystemServiceImpl) formatWorkspaces(workspaces []entity.Workspace) ([]model.Workspace, error) {
 	formattedWorkspaces := make([]model.Workspace, len(workspaces))
 	for i, p := range workspaces {
-		logo, _ := ss.storageClient.LoadFile(p.WorkspaceID, ss.config.MinIo.BucketName)
-		team, _ := ss.systemRepo.FormatTeam(p.Team)
+		logo, _ := ss.storageClient.LoadFile(p.WorkspaceId, ss.config.MinIo.BucketName)
+		team, _ := ss.systemRepo.FormatTeam(&p.Team)
 
 		formattedWorkspace := model.Workspace{
 			Name:        p.Name,
-			WorkspaceID: p.WorkspaceID,
-			Team:        team,
+			WorkspaceId: p.WorkspaceId,
+			Team:        *team,
 			Logo:        logo,
 		}
 
@@ -269,6 +268,17 @@ func (ss *SystemServiceImpl) formatWorkspaces(workspaces []entity.Workspace) ([]
 	}
 
 	return formattedWorkspaces, nil
+}
+
+func (ss *SystemServiceImpl) UpdateWorkspacePendingStatus(userId primitive.ObjectID, workspaceId string, status bool) error {
+	if err := ss.systemRepo.ClearPendingStatus(userId, workspaceId); err != nil {
+		return err
+	}
+
+	if err := ss.systemRepo.UpdateWorkspaceUserStatus(userId, workspaceId, status); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (ss *SystemServiceImpl) isAdmin(userRole entity.WorkspaceRole) bool {

@@ -20,14 +20,15 @@ type Workspace struct {
 }
 
 type User struct {
-	Id           primitive.ObjectID `bson:"_id,omitempty"`
-	Email        string             `bson:"email"`
-	PasswordHash string             `bson:"password"`
-	IsConfirmed  bool               `bson:"is_confirmed"`
-	AuthSource   string             `bson:"auth_source"`
-	FullName     string             `bson:"name"`
-	Tokens       Tokens             `bson:"tokens"`
-	CreatedAt    primitive.DateTime `bson:"created_at"`
+	Id             primitive.ObjectID `bson:"_id,omitempty"`
+	Email          string             `bson:"email"`
+	PasswordHash   string             `bson:"password"`
+	IsConfirmed    bool               `bson:"is_confirmed"`
+	AuthSource     string             `bson:"auth_source"`
+	FullName       string             `bson:"name"`
+	PendingInvites []string           `bson:"pending_invites"`
+	Tokens         Tokens             `bson:"tokens"`
+	CreatedAt      primitive.DateTime `bson:"created_at"`
 }
 
 type Tokens struct {

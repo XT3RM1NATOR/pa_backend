@@ -7,6 +7,7 @@ import (
 	"github.com/labstack/echo/v4"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"net/http"
+	"strconv"
 )
 
 type SystemController struct {
@@ -55,10 +56,10 @@ func (sc *SystemController) CreateWorkspace(c echo.Context) error {
 // @Failure 500 {object} model.ErrorResponse "Internal server error"
 // @Router /system/Workspace/leave/{id} [delete]
 func (sc *SystemController) LeaveWorkspace(c echo.Context) error {
-	workspaceID := c.Param("id")
+	workspaceId := c.Param("id")
 	userId := c.Request().Context().Value("userId").(primitive.ObjectID)
 
-	if err := sc.systemService.LeaveWorkspace(workspaceID, userId); err != nil {
+	if err := sc.systemService.LeaveWorkspace(workspaceId, userId); err != nil {
 		return c.JSON(http.StatusInternalServerError, model.ErrorResponse{Error: err.Error()})
 	}
 
@@ -132,7 +133,7 @@ func (sc *SystemController) GetAllWorkspaces(c echo.Context) error {
 // @Failure 500 {object} model.ErrorResponse "Internal server error"
 // @Router /system/Workspace/{id} [put]
 func (sc *SystemController) UpdateWorkspace(c echo.Context) error {
-	workspaceID := c.Param("id")
+	workspaceId := c.Param("id")
 	userId := c.Request().Context().Value("userId").(primitive.ObjectID)
 
 	var request model.UpdateWorkspaceRequest
@@ -140,7 +141,7 @@ func (sc *SystemController) UpdateWorkspace(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, model.ErrorResponse{Error: err.Error()})
 	}
 
-	if err := sc.systemService.UpdateWorkspace(userId, request.Logo, workspaceID, request.WorkspaceID, request.Name); err != nil {
+	if err := sc.systemService.UpdateWorkspace(userId, request.Logo, workspaceId, request.WorkspaceID, request.Name); err != nil {
 		return c.JSON(http.StatusInternalServerError, model.ErrorResponse{Error: err.Error()})
 	}
 
@@ -208,8 +209,7 @@ func (sc *SystemController) UpdateWorkspaceMember(c echo.Context) error {
 // @Failure 500 {object} model.ErrorResponse "Internal server error"
 // @Router /system/Workspace/member/{id}/{email} [delete]
 func (sc *SystemController) DeleteWorkspaceMember(c echo.Context) error {
-	memberEmail := c.Param("email")
-	workspaceId := c.Param("id")
+	memberEmail, workspaceId := c.Param("email"), c.Param("id")
 	userId := c.Request().Context().Value("userId").(primitive.ObjectID)
 
 	if err := sc.systemService.DeleteWorkspaceMember(userId, workspaceId, memberEmail); err != nil {
@@ -229,10 +229,10 @@ func (sc *SystemController) DeleteWorkspaceMember(c echo.Context) error {
 // @Failure 500 {object} model.ErrorResponse "Internal server error"
 // @Router /system/Workspace/{id} [delete]
 func (sc *SystemController) DeleteWorkspaceByID(c echo.Context) error {
-	workspaceID := c.Param("id")
+	workspaceId := c.Param("id")
 	userId := c.Request().Context().Value("userId").(primitive.ObjectID)
 
-	if err := sc.systemService.DeleteWorkspaceByID(workspaceID, userId); err != nil {
+	if err := sc.systemService.DeleteWorkspaceByID(workspaceId, userId); err != nil {
 		return c.JSON(http.StatusInternalServerError, model.ErrorResponse{Error: err.Error()})
 	}
 
@@ -249,10 +249,10 @@ func (sc *SystemController) DeleteWorkspaceByID(c echo.Context) error {
 // @Failure 500 {object} model.ErrorResponse "Internal server error"
 // @Router /system/Workspace/{id} [delete]
 func (sc *SystemController) GetUserProfiles(c echo.Context) error {
-	workspaceID := c.Param("id")
+	workspaceId := c.Param("id")
 	userId := c.Request().Context().Value("userId").(primitive.ObjectID)
 
-	users, err := sc.systemService.GetUserProfiles(workspaceID, userId)
+	users, err := sc.systemService.GetUserProfiles(workspaceId, userId)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, model.ErrorResponse{Error: err.Error()})
 	}
@@ -269,4 +269,19 @@ func (sc *SystemController) GetUserProfiles(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, userResponses)
+}
+
+func (sc *SystemController) UpdateWorkspacePendingStatus(c echo.Context) error {
+	statusStr, workspaceId := c.Param("status"), c.Param("id")
+	userId := c.Request().Context().Value("userId").(primitive.ObjectID)
+
+	status, err := strconv.ParseBool(statusStr)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, model.ErrorResponse{Error: "invalid status"})
+	}
+
+	if err := sc.systemService.UpdateWorkspacePendingStatus(userId, workspaceId, status); err != nil {
+		return c.JSON(http.StatusInternalServerError, model.ErrorResponse{Error: err.Error()})
+	}
+	return nil
 }

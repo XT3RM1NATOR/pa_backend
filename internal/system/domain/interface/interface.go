@@ -16,6 +16,7 @@ type SystemService interface {
 	UpdateWorkspace(userId primitive.ObjectID, newLogo []byte, WorkspaceId, newWorkspaceId, newName string) error
 	UpdateWorkspaceMembers(userId primitive.ObjectID, team map[string]string, WorkspaceId string) error
 	GetUserProfiles(WorkspaceId string, userId primitive.ObjectID) ([]model.User, error)
+	UpdateWorkspacePendingStatus(userId primitive.ObjectID, workspaceId string, status bool) error
 }
 
 type EmailService interface {
