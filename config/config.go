@@ -19,13 +19,13 @@ type Config struct {
 
 type (
 	MongoDB struct {
-		Host              string `env:"DB_HOST"`
-		Port              string `env:"DB_PORT"`
-		User              string `env:"DB_USER"`
-		Password          string `env:"DB_PASSWORD"`
-		Database          string `env:"DB_NAME"`
-		UserCollection    string `env:"DB_USER_COLLECTION"`
-		ProjectCollection string `env:"DB_PROJECT_COLLECTION"`
+		Host                string `env:"DB_HOST"`
+		Port                string `env:"DB_PORT"`
+		User                string `env:"DB_USER"`
+		Password            string `env:"DB_PASSWORD"`
+		Database            string `env:"DB_NAME"`
+		UserCollection      string `env:"DB_USER_COLLECTION"`
+		WorkspaceCollection string `env:"DB_WORKSPACE_COLLECTION"`
 	}
 
 	Server struct {
@@ -52,7 +52,8 @@ type (
 	}
 
 	Website struct {
-		WebURL string `env:"WEB_URL"`
+		WebURL  string `env:"WEB_URL"`
+		BaseURL string `env:"BASE_URL"`
 	}
 
 	MinIo struct {

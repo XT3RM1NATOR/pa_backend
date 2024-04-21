@@ -3,8 +3,8 @@ package server
 import (
 	"github.com/Point-AI/backend/config"
 	_ "github.com/Point-AI/backend/docs"
-	authDelivery "github.com/Point-AI/backend/internal/auth/delivery"
 	systemDelivery "github.com/Point-AI/backend/internal/system/delivery"
+	authDelivery "github.com/Point-AI/backend/internal/user/delivery"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/minio/minio-go/v7"
@@ -47,7 +47,7 @@ func RunHTTPServer(cfg *config.Config, db *mongo.Database, str *minio.Client) {
 	e.Use(middleware.CORSWithConfig(corsConfig))
 	e.GET("/swagger/*", echoSwagger.WrapHandler)
 
-	authDelivery.RegisterAuthRoutes(e, cfg, db)
+	authDelivery.RegisterAuthRoutes(e, cfg, db, str)
 	systemDelivery.RegisterSystemRoutes(e, cfg, db, str)
 	//integrationsDelivery.RegisterIntegrationsRoutes(e, cfg, db)
 	//messangerDelivery.RegisterMessangerAdminRoutes(e, cfg, db)

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"github.com/Point-AI/backend/config"
 	"github.com/Point-AI/backend/internal/system/domain/entity"
+	"github.com/Point-AI/backend/internal/system/infrastructure/model"
 	"github.com/Point-AI/backend/internal/system/service/interface"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -24,25 +25,29 @@ func NewSystemRepositoryImpl(db *mongo.Database, cfg *config.Config) infrastruct
 	}
 }
 
-func (sr *SystemRepositoryImpl) CreateProject(team map[primitive.ObjectID]entity.ProjectRole, projectId, name string) error {
-	project := &entity.Project{
-		Name:      name,
-		Team:      team,
-		ProjectID: projectId,
-		CreatedAt: primitive.NewDateTimeFromTime(time.Now()),
+func (sr *SystemRepositoryImpl) CreateWorkspace(ownerId primitive.ObjectID, pendingTeam *map[string]entity.WorkspaceRole, workspaceId, name string) error {
+	team := make(map[primitive.ObjectID]entity.WorkspaceRole)
+	team[ownerId] = entity.RoleAdmin
+
+	workspace := &entity.Workspace{
+		Name:        name,
+		Team:        team,
+		PendingTeam: *pendingTeam,
+		WorkspaceId: workspaceId,
+		CreatedAt:   primitive.NewDateTimeFromTime(time.Now()),
 	}
 
-	if _, err := sr.database.Collection(sr.config.MongoDB.ProjectCollection).InsertOne(context.Background(), project); err != nil {
+	if _, err := sr.database.Collection(sr.config.MongoDB.WorkspaceCollection).InsertOne(context.Background(), workspace); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (sr *SystemRepositoryImpl) ValidateTeam(team map[string]string, ownerId primitive.ObjectID) (map[primitive.ObjectID]entity.ProjectRole, error) {
-	userRoles := make(map[primitive.ObjectID]entity.ProjectRole)
+func (sr *SystemRepositoryImpl) ValidateTeam(team *map[string]string, ownerId primitive.ObjectID) (*map[primitive.ObjectID]entity.WorkspaceRole, error) {
+	userRoles := make(map[primitive.ObjectID]entity.WorkspaceRole)
 	userRoles[ownerId] = entity.RoleAdmin
 
-	for email, role := range team {
+	for email, role := range *team {
 		var user entity.User
 		err := sr.database.Collection(sr.config.MongoDB.UserCollection).FindOne(context.Background(), bson.M{"email": email}).Decode(&user)
 		if err != nil {
@@ -51,115 +56,198 @@ func (sr *SystemRepositoryImpl) ValidateTeam(team map[string]string, ownerId pri
 			}
 			return nil, err
 		}
+		if _, exists := userRoles[user.Id]; exists {
+			continue
+		}
 
 		switch role {
-		case string(entity.RoleAdmin), string(entity.RoleMember), string(entity.RoleObserver):
-			userRoles[user.ID] = entity.ProjectRole(role)
+		case string(entity.RoleAdmin), string(entity.RoleMember), string(entity.RoleOwner):
+			userRoles[user.Id] = entity.WorkspaceRole(role)
 		default:
-			userRoles[user.ID] = entity.RoleMember
+			userRoles[user.Id] = entity.RoleMember
 		}
 	}
 
-	return userRoles, nil
+	return &userRoles, nil
 }
 
-func (sr *SystemRepositoryImpl) FindProjectByProjectId(projectId string) (entity.Project, error) {
-	var project entity.Project
-	err := sr.database.Collection(sr.config.MongoDB.ProjectCollection).FindOne(context.Background(), bson.M{"project_id": projectId}).Decode(&project)
-	if err != nil {
-		return project, err
+func (sr *SystemRepositoryImpl) FormatTeam(team *map[primitive.ObjectID]entity.WorkspaceRole) (*map[string]string, error) {
+	userRoles := make(map[string]string)
+
+	for id, role := range *team {
+		var user entity.User
+		err := sr.database.Collection(sr.config.MongoDB.UserCollection).FindOne(context.Background(), bson.M{"_id": id}).Decode(&user)
+		if err != nil {
+			if errors.Is(err, mongo.ErrNoDocuments) {
+				continue
+			}
+			return nil, err
+		}
+
+		userRoles[user.Email] = string(role)
 	}
 
-	return project, nil
+	return &userRoles, nil
 }
 
-func (sr *SystemRepositoryImpl) RemoveUserFromProject(project entity.Project, userId primitive.ObjectID) error {
-	filter, update := bson.M{"_id": project.ID}, bson.M{"$unset": bson.M{"team." + userId.Hex(): ""}}
+func (sr *SystemRepositoryImpl) FindWorkspaceByWorkspaceId(workspaceId string) (*entity.Workspace, error) {
+	var workspace entity.Workspace
+	err := sr.database.Collection(sr.config.MongoDB.WorkspaceCollection).FindOne(context.Background(), bson.M{"workspace_id": workspaceId}).Decode(&workspace)
+	if err != nil {
+		return &workspace, err
+	}
 
-	res, err := sr.database.Collection(sr.config.MongoDB.ProjectCollection).UpdateOne(context.Background(), filter, update)
+	return &workspace, nil
+}
+
+func (sr *SystemRepositoryImpl) RemoveUserFromWorkspace(workspace *entity.Workspace, userId primitive.ObjectID) error {
+	filter, update := bson.M{"_id": workspace.Id}, bson.M{"$unset": bson.M{"team." + userId.Hex(): ""}}
+
+	res, err := sr.database.Collection(sr.config.MongoDB.WorkspaceCollection).UpdateOne(context.Background(), filter, update)
 	if err != nil {
 		return err
 	}
 	if res.MatchedCount == 0 {
-		return errors.New("user ID not found in the project team")
+		return errors.New("user ID not found in the Workspace team")
 	}
 
 	return nil
 }
 
-func (sr *SystemRepositoryImpl) AddUsersToProject(project entity.Project, teamRoles map[primitive.ObjectID]entity.ProjectRole) error {
-	for userID, role := range teamRoles {
-		if _, exists := project.Team[userID]; !exists {
-			project.Team[userID] = role
+func (sr *SystemRepositoryImpl) AddUsersToWorkspace(workspace *entity.Workspace, teamRoles *map[primitive.ObjectID]entity.WorkspaceRole) error {
+	for userId, role := range *teamRoles {
+		if _, exists := workspace.Team[userId]; !exists {
+			workspace.Team[userId] = role
 		}
 	}
-	filter, update := bson.M{"_id": project.ID}, bson.M{"$set": bson.M{"team": project.Team}}
+	filter, update := bson.M{"_id": workspace.Id}, bson.M{"$set": bson.M{"team": workspace.Team}}
 
-	res, err := sr.database.Collection(sr.config.MongoDB.ProjectCollection).UpdateOne(context.Background(), filter, update)
+	res, err := sr.database.Collection(sr.config.MongoDB.WorkspaceCollection).UpdateOne(context.Background(), filter, update)
 	if err != nil {
 		return err
 	}
 	if res.MatchedCount == 0 {
-		return errors.New("project not found")
+		return errors.New("workspace not found")
 	}
 
 	return nil
 }
 
-func (sr *SystemRepositoryImpl) UpdateUsersInProject(project entity.Project, teamRoles map[primitive.ObjectID]entity.ProjectRole) error {
-	for userID, role := range teamRoles {
-		if _, exists := project.Team[userID]; exists {
-			project.Team[userID] = role
+func (sr *SystemRepositoryImpl) UpdateUsersInWorkspace(workspace *entity.Workspace, teamRoles *map[primitive.ObjectID]entity.WorkspaceRole) error {
+	for userId, role := range *teamRoles {
+		if _, exists := workspace.Team[userId]; exists {
+			workspace.Team[userId] = role
 		}
 	}
-	filter, update := bson.M{"_id": project.ID}, bson.M{"$set": bson.M{"team": project.Team}}
+	filter, update := bson.M{"_id": workspace.Id}, bson.M{"$set": bson.M{"team": workspace.Team}}
 
-	res, err := sr.database.Collection(sr.config.MongoDB.ProjectCollection).UpdateOne(context.Background(), filter, update)
+	res, err := sr.database.Collection(sr.config.MongoDB.WorkspaceCollection).UpdateOne(context.Background(), filter, update)
 	if err != nil {
 		return err
 	}
 	if res.MatchedCount == 0 {
-		return errors.New("project not found")
+		return errors.New("workspace not found")
 	}
 
 	return nil
 }
 
-func (sr *SystemRepositoryImpl) DeleteProject(id primitive.ObjectID) error {
-	res, err := sr.database.Collection(sr.config.MongoDB.ProjectCollection).DeleteOne(context.Background(), bson.M{"_id": id})
+func (sr *SystemRepositoryImpl) GetUserProfiles(Workspace entity.Workspace) (*[]model.User, error) {
+	var users []model.User
+
+	for userId, role := range Workspace.Team {
+		user, err := sr.findUserById(userId)
+		if err == nil {
+			users = append(users, model.User{
+				Email:    user.Email,
+				FullName: user.FullName,
+				Role:     string(role),
+			})
+		}
+	}
+
+	return &users, nil
+}
+
+func (sr *SystemRepositoryImpl) findUserById(userId primitive.ObjectID) (*entity.User, error) {
+	var user entity.User
+
+	err := sr.database.Collection(sr.config.MongoDB.UserCollection).FindOne(context.Background(), bson.M{"_id": userId}).Decode(&user)
+	if errors.Is(err, mongo.ErrNoDocuments) {
+		return &user, errors.New("user not found")
+	}
+
+	return &user, nil
+}
+
+func (sr *SystemRepositoryImpl) DeleteWorkspace(id primitive.ObjectID) error {
+	res, err := sr.database.Collection(sr.config.MongoDB.WorkspaceCollection).DeleteOne(context.Background(), bson.M{"_id": id})
 	if err != nil {
 		return err
 	}
 
 	if res.DeletedCount == 0 {
-		return errors.New("project not found")
+		return errors.New("workspace not found")
 	}
 
 	return nil
 }
 
-func (sr *SystemRepositoryImpl) FindProjectsByUser(userID primitive.ObjectID) ([]entity.Project, error) {
+func (sr *SystemRepositoryImpl) ClearPendingStatus(userId primitive.ObjectID, workspaceId string) error {
+	filter := bson.M{"_id": userId}
+	update := bson.M{"$pull": bson.M{"pending_invites": workspaceId}}
+	_, err := sr.database.Collection(sr.config.MongoDB.UserCollection).UpdateOne(context.Background(), filter, update)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (sr *SystemRepositoryImpl) UpdateWorkspaceUserStatus(userId primitive.ObjectID, workspaceId string, status bool) error {
+	email, err := sr.FindUserEmailById(userId)
+	if err != nil {
+		return err
+	}
+
+	workspace, err := sr.FindWorkspaceByWorkspaceId(workspaceId)
+	if err != nil {
+		return err
+	}
+
+	if status {
+		workspace.Team[userId] = workspace.PendingTeam[email]
+	}
+	delete(workspace.PendingTeam, email)
+
+	if err := sr.UpdateWorkspace(workspace); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (sr *SystemRepositoryImpl) FindWorkspacesByUser(userID primitive.ObjectID) (*[]entity.Workspace, error) {
 	filter := bson.M{
 		"team." + userID.Hex(): bson.M{"$exists": true},
 	}
 
-	cursor, err := sr.database.Collection(sr.config.MongoDB.ProjectCollection).Find(context.Background(), filter)
+	cursor, err := sr.database.Collection(sr.config.MongoDB.WorkspaceCollection).Find(context.Background(), filter)
 	if err != nil {
 		return nil, err
 	}
 	defer cursor.Close(context.Background())
 
-	var projects []entity.Project
-	if err := cursor.All(context.Background(), &projects); err != nil {
+	var workspaces []entity.Workspace
+	if err := cursor.All(context.Background(), &workspaces); err != nil {
 		return nil, err
 	}
 
-	return projects, nil
+	return &workspaces, nil
 }
 
-func (sr *SystemRepositoryImpl) FindUserById(userID primitive.ObjectID) (string, error) {
+func (sr *SystemRepositoryImpl) FindUserEmailById(userId primitive.ObjectID) (string, error) {
 	var user entity.User
-	err := sr.database.Collection(sr.config.MongoDB.UserCollection).FindOne(context.Background(), bson.M{"_id": userID}).Decode(&user)
+	err := sr.database.Collection(sr.config.MongoDB.UserCollection).FindOne(context.Background(), bson.M{"_id": userId}).Decode(&user)
 	if err != nil {
 		return "", err
 	}
@@ -174,18 +262,28 @@ func (sr *SystemRepositoryImpl) FindUserByEmail(email string) (primitive.ObjectI
 		return primitive.ObjectID{}, err
 	}
 
-	return user.ID, nil
+	return user.Id, nil
 }
 
-func (sr *SystemRepositoryImpl) UpdateProject(project entity.Project) error {
-	filter, update := bson.M{"_id": project.ID}, bson.M{"$set": project}
+func (sr *SystemRepositoryImpl) AddPendingInviteToUser(userId primitive.ObjectID, projectId string) error {
+	filter := bson.M{"_id": userId}
+	update := bson.M{"$addToSet": bson.M{"pending_invites": projectId}}
+	_, err := sr.database.Collection(sr.config.MongoDB.UserCollection).UpdateOne(context.Background(), filter, update)
+	if err != nil {
+		return err
+	}
+	return nil
+}
 
-	res, err := sr.database.Collection(sr.config.MongoDB.ProjectCollection).ReplaceOne(context.Background(), filter, update)
+func (sr *SystemRepositoryImpl) UpdateWorkspace(workspace *entity.Workspace) error {
+	filter, update := bson.M{"_id": workspace.Id}, bson.M{"$set": workspace}
+
+	res, err := sr.database.Collection(sr.config.MongoDB.WorkspaceCollection).ReplaceOne(context.Background(), filter, update)
 	if err != nil {
 		return err
 	}
 	if res.MatchedCount == 0 {
-		return errors.New("project not found")
+		return errors.New("workspace not found")
 	}
 
 	return nil

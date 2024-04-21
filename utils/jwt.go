@@ -40,7 +40,7 @@ func GenerateJWTToken(tokenType TokenType, id primitive.ObjectID, secretKey stri
 	return signedToken, nil
 }
 
-func ValidateJWTToken(expectedTokenType TokenType, signedToken, secretKey string) (primitive.ObjectID, error) { // Changed return type
+func ValidateJWTToken(expectedTokenType TokenType, signedToken, secretKey string) (primitive.ObjectID, error) {
 	parsedToken, err := jwt.Parse(signedToken, func(token *jwt.Token) (interface{}, error) {
 		return []byte(secretKey), nil
 	})

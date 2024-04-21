@@ -2,27 +2,27 @@ package model
 
 // Requests
 
-type CreateProjectRequest struct {
-	Name      string            `json:"name"`
-	Logo      []byte            `json:"logo"`
-	Team      map[string]string `json:"team"`
-	ProjectID string            `json:"project_id"`
+type CreateWorkspaceRequest struct {
+	Name        string            `json:"name"`
+	Logo        []byte            `json:"logo"`
+	Team        map[string]string `json:"team"`
+	WorkspaceID string            `json:"Workspace_id"`
 }
 
-type AddProjectMemberRequest struct {
-	Team      map[string]string `json:"team"`
-	ProjectId string            `json:"project_id"`
+type AddWorkspaceMemberRequest struct {
+	Team        map[string]string `json:"team"`
+	WorkspaceId string            `json:"Workspace_id"`
 }
 
-type UpdateProjectMemberRequest struct {
-	Team      map[string]string `json:"team"`
-	ProjectId string            `json:"project_id"`
+type UpdateWorkspaceMemberRequest struct {
+	Team        map[string]string `json:"team"`
+	WorkspaceId string            `json:"Workspace_id"`
 }
 
-type UpdateProjectRequest struct {
-	Name      string `json:"name"`
-	Logo      []byte `json:"logo"`
-	ProjectID string `json:"project_id"`
+type UpdateWorkspaceRequest struct {
+	Name        string `json:"name"`
+	Logo        []byte `json:"logo"`
+	WorkspaceID string `json:"Workspace_id"`
 }
 
 // Responses
@@ -35,9 +35,15 @@ type SuccessResponse struct {
 	Message string `json:"message"`
 }
 
-type ProjectResponse struct {
-	Name      string            `json:"name"`
-	Logo      []byte            `json:"logo"`
-	Team      map[string]string `json:"team"`
-	ProjectID string            `json:"project_id"`
+type WorkspaceResponse struct {
+	Name        string `json:"name"`
+	Logo        []byte `json:"logo"`
+	WorkspaceID string `json:"Workspace_id"`
+}
+
+type UserResponse struct {
+	Email    string `json:"email"`
+	FullName string `json:"name"`
+	Role     string `json:"role"`
+	Logo     []byte `json:"logo"`
 }
