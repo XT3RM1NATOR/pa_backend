@@ -31,7 +31,7 @@ func NewSystemController(systemService _interface.SystemService, cfg *config.Con
 // @Success 201 {object} model.SuccessResponse "Workspace added successfully"
 // @Failure 400 {object} model.ErrorResponse "Bad request"
 // @Failure 500 {object} model.ErrorResponse "Internal server error"
-// @Router /system/Workspace [post]
+// @Router /system/workspace [post]
 func (sc *SystemController) CreateWorkspace(c echo.Context) error {
 	var request model.CreateWorkspaceRequest
 	if err := c.Bind(&request); err != nil {
@@ -54,7 +54,7 @@ func (sc *SystemController) CreateWorkspace(c echo.Context) error {
 // @Param id path string true "Workspace ID"
 // @Success 200 {object} model.SuccessResponse "Workspace left successfully"
 // @Failure 500 {object} model.ErrorResponse "Internal server error"
-// @Router /system/Workspace/leave/{id} [delete]
+// @Router /system/workspace/leave/{id} [delete]
 func (sc *SystemController) LeaveWorkspace(c echo.Context) error {
 	workspaceId := c.Param("id")
 	userId := c.Request().Context().Value("userId").(primitive.ObjectID)
@@ -74,7 +74,7 @@ func (sc *SystemController) LeaveWorkspace(c echo.Context) error {
 // @Param id path string true "Workspace ID"
 // @Success 200 {object} model.WorkspaceResponse "Workspace details"
 // @Failure 500 {object} model.ErrorResponse "Internal server error"
-// @Router /system/Workspace/{id} [get]
+// @Router /system/workspace/{id} [get]
 func (sc *SystemController) GetWorkspaceByID(c echo.Context) error {
 	workspaceID := c.Param("id")
 	userId := c.Request().Context().Value("userId").(primitive.ObjectID)
@@ -87,7 +87,7 @@ func (sc *SystemController) GetWorkspaceByID(c echo.Context) error {
 	return c.JSON(http.StatusOK, model.WorkspaceResponse{
 		Name:        workspace.Name,
 		Logo:        workspace.Logo,
-		WorkspaceID: workspace.WorkspaceID,
+		WorkspaceID: workspace.WorkspaceId,
 	})
 }
 
@@ -98,7 +98,7 @@ func (sc *SystemController) GetWorkspaceByID(c echo.Context) error {
 // @Produce json
 // @Success 200 {array} model.WorkspaceResponse "List of Workspaces"
 // @Failure 500 {object} model.ErrorResponse "Internal server error"
-// @Router /system/Workspace [get]
+// @Router /system/workspace [get]
 func (sc *SystemController) GetAllWorkspaces(c echo.Context) error {
 	userId := c.Request().Context().Value("userId").(primitive.ObjectID)
 
@@ -113,7 +113,7 @@ func (sc *SystemController) GetAllWorkspaces(c echo.Context) error {
 			Name: workspace.Name,
 			Logo: workspace.Logo,
 			//Team:      workspace.Team,
-			WorkspaceID: workspace.WorkspaceID,
+			WorkspaceID: workspace.WorkspaceId,
 		}
 		responseWorkspaces = append(responseWorkspaces, responseWorkspace)
 	}
@@ -131,7 +131,7 @@ func (sc *SystemController) GetAllWorkspaces(c echo.Context) error {
 // @Success 200 {object} model.SuccessResponse "Workspace updated successfully"
 // @Failure 400 {object} model.ErrorResponse "Bad request"
 // @Failure 500 {object} model.ErrorResponse "Internal server error"
-// @Router /system/Workspace/{id} [put]
+// @Router /system/workspace/{id} [put]
 func (sc *SystemController) UpdateWorkspace(c echo.Context) error {
 	workspaceId := c.Param("id")
 	userId := c.Request().Context().Value("userId").(primitive.ObjectID)
@@ -157,7 +157,7 @@ func (sc *SystemController) UpdateWorkspace(c echo.Context) error {
 // @Success 200 {object} model.SuccessResponse "Users added successfully"
 // @Failure 400 {object} model.ErrorResponse "Bad request"
 // @Failure 500 {object} model.ErrorResponse "Internal server error"
-// @Router /system/Workspace/member [post]
+// @Router /system/workspace/member [post]
 func (sc *SystemController) AddWorkspaceMembers(c echo.Context) error {
 	userId := c.Request().Context().Value("userId").(primitive.ObjectID)
 
@@ -182,7 +182,7 @@ func (sc *SystemController) AddWorkspaceMembers(c echo.Context) error {
 // @Success 200 {object} model.SuccessResponse "Users updated successfully"
 // @Failure 400 {object} model.ErrorResponse "Bad request"
 // @Failure 500 {object} model.ErrorResponse "Internal server error"
-// @Router /system/Workspace/update [put]
+// @Router /system/workspace/update [put]
 func (sc *SystemController) UpdateWorkspaceMember(c echo.Context) error {
 	userId := c.Request().Context().Value("userId").(primitive.ObjectID)
 
@@ -207,7 +207,7 @@ func (sc *SystemController) UpdateWorkspaceMember(c echo.Context) error {
 // @Param email path string true "Member email"
 // @Success 200 {object} model.SuccessResponse "Member removed successfully"
 // @Failure 500 {object} model.ErrorResponse "Internal server error"
-// @Router /system/Workspace/member/{id}/{email} [delete]
+// @Router /system/workspace/member/{id}/{email} [delete]
 func (sc *SystemController) DeleteWorkspaceMember(c echo.Context) error {
 	memberEmail, workspaceId := c.Param("email"), c.Param("id")
 	userId := c.Request().Context().Value("userId").(primitive.ObjectID)
@@ -227,7 +227,7 @@ func (sc *SystemController) DeleteWorkspaceMember(c echo.Context) error {
 // @Param id path string true "Workspace ID"
 // @Success 200 {object} model.SuccessResponse "Workspace deleted successfully"
 // @Failure 500 {object} model.ErrorResponse "Internal server error"
-// @Router /system/Workspace/{id} [delete]
+// @Router /system/workspace/workspace/{id} [delete]
 func (sc *SystemController) DeleteWorkspaceByID(c echo.Context) error {
 	workspaceId := c.Param("id")
 	userId := c.Request().Context().Value("userId").(primitive.ObjectID)
@@ -244,10 +244,10 @@ func (sc *SystemController) DeleteWorkspaceByID(c echo.Context) error {
 // @Tags System
 // @Accept json
 // @Produce json
-// @Param id path string true "Workspace ID"
+// @Param id path string true "Workspace id"
 // @Success 200 {object} model.SuccessResponse "Workspace deleted successfully"
 // @Failure 500 {object} model.ErrorResponse "Internal server error"
-// @Router /system/Workspace/{id} [delete]
+// @Router /system/workspace/members/{id} [get]
 func (sc *SystemController) GetUserProfiles(c echo.Context) error {
 	workspaceId := c.Param("id")
 	userId := c.Request().Context().Value("userId").(primitive.ObjectID)
@@ -271,6 +271,17 @@ func (sc *SystemController) GetUserProfiles(c echo.Context) error {
 	return c.JSON(http.StatusOK, userResponses)
 }
 
+// UpdateWorkspacePendingStatus Returns users in the Workspace.
+// @Summary Returns users in the Workspace.
+// @Tags System
+// @Accept json
+// @Produce json
+// @Param id path string true "Workspace id"
+// @Param status path bool true "Status of invite"
+// @Success 200 {object} model.SuccessResponse "Workspace deleted successfully"
+// @Failure 400 {object} model.ErrorResponse "Bad request"
+// @Failure 500 {object} model.ErrorResponse "Internal server error"
+// @Router /system/workspace/{id}/{status} [put]
 func (sc *SystemController) UpdateWorkspacePendingStatus(c echo.Context) error {
 	statusStr, workspaceId := c.Param("status"), c.Param("id")
 	userId := c.Request().Context().Value("userId").(primitive.ObjectID)
@@ -283,5 +294,5 @@ func (sc *SystemController) UpdateWorkspacePendingStatus(c echo.Context) error {
 	if err := sc.systemService.UpdateWorkspacePendingStatus(userId, workspaceId, status); err != nil {
 		return c.JSON(http.StatusInternalServerError, model.ErrorResponse{Error: err.Error()})
 	}
-	return nil
+	return c.JSON(http.StatusOK, model.SuccessResponse{Message: "status updated successfully"})
 }

@@ -57,9 +57,7 @@ func (ss *SystemServiceImpl) CreateWorkspace(logo []byte, team map[string]string
 			if errors.Is(err, mongo.ErrNoDocuments) {
 				go ss.emailService.SendInvitationEmail(email, ss.config.Website.BaseURL+"/auth/signup")
 			} else if err == nil {
-				if err = ss.systemRepo.AddPendingInviteToUser(id, workspaceId); err != nil {
-
-				}
+				go ss.systemRepo.AddPendingInviteToUser(id, workspaceId)
 			}
 		}
 
