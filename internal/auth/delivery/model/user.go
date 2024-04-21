@@ -30,6 +30,11 @@ type OAuth2TokenRequest struct {
 	OAuth2Token string `json:"oAuth2Token"`
 }
 
+type UserUpdateProfileRequest struct {
+	FullName string `json:"name"`
+	Logo     []byte `json:"logo"`
+}
+
 // Responses
 
 type ErrorResponse struct {

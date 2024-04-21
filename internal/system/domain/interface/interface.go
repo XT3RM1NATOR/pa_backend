@@ -6,14 +6,14 @@ import (
 )
 
 type SystemService interface {
-	CreateProject(logo []byte, team map[string]string, ownerId primitive.ObjectID, projectId, name string) error
-	LeaveProject(projectId string, userId primitive.ObjectID) error
-	GetAllProjects(userId primitive.ObjectID) ([]model.Project, error)
-	AddProjectMembers(userId primitive.ObjectID, team map[string]string, projectId string) error
-	DeleteProjectMember(userId primitive.ObjectID, projectId, memberEmail string) error
-	DeleteProjectByID(projectId string, userId primitive.ObjectID) error
-	GetProjectById(projectId string, userId primitive.ObjectID) (model.Project, error)
-	UpdateProject(userId primitive.ObjectID, newLogo []byte, projectId, newProjectId, newName string) error
-	UpdateProjectMembers(userId primitive.ObjectID, team map[string]string, projectId string) error
-	GetUserProfiles(projectId string, userId primitive.ObjectID) ([]model.User, error)
+	CreateWorkspace(logo []byte, team map[string]string, ownerId primitive.ObjectID, WorkspaceId, name string) error
+	LeaveWorkspace(WorkspaceId string, userId primitive.ObjectID) error
+	GetAllWorkspaces(userId primitive.ObjectID) ([]model.Workspace, error)
+	AddWorkspaceMembers(userId primitive.ObjectID, team map[string]string, WorkspaceId string) error
+	DeleteWorkspaceMember(userId primitive.ObjectID, WorkspaceId, memberEmail string) error
+	DeleteWorkspaceByID(WorkspaceId string, userId primitive.ObjectID) error
+	GetWorkspaceById(WorkspaceId string, userId primitive.ObjectID) (model.Workspace, error)
+	UpdateWorkspace(userId primitive.ObjectID, newLogo []byte, WorkspaceId, newWorkspaceId, newName string) error
+	UpdateWorkspaceMembers(userId primitive.ObjectID, team map[string]string, WorkspaceId string) error
+	GetUserProfiles(WorkspaceId string, userId primitive.ObjectID) ([]model.User, error)
 }

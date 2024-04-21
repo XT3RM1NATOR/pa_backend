@@ -14,17 +14,17 @@ type StorageClient interface {
 }
 
 type SystemRepository interface {
-	ValidateTeam(team map[string]string, ownerId primitive.ObjectID) (map[primitive.ObjectID]entity.ProjectRole, error)
-	CreateProject(team map[primitive.ObjectID]entity.ProjectRole, projectId, name string) error
-	RemoveUserFromProject(project entity.Project, userId primitive.ObjectID) error
-	FindProjectByProjectId(projectId string) (entity.Project, error)
-	DeleteProject(id primitive.ObjectID) error
-	FindProjectsByUser(userID primitive.ObjectID) ([]entity.Project, error)
+	ValidateTeam(team map[string]string, ownerId primitive.ObjectID) (map[primitive.ObjectID]entity.WorkspaceRole, error)
+	CreateWorkspace(team map[primitive.ObjectID]entity.WorkspaceRole, WorkspaceId, name string) error
+	RemoveUserFromWorkspace(Workspace entity.Workspace, userId primitive.ObjectID) error
+	FindWorkspaceByWorkspaceId(WorkspaceId string) (entity.Workspace, error)
+	DeleteWorkspace(id primitive.ObjectID) error
+	FindWorkspacesByUser(userID primitive.ObjectID) ([]entity.Workspace, error)
 	FindUserByEmail(email string) (primitive.ObjectID, error)
 	FindUserById(userID primitive.ObjectID) (string, error)
-	AddUsersToProject(project entity.Project, teamRoles map[primitive.ObjectID]entity.ProjectRole) error
-	UpdateUsersInProject(project entity.Project, teamRoles map[primitive.ObjectID]entity.ProjectRole) error
-	UpdateProject(project entity.Project) error
-	FormatTeam(team map[primitive.ObjectID]entity.ProjectRole) (map[string]string, error)
-	GetUserProfiles(project entity.Project) ([]model.User, error)
+	AddUsersToWorkspace(Workspace entity.Workspace, teamRoles map[primitive.ObjectID]entity.WorkspaceRole) error
+	UpdateUsersInWorkspace(Workspace entity.Workspace, teamRoles map[primitive.ObjectID]entity.WorkspaceRole) error
+	UpdateWorkspace(Workspace entity.Workspace) error
+	FormatTeam(team map[primitive.ObjectID]entity.WorkspaceRole) (map[string]string, error)
+	GetUserProfiles(Workspace entity.Workspace) ([]model.User, error)
 }

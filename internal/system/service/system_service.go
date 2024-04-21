@@ -25,8 +25,8 @@ func NewSystemServiceImpl(cfg *config.Config, storageClient infrastructureInterf
 	}
 }
 
-func (ss *SystemServiceImpl) CreateProject(logo []byte, team map[string]string, ownerId primitive.ObjectID, projectId, name string) error {
-	if err := utils.ValidateProjectId(projectId); err != nil {
+func (ss *SystemServiceImpl) CreateWorkspace(logo []byte, team map[string]string, ownerId primitive.ObjectID, workspaceId, name string) error {
+	if err := utils.ValidateWorkspaceId(workspaceId); err != nil {
 		return err
 	}
 
@@ -41,9 +41,9 @@ func (ss *SystemServiceImpl) CreateProject(logo []byte, team map[string]string, 
 		return err
 	}
 
-	_, err = ss.systemRepo.FindProjectByProjectId(projectId)
+	_, err = ss.systemRepo.FindWorkspaceByWorkspaceId(workspaceId)
 	if errors.Is(err, mongo.ErrNoDocuments) {
-		if err := ss.systemRepo.CreateProject(teamRoles, projectId, name); err != nil {
+		if err := ss.systemRepo.CreateWorkspace(teamRoles, workspaceId, name); err != nil {
 			return err
 		}
 
@@ -54,85 +54,85 @@ func (ss *SystemServiceImpl) CreateProject(logo []byte, team map[string]string, 
 		return err
 	}
 
-	return errors.New("project with this id already exists")
+	return errors.New("workspace with this id already exists")
 }
 
-func (ss *SystemServiceImpl) LeaveProject(projectId string, userId primitive.ObjectID) error {
-	project, err := ss.systemRepo.FindProjectByProjectId(projectId)
+func (ss *SystemServiceImpl) LeaveWorkspace(WorkspaceId string, userId primitive.ObjectID) error {
+	workspace, err := ss.systemRepo.FindWorkspaceByWorkspaceId(WorkspaceId)
 	if err != nil {
 		return err
 	}
 
-	if err := ss.systemRepo.RemoveUserFromProject(project, userId); err != nil {
+	if err := ss.systemRepo.RemoveUserFromWorkspace(workspace, userId); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-// GetProjectById TODO: update function not to return team
-func (ss *SystemServiceImpl) GetProjectById(projectId string, userId primitive.ObjectID) (model.Project, error) {
-	project, err := ss.systemRepo.FindProjectByProjectId(projectId)
+// GetWorkspaceById TODO: update function not to return team
+func (ss *SystemServiceImpl) GetWorkspaceById(workspaceId string, userId primitive.ObjectID) (model.Workspace, error) {
+	workspace, err := ss.systemRepo.FindWorkspaceByWorkspaceId(workspaceId)
 	if err != nil {
-		return model.Project{}, err
+		return model.Workspace{}, err
 	}
 
-	if _, exists := project.Team[userId]; !exists {
-		return model.Project{}, errors.New("user is not in the project")
+	if _, exists := workspace.Team[userId]; !exists {
+		return model.Workspace{}, errors.New("user is not in the Workspace")
 	}
 
-	fmtProject, err := ss.formatProjects([]entity.Project{project})
+	fmtWorkspace, err := ss.formatWorkspaces([]entity.Workspace{workspace})
 	if err != nil {
-		return model.Project{}, err
+		return model.Workspace{}, err
 	}
 
-	return fmtProject[0], nil
+	return fmtWorkspace[0], nil
 }
 
-func (ss *SystemServiceImpl) GetAllProjects(userId primitive.ObjectID) ([]model.Project, error) {
-	projects, err := ss.systemRepo.FindProjectsByUser(userId)
+func (ss *SystemServiceImpl) GetAllWorkspaces(userId primitive.ObjectID) ([]model.Workspace, error) {
+	workspaces, err := ss.systemRepo.FindWorkspacesByUser(userId)
 	if err != nil {
-		return []model.Project{}, err
+		return []model.Workspace{}, err
 	}
 
-	fmtProjects, err := ss.formatProjects(projects)
+	fmtWorkspaces, err := ss.formatWorkspaces(workspaces)
 	if err != nil {
-		return []model.Project{}, err
+		return []model.Workspace{}, err
 	}
-	return fmtProjects, err
+	return fmtWorkspaces, err
 }
 
-func (ss *SystemServiceImpl) UpdateProject(userId primitive.ObjectID, newLogo []byte, projectId, newProjectId, newName string) error {
-	project, err := ss.systemRepo.FindProjectByProjectId(projectId)
+func (ss *SystemServiceImpl) UpdateWorkspace(userId primitive.ObjectID, newLogo []byte, workspaceId, newWorkspaceId, newName string) error {
+	workspace, err := ss.systemRepo.FindWorkspaceByWorkspaceId(workspaceId)
 	if err != nil {
 		return err
 	}
 
-	if ss.isOwner(project.Team[userId]) || ss.isAdmin(project.Team[userId]) {
-		if newProjectId != "" {
-			if err := utils.ValidateProjectId(projectId); err != nil {
+	if ss.isOwner(workspace.Team[userId]) || ss.isAdmin(workspace.Team[userId]) {
+		if newWorkspaceId != "" {
+			if err := utils.ValidateWorkspaceId(workspaceId); err != nil {
 				return err
 			}
-			if err := ss.storageClient.UpdateFileName(projectId, newProjectId, ss.config.MinIo.BucketName); err != nil {
+			if err := ss.storageClient.UpdateFileName(workspace.WorkspaceID, newWorkspaceId, ss.config.MinIo.BucketName); err != nil {
 				return err
 			}
-			project.ProjectID = newProjectId
+			workspace.WorkspaceID = newWorkspaceId
 		}
 
 		if newLogo != nil {
 			if err := utils.ValidatePhoto(newLogo); err != nil {
 				return err
 			}
-			if err := ss.storageClient.UpdateFile(newLogo, project.ProjectID, ss.config.MinIo.BucketName); err != nil {
+			if err := ss.storageClient.UpdateFile(newLogo, workspace.WorkspaceID, ss.config.MinIo.BucketName); err != nil {
 				return err
 			}
 		}
 
 		if newName != "" {
-			project.Name = newName
+			workspace.Name = newName
 		}
 
-		if err := ss.systemRepo.UpdateProject(project); err != nil {
+		if err := ss.systemRepo.UpdateWorkspace(workspace); err != nil {
 			return err
 		}
 		return nil
@@ -140,19 +140,19 @@ func (ss *SystemServiceImpl) UpdateProject(userId primitive.ObjectID, newLogo []
 	return errors.New("unauthorized to make the changes")
 }
 
-func (ss *SystemServiceImpl) AddProjectMembers(userId primitive.ObjectID, team map[string]string, projectId string) error {
-	project, err := ss.systemRepo.FindProjectByProjectId(projectId)
+func (ss *SystemServiceImpl) AddWorkspaceMembers(userId primitive.ObjectID, team map[string]string, workspaceId string) error {
+	workspace, err := ss.systemRepo.FindWorkspaceByWorkspaceId(workspaceId)
 	if err != nil {
 		return err
 	}
 
-	if ss.isAdmin(project.Team[userId]) || ss.isOwner(project.Team[userId]) {
+	if ss.isAdmin(workspace.Team[userId]) || ss.isOwner(workspace.Team[userId]) {
 		teamRoles, err := ss.systemRepo.ValidateTeam(team, userId)
 		if err != nil {
 			return err
 		}
 
-		if err := ss.systemRepo.AddUsersToProject(project, teamRoles); err != nil {
+		if err := ss.systemRepo.AddUsersToWorkspace(workspace, teamRoles); err != nil {
 			return err
 		}
 	}
@@ -160,19 +160,19 @@ func (ss *SystemServiceImpl) AddProjectMembers(userId primitive.ObjectID, team m
 	return nil
 }
 
-func (ss *SystemServiceImpl) UpdateProjectMembers(userId primitive.ObjectID, team map[string]string, projectId string) error {
-	project, err := ss.systemRepo.FindProjectByProjectId(projectId)
+func (ss *SystemServiceImpl) UpdateWorkspaceMembers(userId primitive.ObjectID, team map[string]string, workspaceId string) error {
+	workspace, err := ss.systemRepo.FindWorkspaceByWorkspaceId(workspaceId)
 	if err != nil {
 		return err
 	}
 
-	if ss.isAdmin(project.Team[userId]) || ss.isOwner(project.Team[userId]) {
+	if ss.isAdmin(workspace.Team[userId]) || ss.isOwner(workspace.Team[userId]) {
 		teamRoles, err := ss.systemRepo.ValidateTeam(team, userId)
 		if err != nil {
 			return err
 		}
 
-		if err := ss.systemRepo.UpdateUsersInProject(project, teamRoles); err != nil {
+		if err := ss.systemRepo.UpdateUsersInWorkspace(workspace, teamRoles); err != nil {
 			return err
 		}
 	}
@@ -180,19 +180,19 @@ func (ss *SystemServiceImpl) UpdateProjectMembers(userId primitive.ObjectID, tea
 	return nil
 }
 
-func (ss *SystemServiceImpl) DeleteProjectMember(userId primitive.ObjectID, projectId, memberEmail string) error {
-	project, err := ss.systemRepo.FindProjectByProjectId(projectId)
+func (ss *SystemServiceImpl) DeleteWorkspaceMember(userId primitive.ObjectID, workspaceId, memberEmail string) error {
+	workspace, err := ss.systemRepo.FindWorkspaceByWorkspaceId(workspaceId)
 	if err != nil {
 		return err
 	}
 
-	if ss.isAdmin(project.Team[userId]) || ss.isOwner(project.Team[userId]) {
+	if ss.isAdmin(workspace.Team[userId]) || ss.isOwner(workspace.Team[userId]) {
 		userId, err := ss.systemRepo.FindUserByEmail(memberEmail)
 		if err != nil {
 			return err
 		}
 
-		if err := ss.systemRepo.RemoveUserFromProject(project, userId); err != nil {
+		if err := ss.systemRepo.RemoveUserFromWorkspace(workspace, userId); err != nil {
 			return err
 		}
 	}
@@ -200,14 +200,14 @@ func (ss *SystemServiceImpl) DeleteProjectMember(userId primitive.ObjectID, proj
 	return nil
 }
 
-func (ss *SystemServiceImpl) DeleteProjectByID(projectId string, userId primitive.ObjectID) error {
-	project, err := ss.systemRepo.FindProjectByProjectId(projectId)
+func (ss *SystemServiceImpl) DeleteWorkspaceByID(workspaceId string, userId primitive.ObjectID) error {
+	workspace, err := ss.systemRepo.FindWorkspaceByWorkspaceId(workspaceId)
 	if err != nil {
 		return err
 	}
 
-	if ss.isOwner(project.Team[userId]) {
-		if err := ss.systemRepo.DeleteProject(project.ID); err != nil {
+	if ss.isOwner(workspace.Team[userId]) {
+		if err := ss.systemRepo.DeleteWorkspace(workspace.ID); err != nil {
 			return err
 		}
 	}
@@ -215,14 +215,14 @@ func (ss *SystemServiceImpl) DeleteProjectByID(projectId string, userId primitiv
 	return errors.New("user does not have a valid permission")
 }
 
-func (ss *SystemServiceImpl) GetUserProfiles(projectId string, userId primitive.ObjectID) ([]model.User, error) {
-	project, err := ss.systemRepo.FindProjectByProjectId(projectId)
+func (ss *SystemServiceImpl) GetUserProfiles(workspaceId string, userId primitive.ObjectID) ([]model.User, error) {
+	workspace, err := ss.systemRepo.FindWorkspaceByWorkspaceId(workspaceId)
 	if err != nil {
 		return nil, err
 	}
 
-	if _, exists := project.Team[userId]; exists {
-		users, err := ss.systemRepo.GetUserProfiles(project)
+	if _, exists := workspace.Team[userId]; exists {
+		users, err := ss.systemRepo.GetUserProfiles(workspace)
 		if err != nil {
 			return nil, err
 		}
@@ -238,29 +238,29 @@ func (ss *SystemServiceImpl) GetUserProfiles(projectId string, userId primitive.
 	return nil, errors.New("user does not have a valid permission")
 }
 
-func (ss *SystemServiceImpl) formatProjects(projects []entity.Project) ([]model.Project, error) {
-	formattedProjects := make([]model.Project, len(projects))
-	for i, p := range projects {
-		logo, _ := ss.storageClient.LoadFile(p.ProjectID, ss.config.MinIo.BucketName)
+func (ss *SystemServiceImpl) formatWorkspaces(workspaces []entity.Workspace) ([]model.Workspace, error) {
+	formattedWorkspaces := make([]model.Workspace, len(workspaces))
+	for i, p := range workspaces {
+		logo, _ := ss.storageClient.LoadFile(p.WorkspaceID, ss.config.MinIo.BucketName)
 		team, _ := ss.systemRepo.FormatTeam(p.Team)
 
-		formattedProject := model.Project{
-			Name:      p.Name,
-			ProjectID: p.ProjectID,
-			Team:      team,
-			Logo:      logo,
+		formattedWorkspace := model.Workspace{
+			Name:        p.Name,
+			WorkspaceID: p.WorkspaceID,
+			Team:        team,
+			Logo:        logo,
 		}
 
-		formattedProjects[i] = formattedProject
+		formattedWorkspaces[i] = formattedWorkspace
 	}
 
-	return formattedProjects, nil
+	return formattedWorkspaces, nil
 }
 
-func (ss *SystemServiceImpl) isAdmin(userRole entity.ProjectRole) bool {
+func (ss *SystemServiceImpl) isAdmin(userRole entity.WorkspaceRole) bool {
 	return userRole == entity.RoleAdmin
 }
 
-func (ss *SystemServiceImpl) isOwner(userRole entity.ProjectRole) bool {
+func (ss *SystemServiceImpl) isOwner(userRole entity.WorkspaceRole) bool {
 	return userRole == entity.RoleOwner
 }

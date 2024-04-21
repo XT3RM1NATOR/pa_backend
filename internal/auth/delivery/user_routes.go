@@ -29,6 +29,7 @@ func RegisterAuthRoutes(e *echo.Echo, cfg *config.Config, db *mongo.Database, st
 	authGroup.POST("/reset", uc.ResetPassword)
 	authGroup.PUT("/renew", uc.RenewAccessToken)
 	authGroup.GET("/profile", uc.GetProfile, middleware.ValidateAccessTokenMiddleware(cfg.Auth.JWTSecretKey))
+	authGroup.PUT("/profile", uc.UpdateProfile, middleware.ValidateAccessTokenMiddleware(cfg.Auth.JWTSecretKey))
 
 	authGroup.GET("/oauth2/google/callback", uc.GoogleCallback)
 	authGroup.GET("/oauth2/google/tokens", uc.GoogleTokens)

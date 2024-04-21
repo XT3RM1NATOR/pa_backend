@@ -60,7 +60,7 @@ func (ur *UserRepositoryImpl) CreateOauth2User(email, authSource string) (string
 		existingUser.Tokens.OAuth2Token = oAuth2Token
 		existingUser.IsConfirmed = true
 
-		if err = ur.updateUser(existingUser); err != nil {
+		if err = ur.UpdateUser(existingUser); err != nil {
 			return "", err
 		}
 		return oAuth2Token, nil
@@ -131,13 +131,13 @@ func (ur *UserRepositoryImpl) GetUserByConfirmToken(token string) (*entity.User,
 
 func (ur *UserRepositoryImpl) SetResetToken(user *entity.User, token string) error {
 	user.Tokens.ResetToken = token
-	return ur.updateUser(user)
+	return ur.UpdateUser(user)
 }
 
 func (ur *UserRepositoryImpl) SetRefreshToken(user *entity.User, token string) error {
 	user.Tokens.RefreshToken = token
 	user.Tokens.OAuth2Token = ""
-	return ur.updateUser(user)
+	return ur.UpdateUser(user)
 }
 
 func (ur *UserRepositoryImpl) ClearResetToken(id primitive.ObjectID, password string) error {
@@ -165,7 +165,7 @@ func (ur *UserRepositoryImpl) ConfirmUser(userId primitive.ObjectID) error {
 	return err
 }
 
-func (ur *UserRepositoryImpl) updateUser(user *entity.User) error {
+func (ur *UserRepositoryImpl) UpdateUser(user *entity.User) error {
 	_, err := ur.database.Collection(ur.collection).ReplaceOne(context.Background(), bson.M{"_id": user.ID}, user)
 	return err
 }

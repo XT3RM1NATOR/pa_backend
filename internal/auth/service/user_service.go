@@ -70,6 +70,10 @@ func (us *UserServiceImpl) Login(email, password string) (string, string, error)
 		return "", "", errors.New("user not found")
 	}
 
+	if user.PasswordHash == "" {
+		return "", "", errors.New("user does not yet has a password")
+	}
+
 	if !utils.VerifyPassword(user.PasswordHash, password) {
 		return "", "", errors.New("invalid password")
 	}
@@ -240,4 +244,23 @@ func (us *UserServiceImpl) GetUserProfile(userId primitive.ObjectID) (*entity.Us
 	logo, err := us.storageClient.LoadFile(user.Email, us.config.MinIo.BucketName)
 
 	return user, logo, nil
+}
+
+func (us *UserServiceImpl) UpdateUserProfile(userId primitive.ObjectID, logo []byte, name string) error {
+	user, err := us.userRepo.GetUserById(userId)
+	if err != nil {
+		return err
+	}
+
+	if logo != nil {
+		go us.storageClient.UpdateFile(logo, user.Email, us.config.MinIo.BucketName)
+	}
+	if name != "" {
+		user.FullName = name
+		if err := us.userRepo.UpdateUser(user); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

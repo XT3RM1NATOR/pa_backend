@@ -2,20 +2,20 @@ package entity
 
 import "go.mongodb.org/mongo-driver/bson/primitive"
 
-type ProjectRole string
+type WorkspaceRole string
 
 const (
-	RoleAdmin  ProjectRole = "admin"
-	RoleMember ProjectRole = "member"
-	RoleOwner  ProjectRole = "owner"
+	RoleAdmin  WorkspaceRole = "admin"
+	RoleMember WorkspaceRole = "member"
+	RoleOwner  WorkspaceRole = "owner"
 )
 
-type Project struct {
-	ID        primitive.ObjectID                 `bson:"_id,omitempty"`
-	Name      string                             `bson:"name"`
-	Team      map[primitive.ObjectID]ProjectRole `bson:"team"`
-	ProjectID string                             `bson:"project_id"`
-	CreatedAt primitive.DateTime                 `bson:"createdAt"`
+type Workspace struct {
+	ID          primitive.ObjectID                   `bson:"_id,omitempty"`
+	Name        string                               `bson:"name"`
+	Team        map[primitive.ObjectID]WorkspaceRole `bson:"team"`
+	WorkspaceID string                               `bson:"workspace_id"`
+	CreatedAt   primitive.DateTime                   `bson:"createdAt"`
 }
 
 type User struct {

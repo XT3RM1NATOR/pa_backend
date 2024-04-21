@@ -6,7 +6,7 @@ import (
 	"image"
 )
 
-func ValidateProjectId(projectId string) error {
+func ValidateWorkspaceId(projectId string) error {
 	if len(projectId) < 6 || len(projectId) > 30 {
 		return errors.New("project ID must be between 6 and 30 characters")
 	}

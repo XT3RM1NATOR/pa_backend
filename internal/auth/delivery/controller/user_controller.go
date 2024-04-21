@@ -260,3 +260,26 @@ func (uc *UserController) GetProfile(c echo.Context) error {
 		CreatedAt: user.CreatedAt,
 	})
 }
+
+// UpdateProfile updates the user profile.
+// @Summary updates the user profile.
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Param request body model.UserUpdateProfileRequest true "Access token renewal request"
+// @Success 200 {object} model.SuccessResponse "user profile data"
+// @Failure 500 {object} model.ErrorResponse "Internal server error"
+// @Router /auth/profile [put]
+func (uc *UserController) UpdateProfile(c echo.Context) error {
+	userId := c.Request().Context().Value("userId").(primitive.ObjectID)
+	var request model.UserUpdateProfileRequest
+	if err := c.Bind(&request); err != nil {
+		return c.JSON(http.StatusBadRequest, model.ErrorResponse{Error: err.Error()})
+	}
+
+	if err := uc.userService.UpdateUserProfile(userId, request.Logo, request.FullName); err != nil {
+		return c.JSON(http.StatusInternalServerError, model.ErrorResponse{Error: err.Error()})
+	}
+
+	return c.JSON(http.StatusOK, model.SuccessResponse{Message: "user updated successfully"})
+}

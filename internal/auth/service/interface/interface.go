@@ -24,6 +24,7 @@ type UserRepository interface {
 	ClearResetToken(id primitive.ObjectID, password string) error
 	ClearRefreshToken(id primitive.ObjectID) error
 	ConfirmUser(userId primitive.ObjectID) error
+	UpdateUser(user *entity.User) error
 }
 
 type EmailClient interface {

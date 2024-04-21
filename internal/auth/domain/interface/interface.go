@@ -16,6 +16,7 @@ type UserService interface {
 	RenewAccessToken(refreshToken string) (string, error)
 	Logout(userId primitive.ObjectID) error
 	GetUserProfile(userId primitive.ObjectID) (*entity.User, []byte, error)
+	UpdateUserProfile(userId primitive.ObjectID, logo []byte, name string) error
 }
 
 type EmailService interface {

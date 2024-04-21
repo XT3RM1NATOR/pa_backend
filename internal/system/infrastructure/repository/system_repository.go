@@ -25,22 +25,22 @@ func NewSystemRepositoryImpl(db *mongo.Database, cfg *config.Config) infrastruct
 	}
 }
 
-func (sr *SystemRepositoryImpl) CreateProject(team map[primitive.ObjectID]entity.ProjectRole, projectId, name string) error {
-	project := &entity.Project{
-		Name:      name,
-		Team:      team,
-		ProjectID: projectId,
-		CreatedAt: primitive.NewDateTimeFromTime(time.Now()),
+func (sr *SystemRepositoryImpl) CreateWorkspace(team map[primitive.ObjectID]entity.WorkspaceRole, WorkspaceId, name string) error {
+	Workspace := &entity.Workspace{
+		Name:        name,
+		Team:        team,
+		WorkspaceID: WorkspaceId,
+		CreatedAt:   primitive.NewDateTimeFromTime(time.Now()),
 	}
 
-	if _, err := sr.database.Collection(sr.config.MongoDB.ProjectCollection).InsertOne(context.Background(), project); err != nil {
+	if _, err := sr.database.Collection(sr.config.MongoDB.WorkspaceCollection).InsertOne(context.Background(), Workspace); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (sr *SystemRepositoryImpl) ValidateTeam(team map[string]string, ownerId primitive.ObjectID) (map[primitive.ObjectID]entity.ProjectRole, error) {
-	userRoles := make(map[primitive.ObjectID]entity.ProjectRole)
+func (sr *SystemRepositoryImpl) ValidateTeam(team map[string]string, ownerId primitive.ObjectID) (map[primitive.ObjectID]entity.WorkspaceRole, error) {
+	userRoles := make(map[primitive.ObjectID]entity.WorkspaceRole)
 	userRoles[ownerId] = entity.RoleAdmin
 
 	for email, role := range team {
@@ -58,7 +58,7 @@ func (sr *SystemRepositoryImpl) ValidateTeam(team map[string]string, ownerId pri
 
 		switch role {
 		case string(entity.RoleAdmin), string(entity.RoleMember), string(entity.RoleOwner):
-			userRoles[user.ID] = entity.ProjectRole(role)
+			userRoles[user.ID] = entity.WorkspaceRole(role)
 		default:
 			userRoles[user.ID] = entity.RoleMember
 		}
@@ -67,7 +67,7 @@ func (sr *SystemRepositoryImpl) ValidateTeam(team map[string]string, ownerId pri
 	return userRoles, nil
 }
 
-func (sr *SystemRepositoryImpl) FormatTeam(team map[primitive.ObjectID]entity.ProjectRole) (map[string]string, error) {
+func (sr *SystemRepositoryImpl) FormatTeam(team map[primitive.ObjectID]entity.WorkspaceRole) (map[string]string, error) {
 	userRoles := make(map[string]string)
 
 	for id, role := range team {
@@ -86,72 +86,72 @@ func (sr *SystemRepositoryImpl) FormatTeam(team map[primitive.ObjectID]entity.Pr
 	return userRoles, nil
 }
 
-func (sr *SystemRepositoryImpl) FindProjectByProjectId(projectId string) (entity.Project, error) {
-	var project entity.Project
-	err := sr.database.Collection(sr.config.MongoDB.ProjectCollection).FindOne(context.Background(), bson.M{"project_id": projectId}).Decode(&project)
+func (sr *SystemRepositoryImpl) FindWorkspaceByWorkspaceId(WorkspaceId string) (entity.Workspace, error) {
+	var workspace entity.Workspace
+	err := sr.database.Collection(sr.config.MongoDB.WorkspaceCollection).FindOne(context.Background(), bson.M{"workspace_id": WorkspaceId}).Decode(&workspace)
 	if err != nil {
-		return project, err
+		return workspace, err
 	}
 
-	return project, nil
+	return workspace, nil
 }
 
-func (sr *SystemRepositoryImpl) RemoveUserFromProject(project entity.Project, userId primitive.ObjectID) error {
-	filter, update := bson.M{"_id": project.ID}, bson.M{"$unset": bson.M{"team." + userId.Hex(): ""}}
+func (sr *SystemRepositoryImpl) RemoveUserFromWorkspace(Workspace entity.Workspace, userId primitive.ObjectID) error {
+	filter, update := bson.M{"_id": Workspace.ID}, bson.M{"$unset": bson.M{"team." + userId.Hex(): ""}}
 
-	res, err := sr.database.Collection(sr.config.MongoDB.ProjectCollection).UpdateOne(context.Background(), filter, update)
+	res, err := sr.database.Collection(sr.config.MongoDB.WorkspaceCollection).UpdateOne(context.Background(), filter, update)
 	if err != nil {
 		return err
 	}
 	if res.MatchedCount == 0 {
-		return errors.New("user ID not found in the project team")
+		return errors.New("user ID not found in the Workspace team")
 	}
 
 	return nil
 }
 
-func (sr *SystemRepositoryImpl) AddUsersToProject(project entity.Project, teamRoles map[primitive.ObjectID]entity.ProjectRole) error {
+func (sr *SystemRepositoryImpl) AddUsersToWorkspace(Workspace entity.Workspace, teamRoles map[primitive.ObjectID]entity.WorkspaceRole) error {
 	for userID, role := range teamRoles {
-		if _, exists := project.Team[userID]; !exists {
-			project.Team[userID] = role
+		if _, exists := Workspace.Team[userID]; !exists {
+			Workspace.Team[userID] = role
 		}
 	}
-	filter, update := bson.M{"_id": project.ID}, bson.M{"$set": bson.M{"team": project.Team}}
+	filter, update := bson.M{"_id": Workspace.ID}, bson.M{"$set": bson.M{"team": Workspace.Team}}
 
-	res, err := sr.database.Collection(sr.config.MongoDB.ProjectCollection).UpdateOne(context.Background(), filter, update)
+	res, err := sr.database.Collection(sr.config.MongoDB.WorkspaceCollection).UpdateOne(context.Background(), filter, update)
 	if err != nil {
 		return err
 	}
 	if res.MatchedCount == 0 {
-		return errors.New("project not found")
+		return errors.New("workspace not found")
 	}
 
 	return nil
 }
 
-func (sr *SystemRepositoryImpl) UpdateUsersInProject(project entity.Project, teamRoles map[primitive.ObjectID]entity.ProjectRole) error {
+func (sr *SystemRepositoryImpl) UpdateUsersInWorkspace(Workspace entity.Workspace, teamRoles map[primitive.ObjectID]entity.WorkspaceRole) error {
 	for userID, role := range teamRoles {
-		if _, exists := project.Team[userID]; exists {
-			project.Team[userID] = role
+		if _, exists := Workspace.Team[userID]; exists {
+			Workspace.Team[userID] = role
 		}
 	}
-	filter, update := bson.M{"_id": project.ID}, bson.M{"$set": bson.M{"team": project.Team}}
+	filter, update := bson.M{"_id": Workspace.ID}, bson.M{"$set": bson.M{"team": Workspace.Team}}
 
-	res, err := sr.database.Collection(sr.config.MongoDB.ProjectCollection).UpdateOne(context.Background(), filter, update)
+	res, err := sr.database.Collection(sr.config.MongoDB.WorkspaceCollection).UpdateOne(context.Background(), filter, update)
 	if err != nil {
 		return err
 	}
 	if res.MatchedCount == 0 {
-		return errors.New("project not found")
+		return errors.New("workspace not found")
 	}
 
 	return nil
 }
 
-func (sr *SystemRepositoryImpl) GetUserProfiles(project entity.Project) ([]model.User, error) {
+func (sr *SystemRepositoryImpl) GetUserProfiles(Workspace entity.Workspace) ([]model.User, error) {
 	var users []model.User
 
-	for userId, role := range project.Team {
+	for userId, role := range Workspace.Team {
 		user, err := sr.findUserByID(userId)
 		if err == nil {
 			users = append(users, model.User{
@@ -176,36 +176,36 @@ func (sr *SystemRepositoryImpl) findUserByID(userID primitive.ObjectID) (entity.
 	return user, nil
 }
 
-func (sr *SystemRepositoryImpl) DeleteProject(id primitive.ObjectID) error {
-	res, err := sr.database.Collection(sr.config.MongoDB.ProjectCollection).DeleteOne(context.Background(), bson.M{"_id": id})
+func (sr *SystemRepositoryImpl) DeleteWorkspace(id primitive.ObjectID) error {
+	res, err := sr.database.Collection(sr.config.MongoDB.WorkspaceCollection).DeleteOne(context.Background(), bson.M{"_id": id})
 	if err != nil {
 		return err
 	}
 
 	if res.DeletedCount == 0 {
-		return errors.New("project not found")
+		return errors.New("workspace not found")
 	}
 
 	return nil
 }
 
-func (sr *SystemRepositoryImpl) FindProjectsByUser(userID primitive.ObjectID) ([]entity.Project, error) {
+func (sr *SystemRepositoryImpl) FindWorkspacesByUser(userID primitive.ObjectID) ([]entity.Workspace, error) {
 	filter := bson.M{
 		"team." + userID.Hex(): bson.M{"$exists": true},
 	}
 
-	cursor, err := sr.database.Collection(sr.config.MongoDB.ProjectCollection).Find(context.Background(), filter)
+	cursor, err := sr.database.Collection(sr.config.MongoDB.WorkspaceCollection).Find(context.Background(), filter)
 	if err != nil {
 		return nil, err
 	}
 	defer cursor.Close(context.Background())
 
-	var projects []entity.Project
-	if err := cursor.All(context.Background(), &projects); err != nil {
+	var Workspaces []entity.Workspace
+	if err := cursor.All(context.Background(), &Workspaces); err != nil {
 		return nil, err
 	}
 
-	return projects, nil
+	return Workspaces, nil
 }
 
 func (sr *SystemRepositoryImpl) FindUserById(userID primitive.ObjectID) (string, error) {
@@ -228,15 +228,15 @@ func (sr *SystemRepositoryImpl) FindUserByEmail(email string) (primitive.ObjectI
 	return user.ID, nil
 }
 
-func (sr *SystemRepositoryImpl) UpdateProject(project entity.Project) error {
-	filter, update := bson.M{"_id": project.ID}, bson.M{"$set": project}
+func (sr *SystemRepositoryImpl) UpdateWorkspace(Workspace entity.Workspace) error {
+	filter, update := bson.M{"_id": Workspace.ID}, bson.M{"$set": Workspace}
 
-	res, err := sr.database.Collection(sr.config.MongoDB.ProjectCollection).ReplaceOne(context.Background(), filter, update)
+	res, err := sr.database.Collection(sr.config.MongoDB.WorkspaceCollection).ReplaceOne(context.Background(), filter, update)
 	if err != nil {
 		return err
 	}
 	if res.MatchedCount == 0 {
-		return errors.New("project not found")
+		return errors.New("workspace not found")
 	}
 
 	return nil

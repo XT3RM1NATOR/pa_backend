@@ -1,10 +1,10 @@
 package model
 
-type Project struct {
-	Name      string `bson:"name"`
-	Logo      []byte
-	Team      map[string]string
-	ProjectID string `bson:"project_id"`
+type Workspace struct {
+	Name        string `bson:"name"`
+	Logo        []byte
+	Team        map[string]string
+	WorkspaceID string `bson:"workspace_id"`
 }
 
 type User struct {
