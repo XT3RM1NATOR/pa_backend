@@ -40,11 +40,11 @@ type whatsAppIntegration struct {
 }
 
 type Integrations struct {
-	Id        primitive.ObjectID   `bson:"_id"`
-	Telegram  *telegramIntegration `bson:"telegram"`
-	Meta      *metaIntegration     `bson:"meta"`
-	WhatsApp  *whatsAppIntegration `bson:"whatsapp"`
-	CreatedAt time.Time            `bson:"created_at"`
+	Id        primitive.ObjectID     `bson:"_id"`
+	Telegram  *[]telegramIntegration `bson:"telegram"`
+	Meta      *[]metaIntegration     `bson:"meta"`
+	WhatsApp  *[]whatsAppIntegration `bson:"whatsapp"`
+	CreatedAt time.Time              `bson:"created_at"`
 }
 
 type User struct {
