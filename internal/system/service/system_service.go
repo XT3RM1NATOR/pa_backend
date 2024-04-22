@@ -169,7 +169,7 @@ func (ss *SystemServiceImpl) AddWorkspaceMembers(userId primitive.ObjectID, team
 		}
 	}
 
-	return nil
+	return errors.New("user does not have the permissions")
 }
 
 func (ss *SystemServiceImpl) UpdateWorkspaceMembers(userId primitive.ObjectID, team map[string]string, workspaceId string) error {
@@ -189,7 +189,7 @@ func (ss *SystemServiceImpl) UpdateWorkspaceMembers(userId primitive.ObjectID, t
 		}
 	}
 
-	return nil
+	return errors.New("user does not have the permissions")
 }
 
 func (ss *SystemServiceImpl) DeleteWorkspaceMember(userId primitive.ObjectID, workspaceId, memberEmail string) error {
@@ -209,7 +209,7 @@ func (ss *SystemServiceImpl) DeleteWorkspaceMember(userId primitive.ObjectID, wo
 		}
 	}
 
-	return nil
+	return errors.New("user does not have the permissions")
 }
 
 func (ss *SystemServiceImpl) DeleteWorkspaceById(workspaceId string, userId primitive.ObjectID) error {

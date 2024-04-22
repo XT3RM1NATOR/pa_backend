@@ -30,6 +30,7 @@ require (
 	github.com/go-openapi/spec v0.20.4 // indirect
 	github.com/go-openapi/swag v0.19.15 // indirect
 	github.com/go-resty/resty/v2 v2.12.0 // indirect
+	github.com/go-telegram-bot-api/telegram-bot-api v4.6.4+incompatible // indirect
 	github.com/golang-jwt/jwt v3.2.2+incompatible // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/golang/snappy v0.0.1 // indirect
@@ -49,6 +50,7 @@ require (
 	github.com/montanaflynn/stats v0.0.0-20171201202039-1bf9dbcd8cbe // indirect
 	github.com/rs/xid v1.5.0 // indirect
 	github.com/swaggo/files/v2 v2.0.0 // indirect
+	github.com/technoweenie/multipartstreamer v1.0.1 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/valyala/fasttemplate v1.2.2 // indirect
 	github.com/xdg-go/pbkdf2 v1.0.0 // indirect

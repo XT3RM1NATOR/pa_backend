@@ -232,7 +232,7 @@ func (sc *SystemController) DeleteWorkspaceById(c echo.Context) error {
 	workspaceId := c.Param("id")
 	userId := c.Request().Context().Value("userId").(primitive.ObjectID)
 
-	if err := sc.systemService.DeleteWorkspaceByID(workspaceId, userId); err != nil {
+	if err := sc.systemService.DeleteWorkspaceById(workspaceId, userId); err != nil {
 		return c.JSON(http.StatusInternalServerError, model.ErrorResponse{Error: err.Error()})
 	}
 
