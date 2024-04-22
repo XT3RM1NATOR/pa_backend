@@ -1,6 +1,9 @@
 package infrastructureInterface
 
-import "github.com/Point-AI/backend/internal/messenger/domain/entity"
+import (
+	"github.com/Point-AI/backend/internal/messenger/domain/entity"
+	"go.mongodb.org/mongo-driver/bson/primitive"
+)
 
 type TelegramClient interface {
 	RegisterNewBot(botToken string) error
@@ -12,4 +15,6 @@ type TelegramClient interface {
 
 type MessengerRepository interface {
 	FindWorkspaceByWorkspaceId(workspaceId string) (*entity.Workspace, error)
+	AddTelegramIntegration(id primitive.ObjectID, botToken string) error
+	CheckBotExists(botToken string) (bool, error)
 }

@@ -23,28 +23,28 @@ type Workspace struct {
 	CreatedAt   primitive.DateTime                   `bson:"created_at"`
 }
 
-type telegramIntegration struct {
+type TelegramIntegration struct {
 	BotToken string `bson:"bot_token"`
 	IsActive bool   `bson:"is_active"`
 }
 
-type metaIntegration struct {
+type MetaIntegration struct {
 	AuthToken string `bson:"auth_token"`
 	PageID    string `bson:"page_id"`
 	IsActive  bool   `bson:"is_active"`
 }
 
-type whatsAppIntegration struct {
+type WhatsAppIntegration struct {
 	InstanceId string `bson:"instance_id"`
 	IsActive   bool   `bson:"is_active"`
 }
 
 type Integrations struct {
-	Id        primitive.ObjectID   `bson:"_id"`
-	Telegram  *telegramIntegration `bson:"telegram"`
-	Meta      *metaIntegration     `bson:"meta"`
-	WhatsApp  *whatsAppIntegration `bson:"whatsapp"`
-	CreatedAt time.Time            `bson:"created_at"`
+	Id        primitive.ObjectID     `bson:"_id"`
+	Telegram  *[]TelegramIntegration `bson:"telegram"`
+	Meta      *[]MetaIntegration     `bson:"meta"`
+	WhatsApp  *[]WhatsAppIntegration `bson:"whatsapp"`
+	CreatedAt time.Time              `bson:"created_at"`
 }
 
 type User struct {

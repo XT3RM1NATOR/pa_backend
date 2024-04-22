@@ -24,7 +24,7 @@ func (tc *TelegramClient) RegisterNewBot(botToken string) error {
 		return err
 	}
 
-	_, err = bot.SetWebhook(tgbotapi.NewWebhook(tc.config.Website.BaseURL + "/bots/webhook/" + botToken))
+	_, err = bot.SetWebhook(tgbotapi.NewWebhook(tc.config.Website.BaseURL + "integrations/telegram/bots/webhook/" + botToken))
 	if err != nil {
 		return err
 	}

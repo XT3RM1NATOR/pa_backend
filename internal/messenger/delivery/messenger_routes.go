@@ -1,8 +1,9 @@
-package integrationsDelivery
+package messengerDelivery
 
 import (
 	"github.com/Point-AI/backend/config"
 	"github.com/Point-AI/backend/internal/messenger/delivery/controller"
+	"github.com/Point-AI/backend/internal/messenger/infrastructure/client"
 	"github.com/Point-AI/backend/internal/messenger/infrastructure/repository"
 	"github.com/Point-AI/backend/internal/messenger/service"
 	"github.com/Point-AI/backend/middleware"
@@ -11,11 +12,12 @@ import (
 )
 
 func RegisterMessengerRoutes(e *echo.Echo, cfg *config.Config, db *mongo.Database) {
-	integrationGroup := e.Group("/integrations")
+	tc := client.NewTelegramClientImpl(cfg)
+	ir := repository.NewMessengerRepositoryImpl(db, cfg)
+	is := service.NewMessengerServiceImpl(cfg, ir, tc)
+	ic := controller.NewMessengerController(is, cfg)
 
-	ir := repository.NewIntegrationRepositoryImpl(db, cfg)
-	is := service.NewIntegrationServiceImpl(cfg, ir)
-	ic := controller.NewIntegrationsController(is, cfg)
+	integrationGroup := e.Group("/integrations")
 
 	telegramGroup := integrationGroup.Group("/telegram")
 	telegramGroup.POST("/bots", ic.RegisterBotIntegration, middleware.ValidateAccessTokenMiddleware(cfg.Auth.JWTSecretKey))

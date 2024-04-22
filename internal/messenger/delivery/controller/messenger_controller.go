@@ -11,33 +11,33 @@ import (
 	"net/http"
 )
 
-type IntegrationController struct {
+type MessengerController struct {
 	messengerService _interface.MessengerService
 	config           *config.Config
 }
 
-func NewIntegrationsController(messengerService _interface.MessengerService, cfg *config.Config) *IntegrationController {
-	return &IntegrationController{
+func NewMessengerController(messengerService _interface.MessengerService, cfg *config.Config) *MessengerController {
+	return &MessengerController{
 		messengerService: messengerService,
 		config:           cfg,
 	}
 }
 
-func (ic *IntegrationController) RegisterBotIntegration(c echo.Context) error {
+func (mc *MessengerController) RegisterBotIntegration(c echo.Context) error {
 	userId := c.Request().Context().Value("userId").(primitive.ObjectID)
 	var request model.RegisterBotRequest
 	if err := c.Bind(&request); err != nil {
 		return c.JSON(http.StatusBadRequest, model.ErrorResponse{Error: err.Error()})
 	}
 
-	if err := ic.messengerService.RegisterBotIntegration(userId, request.BotToken, request.WorkspaceId); err != nil {
+	if err := mc.messengerService.RegisterBotIntegration(userId, request.BotToken, request.WorkspaceId); err != nil {
 		return c.JSON(http.StatusInternalServerError, model.ErrorResponse{Error: err.Error()})
 	}
 
 	return c.JSON(http.StatusCreated, model.SuccessResponse{Message: "bot added successfully"})
 }
 
-func (ic *IntegrationController) HandleBotMessage(c echo.Context) error {
+func (mc *MessengerController) HandleBotMessage(c echo.Context) error {
 	//token := c.Param("token")
 	var update tgbotapi.Update
 	if err := json.NewDecoder(c.Request().Body).Decode(&update); err != nil {

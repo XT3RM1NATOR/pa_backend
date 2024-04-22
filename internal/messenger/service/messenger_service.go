@@ -15,7 +15,7 @@ type MessengerServiceImpl struct {
 	config         *config.Config
 }
 
-func NewIntegrationServiceImpl(cfg *config.Config, messengerRepo infrastructureInterface.MessengerRepository, telegramClient infrastructureInterface.TelegramClient) _interface.MessengerService {
+func NewMessengerServiceImpl(cfg *config.Config, messengerRepo infrastructureInterface.MessengerRepository, telegramClient infrastructureInterface.TelegramClient) _interface.MessengerService {
 	return &MessengerServiceImpl{
 		messengerRepo:  messengerRepo,
 		telegramClient: telegramClient,
@@ -23,23 +23,39 @@ func NewIntegrationServiceImpl(cfg *config.Config, messengerRepo infrastructureI
 	}
 }
 
-func (is *MessengerServiceImpl) RegisterBotIntegration(userId primitive.ObjectID, botToken, workspaceId string) error {
-	workspace, err := is.messengerRepo.FindWorkspaceByWorkspaceId(workspaceId)
+func (ms *MessengerServiceImpl) RegisterBotIntegration(userId primitive.ObjectID, botToken, workspaceId string) error {
+	workspace, err := ms.messengerRepo.FindWorkspaceByWorkspaceId(workspaceId)
 	if err != nil {
 		return err
 	}
 
-	if is.isAdmin(workspace.Team[userId]) || is.isOwner(workspace.Team[userId]) {
+	if ms.isAdmin(workspace.Team[userId]) || ms.isOwner(workspace.Team[userId]) {
+		exists, err := ms.messengerRepo.CheckBotExists(botToken)
+		if err != nil {
+			return err
+		}
+		if exists {
+			return errors.New("bot token already used")
+		}
 
+		if err := ms.telegramClient.RegisterNewBot(botToken); err != nil {
+			return err
+		}
+
+		if err = ms.messengerRepo.AddTelegramIntegration(workspace.Id, botToken); err != nil {
+			return err
+		}
+
+		return nil
 	}
 
 	return errors.New("user does not have the permissions")
 }
 
-func (is *MessengerServiceImpl) isAdmin(userRole entity.WorkspaceRole) bool {
+func (ms *MessengerServiceImpl) isAdmin(userRole entity.WorkspaceRole) bool {
 	return userRole == entity.RoleAdmin
 }
 
-func (is *MessengerServiceImpl) isOwner(userRole entity.WorkspaceRole) bool {
+func (ms *MessengerServiceImpl) isOwner(userRole entity.WorkspaceRole) bool {
 	return userRole == entity.RoleOwner
 }
