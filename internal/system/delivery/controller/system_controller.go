@@ -66,7 +66,7 @@ func (sc *SystemController) LeaveWorkspace(c echo.Context) error {
 	return c.JSON(http.StatusOK, model.SuccessResponse{Message: "workspace left successfully"})
 }
 
-// GetWorkspaceByID retrieves Workspace details by WorkspaceId.
+// GetWorkspaceById retrieves Workspace details by WorkspaceId.
 // @Summary Retrieves Workspace details by ID.
 // @Tags System
 // @Accept json
@@ -75,7 +75,7 @@ func (sc *SystemController) LeaveWorkspace(c echo.Context) error {
 // @Success 200 {object} model.WorkspaceResponse "Workspace details"
 // @Failure 500 {object} model.ErrorResponse "Internal server error"
 // @Router /system/workspace/{id} [get]
-func (sc *SystemController) GetWorkspaceByID(c echo.Context) error {
+func (sc *SystemController) GetWorkspaceById(c echo.Context) error {
 	workspaceID := c.Param("id")
 	userId := c.Request().Context().Value("userId").(primitive.ObjectID)
 
@@ -126,7 +126,7 @@ func (sc *SystemController) GetAllWorkspaces(c echo.Context) error {
 // @Tags System
 // @Accept json
 // @Produce json
-// @Param id path string true "Workspace ID"
+// @Param id path string true "Workspace id"
 // @Param request body UpdateWorkspaceRequest true "Updated Workspace details"
 // @Success 200 {object} model.SuccessResponse "Workspace updated successfully"
 // @Failure 400 {object} model.ErrorResponse "Bad request"
@@ -219,16 +219,16 @@ func (sc *SystemController) DeleteWorkspaceMember(c echo.Context) error {
 	return c.JSON(http.StatusOK, model.SuccessResponse{Message: "member removed successfully"})
 }
 
-// DeleteWorkspaceByID removes a Workspace by ID.
-// @Summary Removes a Workspace by ID.
+// DeleteWorkspaceById removes a Workspace by id.
+// @Summary Removes a Workspace by id.
 // @Tags System
 // @Accept json
 // @Produce json
-// @Param id path string true "Workspace ID"
+// @Param id path string true "Workspace id"
 // @Success 200 {object} model.SuccessResponse "Workspace deleted successfully"
 // @Failure 500 {object} model.ErrorResponse "Internal server error"
 // @Router /system/workspace/workspace/{id} [delete]
-func (sc *SystemController) DeleteWorkspaceByID(c echo.Context) error {
+func (sc *SystemController) DeleteWorkspaceById(c echo.Context) error {
 	workspaceId := c.Param("id")
 	userId := c.Request().Context().Value("userId").(primitive.ObjectID)
 

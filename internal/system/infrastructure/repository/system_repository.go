@@ -25,14 +25,14 @@ func NewSystemRepositoryImpl(db *mongo.Database, cfg *config.Config) infrastruct
 	}
 }
 
-func (sr *SystemRepositoryImpl) CreateWorkspace(ownerId primitive.ObjectID, pendingTeam *map[string]entity.WorkspaceRole, workspaceId, name string) error {
+func (sr *SystemRepositoryImpl) CreateWorkspace(ownerId primitive.ObjectID, pendingTeam map[string]entity.WorkspaceRole, workspaceId, name string) error {
 	team := make(map[primitive.ObjectID]entity.WorkspaceRole)
 	team[ownerId] = entity.RoleAdmin
 
 	workspace := &entity.Workspace{
 		Name:        name,
 		Team:        team,
-		PendingTeam: *pendingTeam,
+		PendingTeam: pendingTeam,
 		WorkspaceId: workspaceId,
 		CreatedAt:   primitive.NewDateTimeFromTime(time.Now()),
 	}
@@ -43,11 +43,11 @@ func (sr *SystemRepositoryImpl) CreateWorkspace(ownerId primitive.ObjectID, pend
 	return nil
 }
 
-func (sr *SystemRepositoryImpl) ValidateTeam(team *map[string]string, ownerId primitive.ObjectID) (*map[primitive.ObjectID]entity.WorkspaceRole, error) {
+func (sr *SystemRepositoryImpl) ValidateTeam(team map[string]string, ownerId primitive.ObjectID) (map[primitive.ObjectID]entity.WorkspaceRole, error) {
 	userRoles := make(map[primitive.ObjectID]entity.WorkspaceRole)
 	userRoles[ownerId] = entity.RoleAdmin
 
-	for email, role := range *team {
+	for email, role := range team {
 		var user entity.User
 		err := sr.database.Collection(sr.config.MongoDB.UserCollection).FindOne(context.Background(), bson.M{"email": email}).Decode(&user)
 		if err != nil {
@@ -68,13 +68,13 @@ func (sr *SystemRepositoryImpl) ValidateTeam(team *map[string]string, ownerId pr
 		}
 	}
 
-	return &userRoles, nil
+	return userRoles, nil
 }
 
-func (sr *SystemRepositoryImpl) FormatTeam(team *map[primitive.ObjectID]entity.WorkspaceRole) (*map[string]string, error) {
+func (sr *SystemRepositoryImpl) FormatTeam(team map[primitive.ObjectID]entity.WorkspaceRole) (map[string]string, error) {
 	userRoles := make(map[string]string)
 
-	for id, role := range *team {
+	for id, role := range team {
 		var user entity.User
 		err := sr.database.Collection(sr.config.MongoDB.UserCollection).FindOne(context.Background(), bson.M{"_id": id}).Decode(&user)
 		if err != nil {
@@ -87,7 +87,7 @@ func (sr *SystemRepositoryImpl) FormatTeam(team *map[primitive.ObjectID]entity.W
 		userRoles[user.Email] = string(role)
 	}
 
-	return &userRoles, nil
+	return userRoles, nil
 }
 
 func (sr *SystemRepositoryImpl) FindWorkspaceByWorkspaceId(workspaceId string) (*entity.Workspace, error) {
@@ -114,8 +114,8 @@ func (sr *SystemRepositoryImpl) RemoveUserFromWorkspace(workspace *entity.Worksp
 	return nil
 }
 
-func (sr *SystemRepositoryImpl) AddUsersToWorkspace(workspace *entity.Workspace, teamRoles *map[primitive.ObjectID]entity.WorkspaceRole) error {
-	for userId, role := range *teamRoles {
+func (sr *SystemRepositoryImpl) AddUsersToWorkspace(workspace *entity.Workspace, teamRoles map[primitive.ObjectID]entity.WorkspaceRole) error {
+	for userId, role := range teamRoles {
 		if _, exists := workspace.Team[userId]; !exists {
 			workspace.Team[userId] = role
 		}
@@ -133,8 +133,8 @@ func (sr *SystemRepositoryImpl) AddUsersToWorkspace(workspace *entity.Workspace,
 	return nil
 }
 
-func (sr *SystemRepositoryImpl) UpdateUsersInWorkspace(workspace *entity.Workspace, teamRoles *map[primitive.ObjectID]entity.WorkspaceRole) error {
-	for userId, role := range *teamRoles {
+func (sr *SystemRepositoryImpl) UpdateUsersInWorkspace(workspace *entity.Workspace, teamRoles map[primitive.ObjectID]entity.WorkspaceRole) error {
+	for userId, role := range teamRoles {
 		if _, exists := workspace.Team[userId]; exists {
 			workspace.Team[userId] = role
 		}

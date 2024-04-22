@@ -25,7 +25,7 @@ func RegisterSystemRoutes(e *echo.Echo, cfg *config.Config, db *mongo.Database, 
 	workspaceGroup := systemGroup.Group("/workspace")
 	workspaceGroup.POST("/", sc.CreateWorkspace, middleware.ValidateAccessTokenMiddleware(cfg.Auth.JWTSecretKey))
 	workspaceGroup.POST("/member", sc.AddWorkspaceMembers, middleware.ValidateAccessTokenMiddleware(cfg.Auth.JWTSecretKey))
-	workspaceGroup.GET("/:id", sc.GetWorkspaceByID, middleware.ValidateAccessTokenMiddleware(cfg.Auth.JWTSecretKey))
+	workspaceGroup.GET("/:id", sc.GetWorkspaceById, middleware.ValidateAccessTokenMiddleware(cfg.Auth.JWTSecretKey))
 	workspaceGroup.GET("/members/:id", sc.GetUserProfiles, middleware.ValidateAccessTokenMiddleware(cfg.Auth.JWTSecretKey))
 	workspaceGroup.GET("/", sc.GetAllWorkspaces, middleware.ValidateAccessTokenMiddleware(cfg.Auth.JWTSecretKey))
 	workspaceGroup.PUT("/update", sc.UpdateWorkspaceMember, middleware.ValidateAccessTokenMiddleware(cfg.Auth.JWTSecretKey))
@@ -33,5 +33,5 @@ func RegisterSystemRoutes(e *echo.Echo, cfg *config.Config, db *mongo.Database, 
 	workspaceGroup.PUT("/:id", sc.UpdateWorkspace, middleware.ValidateAccessTokenMiddleware(cfg.Auth.JWTSecretKey))
 	workspaceGroup.DELETE("/leave/:id", sc.LeaveWorkspace, middleware.ValidateAccessTokenMiddleware(cfg.Auth.JWTSecretKey))
 	workspaceGroup.DELETE("/member/:id/:email", sc.DeleteWorkspaceMember, middleware.ValidateAccessTokenMiddleware(cfg.Auth.JWTSecretKey))
-	workspaceGroup.DELETE("/workspace/:id", sc.DeleteWorkspaceByID, middleware.ValidateAccessTokenMiddleware(cfg.Auth.JWTSecretKey))
+	workspaceGroup.DELETE("/workspace/:id", sc.DeleteWorkspaceById, middleware.ValidateAccessTokenMiddleware(cfg.Auth.JWTSecretKey))
 }

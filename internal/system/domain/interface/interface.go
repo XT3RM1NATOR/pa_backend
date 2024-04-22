@@ -11,7 +11,7 @@ type SystemService interface {
 	GetAllWorkspaces(userId primitive.ObjectID) ([]model.Workspace, error)
 	AddWorkspaceMembers(userId primitive.ObjectID, team map[string]string, WorkspaceId string) error
 	DeleteWorkspaceMember(userId primitive.ObjectID, WorkspaceId, memberEmail string) error
-	DeleteWorkspaceByID(WorkspaceId string, userId primitive.ObjectID) error
+	DeleteWorkspaceById(workspaceId string, userId primitive.ObjectID) error
 	GetWorkspaceById(WorkspaceId string, userId primitive.ObjectID) (model.Workspace, error)
 	UpdateWorkspace(userId primitive.ObjectID, newLogo []byte, WorkspaceId, newWorkspaceId, newName string) error
 	UpdateWorkspaceMembers(userId primitive.ObjectID, team map[string]string, WorkspaceId string) error

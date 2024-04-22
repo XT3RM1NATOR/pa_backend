@@ -46,7 +46,7 @@ func (ss *SystemServiceImpl) CreateWorkspace(logo []byte, team map[string]string
 
 	_, err = ss.systemRepo.FindWorkspaceByWorkspaceId(workspaceId)
 	if errors.Is(err, mongo.ErrNoDocuments) {
-		if err := ss.systemRepo.CreateWorkspace(ownerId, &teamRoles, workspaceId, name); err != nil {
+		if err := ss.systemRepo.CreateWorkspace(ownerId, teamRoles, workspaceId, name); err != nil {
 			return err
 		}
 
@@ -159,7 +159,7 @@ func (ss *SystemServiceImpl) AddWorkspaceMembers(userId primitive.ObjectID, team
 	}
 
 	if ss.isAdmin(workspace.Team[userId]) || ss.isOwner(workspace.Team[userId]) {
-		teamRoles, err := ss.systemRepo.ValidateTeam(&team, userId)
+		teamRoles, err := ss.systemRepo.ValidateTeam(team, userId)
 		if err != nil {
 			return err
 		}
@@ -179,7 +179,7 @@ func (ss *SystemServiceImpl) UpdateWorkspaceMembers(userId primitive.ObjectID, t
 	}
 
 	if ss.isAdmin(workspace.Team[userId]) || ss.isOwner(workspace.Team[userId]) {
-		teamRoles, err := ss.systemRepo.ValidateTeam(&team, userId)
+		teamRoles, err := ss.systemRepo.ValidateTeam(team, userId)
 		if err != nil {
 			return err
 		}
@@ -212,7 +212,7 @@ func (ss *SystemServiceImpl) DeleteWorkspaceMember(userId primitive.ObjectID, wo
 	return nil
 }
 
-func (ss *SystemServiceImpl) DeleteWorkspaceByID(workspaceId string, userId primitive.ObjectID) error {
+func (ss *SystemServiceImpl) DeleteWorkspaceById(workspaceId string, userId primitive.ObjectID) error {
 	workspace, err := ss.systemRepo.FindWorkspaceByWorkspaceId(workspaceId)
 	if err != nil {
 		return err
@@ -253,12 +253,12 @@ func (ss *SystemServiceImpl) formatWorkspaces(workspaces []entity.Workspace) ([]
 	formattedWorkspaces := make([]model.Workspace, len(workspaces))
 	for i, p := range workspaces {
 		logo, _ := ss.storageClient.LoadFile(p.WorkspaceId, ss.config.MinIo.BucketName)
-		team, _ := ss.systemRepo.FormatTeam(&p.Team)
+		team, _ := ss.systemRepo.FormatTeam(p.Team)
 
 		formattedWorkspace := model.Workspace{
 			Name:        p.Name,
 			WorkspaceId: p.WorkspaceId,
-			Team:        *team,
+			Team:        team,
 			Logo:        logo,
 		}
 
