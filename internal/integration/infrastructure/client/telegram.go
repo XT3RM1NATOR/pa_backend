@@ -31,12 +31,7 @@ func (tc *TelegramClient) RegisterNewBot(botToken string) error {
 	return nil
 }
 
-func (tc *TelegramClient) LoadVideoMessage(botToken, videoMessageId string) ([]byte, error) {
-	bot, err := tgbotapi.NewBotAPI(botToken)
-	if err != nil {
-		return nil, err
-	}
-
+func (tc *TelegramClient) loadMessageFile(bot *tgbotapi.BotAPI, videoMessageId string) ([]byte, error) {
 	fileURL, err := bot.GetFileDirectURL(videoMessageId)
 	if err != nil {
 		return nil, err
@@ -55,3 +50,17 @@ func (tc *TelegramClient) LoadVideoMessage(botToken, videoMessageId string) ([]b
 
 	return videoMessageData, nil
 }
+
+//func (tc *TelegramClient) HandleFileMessage(botToken, fileId string) ([]byte, string, error) {
+//	bot, err := tgbotapi.NewBotAPI(botToken)
+//	if err != nil {
+//		return nil, "", err
+//	}
+//
+//	fileData, err := tc.loadMessageFile(bot, fileId)
+//	if err != nil {
+//		return nil, "", err
+//	}
+//
+//	return fileData, fileType, nil
+//}

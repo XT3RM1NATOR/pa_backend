@@ -18,7 +18,7 @@ type Workspace struct {
 	Name        string                               `bson:"name"`
 	Team        map[primitive.ObjectID]WorkspaceRole `bson:"team"`
 	PendingTeam map[string]WorkspaceRole             `bson:"pending"`
-	Integration integrations                         `bson:"integrations"`
+	Integration Integrations                         `bson:"integrations"`
 	WorkspaceId string                               `bson:"workspace_id"`
 	CreatedAt   primitive.DateTime                   `bson:"created_at"`
 }
@@ -39,7 +39,7 @@ type whatsAppIntegration struct {
 	IsActive   bool   `bson:"is_active"`
 }
 
-type integrations struct {
+type Integrations struct {
 	Id        primitive.ObjectID   `bson:"_id"`
 	Telegram  *telegramIntegration `bson:"telegram"`
 	Meta      *metaIntegration     `bson:"meta"`
@@ -55,11 +55,11 @@ type User struct {
 	AuthSource     string             `bson:"auth_source"`
 	FullName       string             `bson:"name"`
 	PendingInvites []string           `bson:"pending_invites"`
-	Tokens         tokens             `bson:"tokens"`
+	Tokens         Tokens             `bson:"tokens"`
 	CreatedAt      primitive.DateTime `bson:"created_at"`
 }
 
-type tokens struct {
+type Tokens struct {
 	ConfirmToken string `bson:"confirm_token"`
 	OAuth2Token  string `bson:"oauth2_token"`
 	ResetToken   string `bson:"reset_token"`
