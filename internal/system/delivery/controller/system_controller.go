@@ -39,11 +39,37 @@ func (sc *SystemController) CreateWorkspace(c echo.Context) error {
 	}
 
 	ownerId := c.Request().Context().Value("userId").(primitive.ObjectID)
-	if err := sc.systemService.CreateWorkspace(request.Logo, request.Team, ownerId, request.WorkspaceID, request.Name); err != nil {
+	if err := sc.systemService.CreateWorkspace(request.Logo, request.Team, ownerId, request.WorkspaceId, request.Name, request.Teams); err != nil {
 		return c.JSON(http.StatusInternalServerError, model.ErrorResponse{Error: err.Error()})
 	}
 
 	return c.JSON(http.StatusCreated, model.SuccessResponse{Message: "Workspace added successfully"})
+}
+
+func (sc *SystemController) AddTeamsMembers(c echo.Context) error {
+	var request model.AddTeamMembersRequest
+	if err := c.Bind(&request); err != nil {
+		return c.JSON(http.StatusBadRequest, model.ErrorResponse{Error: err.Error()})
+	}
+
+	userId := c.Request().Context().Value("userId").(primitive.ObjectID)
+	if err := sc.systemService.AddTeamsMember(userId, request.Member, request.TeamName, request.WorkspaceId); err != nil {
+		return c.JSON(http.StatusInternalServerError, model.ErrorResponse{Error: err.Error()})
+	}
+
+	return c.JSON(http.StatusCreated, model.SuccessResponse{Message: "user added to the team"})
+}
+
+func (sc *SystemController) UpdateMemberStatus(c echo.Context) error {
+	status := c.Param("status")
+	workspaceId := c.Param("id")
+
+	userId := c.Request().Context().Value("userId").(primitive.ObjectID)
+	if err := sc.systemService.UpdateMemberStatus(userId, status, workspaceId); err != nil {
+		return c.JSON(http.StatusInternalServerError, model.ErrorResponse{Error: err.Error()})
+	}
+
+	return c.JSON(http.StatusCreated, model.SuccessResponse{Message: "status updated"})
 }
 
 // LeaveWorkspace removes user from a Workspace.

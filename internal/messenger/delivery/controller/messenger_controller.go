@@ -39,10 +39,51 @@ func (mc *MessengerController) RegisterBotIntegration(c echo.Context) error {
 }
 
 func (mc *MessengerController) HandleBotMessage(c echo.Context) error {
-	//token := c.Param("token")
-	var update tgbotapi.Update
+	token := c.Param("token")
+	var update *tgbotapi.Update
 	if err := json.NewDecoder(c.Request().Body).Decode(&update); err != nil {
 		return c.JSON(http.StatusBadRequest, model.ErrorResponse{Error: err.Error()})
+	}
+
+	if err := mc.messengerService.HandleTelegramBotMessage(token, update); err != nil {
+		return c.JSON(http.StatusInternalServerError, model.ErrorResponse{Error: err.Error()})
+	}
+
+	return nil
+}
+
+func (mc *MessengerController) WSHandler(c echo.Context) error {
+	userId := c.Request().Context().Value("userId").(primitive.ObjectID)
+	workspaceId := c.Param("id")
+
+	err := mc.messengerService.ValidateUserInWorkspace(userId, workspaceId)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, model.ErrorResponse{Error: err.Error()})
+	}
+
+	ws, err := mc.websocketService.UpgradeConnection(c.Response(), c.Request(), workspaceId)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, model.ErrorResponse{Error: err.Error()})
+	}
+
+	defer mc.websocketService.RemoveConnection(workspaceId, ws)
+
+	for {
+		_, message, err := ws.ReadMessage()
+		if err != nil {
+			break
+		}
+		var receivedMessage model.MessageRequest
+		if err := json.Unmarshal(message, &receivedMessage); err != nil {
+			continue
+		}
+
+		if receivedMessage.Source == "telegramBot" {
+			if err := mc.messengerService.HandleTelegramPlatformMessage(userId, workspaceId, receivedMessage); err != nil {
+				continue
+			}
+
+		}
 	}
 
 	return nil

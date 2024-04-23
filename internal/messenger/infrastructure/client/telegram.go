@@ -32,6 +32,22 @@ func (tc *TelegramClient) RegisterNewBot(botToken string) error {
 	return nil
 }
 
+func (tc *TelegramClient) SendTextMessage(botToken string, chatID int64, messageText string) error {
+	bot, err := tgbotapi.NewBotAPI(botToken)
+	if err != nil {
+		return err
+	}
+
+	message := tgbotapi.NewMessage(chatID, messageText)
+
+	_, err = bot.Send(message)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (tc *TelegramClient) DeleteWebhook(botToken string) error {
 	bot, err := tgbotapi.NewBotAPI(botToken)
 	if err != nil {

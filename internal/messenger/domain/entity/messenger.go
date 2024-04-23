@@ -5,25 +5,17 @@ import (
 	"time"
 )
 
-type Ticket struct {
-	ID         primitive.ObjectID `bson:"_id,omitempty"`
-	UserID     string             `bson:"user_id"`
-	ChatID     string             `bson:"chat_id"`
-	Messages   []Message          `bson:"messages"`
-	Status     TicketStatus       `bson:"status"`
-	AssignedTo string             `bson:"assigned_to,omitempty"`
-	CreatedAt  time.Time          `bson:"created_at"`
-	ResolvedAt *time.Time         `bson:"resolved_at,omitempty"`
-}
-
 type Workspace struct {
-	Id           primitive.ObjectID                   `bson:"_id,omitempty"`
-	Name         string                               `bson:"name"`
-	Team         map[primitive.ObjectID]WorkspaceRole `bson:"team"`
-	PendingTeam  map[string]WorkspaceRole             `bson:"pending"`
-	Integrations Integrations                         `bson:"integrations"`
-	WorkspaceId  string                               `bson:"workspace_id"`
-	CreatedAt    primitive.DateTime                   `bson:"created_at"`
+	Id           primitive.ObjectID                           `bson:"_id,omitempty"`
+	Name         string                                       `bson:"name"`
+	Team         map[primitive.ObjectID]WorkspaceRole         `bson:"team"`
+	PendingTeam  map[string]WorkspaceRole                     `bson:"pending"`
+	Teams        map[string]map[primitive.ObjectID]UserStatus `bson:"teams"`
+	FirstTeam    string                                       `bson:"first_team"`
+	Integrations Integrations                                 `bson:"integrations"`
+	Tickets      []Ticket                                     `bson:"tickets"`
+	WorkspaceId  string                                       `bson:"workspace_id"`
+	CreatedAt    primitive.DateTime                           `bson:"created_at"`
 }
 
 type User struct {
@@ -38,14 +30,60 @@ type User struct {
 	CreatedAt      primitive.DateTime `bson:"created_at"`
 }
 
-type TelegramIntegration struct {
+type Tokens struct {
+	ConfirmToken string `bson:"confirm_token"`
+	OAuth2Token  string `bson:"oauth2_token"`
+	ResetToken   string `bson:"reset_token"`
+	RefreshToken string `bson:"refresh_token"`
+}
+
+type Ticket struct {
+	Id                  primitive.ObjectID    `bson:"_id,omitempty"`
+	TicketId            string                `bson:"ticket_id,omitempty"`
+	BotToken            string                `bson:"bot_token"`
+	SenderId            int                   `bson:"user_id"`
+	ChatId              int64                 `bson:"chat_id"`
+	IntegrationMessages []IntegrationsMessage `bson:"integration_messages"`
+	ResponseMessages    []ResponseMessage     `bson:"response_messages"`
+	Status              TicketStatus          `bson:"status"`
+	Source              TicketSource          `bson:"source"`
+	AssignedTo          primitive.ObjectID    `bson:"assigned_to,omitempty"`
+	CreatedAt           primitive.DateTime    `bson:"created_at"`
+	ResolvedAt          *primitive.DateTime   `bson:"resolved_at,omitempty"`
+}
+
+type ResponseMessage struct {
+	Id        primitive.ObjectID  `bson:"_id,omitempty"`
+	SenderId  primitive.ObjectID  `bson:"sender_id,omitempty"`
+	Message   string              `bson:"message"`
+	Type      MessageType         `bson:"type"`
+	CreatedAt *primitive.DateTime `bson:"created_at,omitempty"`
+}
+
+type IntegrationsMessage struct {
+	Id        primitive.ObjectID `bson:"_id,omitempty"`
+	MessageId int                `bson:"message_id"`
+	Message   string             `bson:"message"`
+	Type      MessageType        `bson:"type"`
+	CreatedAt primitive.DateTime `bson:"created_at,omitempty"`
+}
+
+type Integrations struct {
+	Id          primitive.ObjectID        `bson:"_id"`
+	TelegramBot *[]TelegramBotIntegration `bson:"telegram_bot"`
+	Meta        *[]MetaIntegration        `bson:"meta"`
+	WhatsApp    *[]WhatsAppIntegration    `bson:"whatsapp"`
+	CreatedAt   time.Time                 `bson:"created_at"`
+}
+
+type TelegramBotIntegration struct {
 	BotToken string `bson:"bot_token"`
 	IsActive bool   `bson:"is_active"`
 }
 
 type MetaIntegration struct {
 	AuthToken string `bson:"auth_token"`
-	PageID    string `bson:"page_id"`
+	PageId    string `bson:"page_id"`
 	IsActive  bool   `bson:"is_active"`
 }
 
@@ -54,32 +92,11 @@ type WhatsAppIntegration struct {
 	IsActive   bool   `bson:"is_active"`
 }
 
-type Integrations struct {
-	Id        primitive.ObjectID     `bson:"_id"`
-	Telegram  *[]TelegramIntegration `bson:"telegram"`
-	Meta      *[]MetaIntegration     `bson:"meta"`
-	WhatsApp  *[]WhatsAppIntegration `bson:"whatsapp"`
-	CreatedAt time.Time              `bson:"created_at"`
-}
-
-type Tokens struct {
-	ConfirmToken string `bson:"confirm_token"`
-	OAuth2Token  string `bson:"oauth2_token"`
-	ResetToken   string `bson:"reset_token"`
-	RefreshToken string `bson:"refresh_token"`
-}
-
-type Message struct {
-	ID        primitive.ObjectID `bson:"_id,omitempty"`
-	MessageID string             `bson:"message_id,omitempty"`
-	Content   string             `bson:"content"`
-	SenderID  string             `bson:"sender_id"`
-	Source    MessageSource      `bson:"source"`
-	Type      MessageType        `bson:"type"`
-	CreatedAt time.Time          `bson:"created_at"`
-}
-
 type MessageType string
+type WorkspaceRole string
+type TicketSource string
+type TicketStatus string
+type UserStatus string
 
 const (
 	TypeText     MessageType = "text"
@@ -89,26 +106,29 @@ const (
 	TypeDocument MessageType = "document"
 )
 
-type WorkspaceRole string
-
 const (
 	RoleAdmin  WorkspaceRole = "admin"
 	RoleMember WorkspaceRole = "member"
 	RoleOwner  WorkspaceRole = "owner"
 )
 
-type TicketStatus string
-
 const (
-	StatusOpen   TicketStatus = "open"
-	StatusClosed TicketStatus = "closed"
+	StatusOpen    TicketStatus = "open"
+	StatusPending TicketStatus = "pending"
+	StatusClosed  TicketStatus = "closed"
 )
 
-type MessageSource string
+const (
+	SourceTelegram    TicketSource = "telegram"
+	SourceTelegramBot TicketSource = "telegram_bot"
+	SourceWhatsApp    TicketSource = "whatsapp"
+	SourceInstagram   TicketSource = "instagram"
+	SourceMeta        TicketSource = "meta"
+)
 
 const (
-	SourceTelegram  MessageSource = "telegram"
-	SourceWhatsApp  MessageSource = "whatsapp"
-	SourceInstagram MessageSource = "instagram"
-	SourceMeta      MessageSource = "meta"
+	StatusAvailable UserStatus = "available"
+	StatusBusy      UserStatus = "busy"
+	StatusOnBreak   UserStatus = "on break"
+	StatusOffline   UserStatus = "offline"
 )

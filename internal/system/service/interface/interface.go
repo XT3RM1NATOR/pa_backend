@@ -15,7 +15,7 @@ type StorageClient interface {
 
 type SystemRepository interface {
 	ValidateTeam(team map[string]string, ownerId primitive.ObjectID) (map[primitive.ObjectID]entity.WorkspaceRole, error)
-	CreateWorkspace(ownerId primitive.ObjectID, pendingTeam map[string]entity.WorkspaceRole, workspaceId, name string) error
+	CreateWorkspace(ownerId primitive.ObjectID, pendingTeam map[string]entity.WorkspaceRole, workspaceId, name string, teams []string) error
 	RemoveUserFromWorkspace(workspace *entity.Workspace, userId primitive.ObjectID) error
 	FindWorkspaceByWorkspaceId(workspaceId string) (*entity.Workspace, error)
 	DeleteWorkspace(id primitive.ObjectID) error

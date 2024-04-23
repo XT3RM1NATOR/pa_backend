@@ -25,16 +25,22 @@ func NewSystemRepositoryImpl(cfg *config.Config, db *mongo.Database) infrastruct
 	}
 }
 
-func (sr *SystemRepositoryImpl) CreateWorkspace(ownerId primitive.ObjectID, pendingTeam map[string]entity.WorkspaceRole, workspaceId, name string) error {
+func (sr *SystemRepositoryImpl) CreateWorkspace(ownerId primitive.ObjectID, pendingTeam map[string]entity.WorkspaceRole, workspaceId, name string, teams []string) error {
 	team := make(map[primitive.ObjectID]entity.WorkspaceRole)
 	team[ownerId] = entity.RoleAdmin
 
+	teamsMap := make(map[string]map[primitive.ObjectID]entity.UserStatus)
+	for _, teamName := range teams {
+		teamsMap[teamName] = make(map[primitive.ObjectID]entity.UserStatus)
+	}
+
 	workspace := &entity.Workspace{
-		Name:        name,
-		Team:        team,
-		PendingTeam: pendingTeam,
-		WorkspaceId: workspaceId,
-		CreatedAt:   primitive.NewDateTimeFromTime(time.Now()),
+		Name:          name,
+		Team:          team,
+		InternalTeams: teamsMap,
+		PendingTeam:   pendingTeam,
+		WorkspaceId:   workspaceId,
+		CreatedAt:     primitive.NewDateTimeFromTime(time.Now()),
 	}
 
 	if _, err := sr.database.Collection(sr.config.MongoDB.WorkspaceCollection).InsertOne(context.Background(), workspace); err != nil {

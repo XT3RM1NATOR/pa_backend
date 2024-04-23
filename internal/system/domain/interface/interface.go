@@ -6,7 +6,7 @@ import (
 )
 
 type SystemService interface {
-	CreateWorkspace(logo []byte, team map[string]string, ownerId primitive.ObjectID, WorkspaceId, name string) error
+	CreateWorkspace(logo []byte, team map[string]string, ownerId primitive.ObjectID, workspaceId, name string, teams []string) error
 	LeaveWorkspace(WorkspaceId string, userId primitive.ObjectID) error
 	GetAllWorkspaces(userId primitive.ObjectID) ([]model.Workspace, error)
 	AddWorkspaceMembers(userId primitive.ObjectID, team map[string]string, WorkspaceId string) error
@@ -17,6 +17,8 @@ type SystemService interface {
 	UpdateWorkspaceMembers(userId primitive.ObjectID, team map[string]string, WorkspaceId string) error
 	GetUserProfiles(WorkspaceId string, userId primitive.ObjectID) ([]model.User, error)
 	UpdateWorkspacePendingStatus(userId primitive.ObjectID, workspaceId string, status bool) error
+	AddTeamsMember(userId primitive.ObjectID, memberEmail, teamName, workspaceId string) error
+	UpdateMemberStatus(userId primitive.ObjectID, status string, workspaceId string) error
 }
 
 type EmailService interface {
