@@ -6,16 +6,16 @@ import (
 )
 
 type Workspace struct {
-	Id           primitive.ObjectID                           `bson:"_id,omitempty"`
-	Name         string                                       `bson:"name"`
-	Team         map[primitive.ObjectID]WorkspaceRole         `bson:"team"`
-	PendingTeam  map[string]WorkspaceRole                     `bson:"pending"`
-	Teams        map[string]map[primitive.ObjectID]UserStatus `bson:"teams"`
-	FirstTeam    string                                       `bson:"first_team"`
-	Integrations Integrations                                 `bson:"integrations"`
-	Tickets      []Ticket                                     `bson:"tickets"`
-	WorkspaceId  string                                       `bson:"workspace_id"`
-	CreatedAt    primitive.DateTime                           `bson:"created_at"`
+	Id            primitive.ObjectID                           `bson:"_id,omitempty"`
+	Name          string                                       `bson:"name"`
+	Team          map[primitive.ObjectID]WorkspaceRole         `bson:"team"`
+	PendingTeam   map[string]WorkspaceRole                     `bson:"pending"`
+	InternalTeams map[string]map[primitive.ObjectID]UserStatus `bson:"teams"`
+	FirstTeam     string                                       `bson:"first_team"`
+	Integrations  Integrations                                 `bson:"integrations"`
+	Tickets       []Ticket                                     `bson:"tickets"`
+	WorkspaceId   string                                       `bson:"workspace_id"`
+	CreatedAt     primitive.DateTime                           `bson:"created_at"`
 }
 
 type User struct {
@@ -129,6 +129,5 @@ const (
 const (
 	StatusAvailable UserStatus = "available"
 	StatusBusy      UserStatus = "busy"
-	StatusOnBreak   UserStatus = "on break"
 	StatusOffline   UserStatus = "offline"
 )

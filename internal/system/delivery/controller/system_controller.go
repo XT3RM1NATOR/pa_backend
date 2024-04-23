@@ -79,7 +79,7 @@ func (sc *SystemController) SetFirstTeam(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, model.ErrorResponse{Error: err.Error()})
 	}
 
-	return c.JSON(http.StatusCreated, model.SuccessResponse{Message: "status updated"})
+	return c.JSON(http.StatusCreated, model.SuccessResponse{Message: "first team is set"})
 }
 
 // LeaveWorkspace removes user from a Workspace.

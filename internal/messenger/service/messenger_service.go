@@ -85,21 +85,9 @@ func (ms *MessengerServiceImpl) HandleTelegramBotMessage(token string, message *
 			ticket.IntegrationMessages = append(ticket.IntegrationMessages, botMessage)
 			messageResponse.TicketId = ticket.TicketId
 		} else {
-			ticketId, _ := utils.GenerateToken()
-			newTicket := entity.Ticket{
-				TicketId:            ticketId,
-				BotToken:            token,
-				SenderId:            message.Message.From.ID,
-				ChatId:              message.Message.Chat.ID,
-				IntegrationMessages: []entity.IntegrationsMessage{botMessage},
-				Status:              entity.StatusOpen,
-				Source:              entity.SourceTelegramBot,
-				AssignedTo:          primitive.ObjectID{},
-				CreatedAt:           primitive.DateTime(int64(message.Message.Date)),
+			if err := ms.addNewTicketToWorkspace(token, message, workspace, &botMessage); err != nil {
+				return err
 			}
-
-			workspace.Tickets = append(workspace.Tickets, newTicket)
-			messageResponse.TicketId = newTicket.TicketId
 		}
 
 		if err := ms.messengerRepo.UpdateWorkspace(workspace); err != nil {
@@ -199,6 +187,57 @@ func (ms *MessengerServiceImpl) findTicketBySenderId(workspace *entity.Workspace
 		return nil, errors.New("ticket not found")
 	}
 	return existingTicket, nil
+}
+
+func (ms *MessengerServiceImpl) addNewTicketToWorkspace(token string, message *tgbotapi.Update, workspace *entity.Workspace, botMessage *entity.IntegrationsMessage) error {
+	ticketId, _ := utils.GenerateToken()
+	newTicket := entity.Ticket{
+		TicketId:            ticketId,
+		BotToken:            token,
+		SenderId:            message.Message.From.ID,
+		ChatId:              message.Message.Chat.ID,
+		IntegrationMessages: []entity.IntegrationsMessage{*botMessage},
+		Status:              entity.StatusPending,
+		Source:              entity.SourceTelegramBot,
+		AssignedTo:          primitive.NilObjectID,
+		CreatedAt:           primitive.DateTime(int64(message.Message.Date)),
+	}
+
+	assigneeId, err := ms.getAssigneeId(workspace)
+	if err == nil {
+		newTicket.AssignedTo = assigneeId
+	}
+
+	workspace.Tickets = append(workspace.Tickets, newTicket)
+
+	return nil
+}
+
+func (ms *MessengerServiceImpl) getAssigneeId(workspace *entity.Workspace) (primitive.ObjectID, error) {
+	assignedCount := make(map[primitive.ObjectID]int)
+
+	for _, ticket := range workspace.Tickets {
+		if ticket.AssignedTo != primitive.NilObjectID && workspace.InternalTeams[workspace.FirstTeam][ticket.AssignedTo] == entity.StatusAvailable {
+			assignedCount[ticket.AssignedTo]++
+		}
+	}
+
+	var minAssignments int
+	var minAssignee primitive.ObjectID
+	first := true
+	for assignee, count := range assignedCount {
+		if first || count < minAssignments {
+			minAssignee = assignee
+			minAssignments = count
+			first = false
+		}
+	}
+
+	if first {
+		return primitive.NilObjectID, errors.New("no tickets are assigned")
+	}
+
+	return minAssignee, nil
 }
 
 func (ms *MessengerServiceImpl) isAdmin(userRole entity.WorkspaceRole) bool {

@@ -19,6 +19,7 @@ type SystemService interface {
 	UpdateWorkspacePendingStatus(userId primitive.ObjectID, workspaceId string, status bool) error
 	AddTeamsMember(userId primitive.ObjectID, memberEmail, teamName, workspaceId string) error
 	UpdateMemberStatus(userId primitive.ObjectID, status string, workspaceId string) error
+	SetFirstTeam(userId primitive.ObjectID, teamName, workspaceId string) error
 }
 
 type EmailService interface {
