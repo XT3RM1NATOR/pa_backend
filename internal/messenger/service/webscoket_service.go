@@ -1,36 +1,42 @@
 package service
 
 import (
-	"golang.org/x/net/websocket"
+	_interface "github.com/Point-AI/backend/internal/messenger/domain/interface"
+	"github.com/gorilla/websocket"
 	"sync"
 )
 
-type WebSocketService struct {
+type WebSocketServiceImpl struct {
 	connections map[string]*websocket.Conn
+	upgrader    websocket.Upgrader
 	mu          sync.RWMutex
 }
 
-func NewWebSocketService() *WebSocketService {
-	return &WebSocketService{
+func NewWebSocketServiceImpl() _interface.WebsocketService {
+	return &WebSocketServiceImpl{
+		upgrader: websocket.Upgrader{
+			ReadBufferSize:  1024,
+			WriteBufferSize: 1024,
+		},
 		connections: make(map[string]*websocket.Conn),
 	}
 }
 
-func (m *WebSocketService) AddConnection(id string, conn *websocket.Conn) {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	m.connections[id] = conn
+func (wss *WebSocketServiceImpl) AddConnection(id string, conn *websocket.Conn) {
+	wss.mu.Lock()
+	defer wss.mu.Unlock()
+	wss.connections[id] = conn
 }
 
-func (m *WebSocketService) RemoveConnection(id string) {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	delete(m.connections, id)
+func (wss *WebSocketServiceImpl) RemoveConnection(id string) {
+	wss.mu.Lock()
+	defer wss.mu.Unlock()
+	delete(wss.connections, id)
 }
 
-func (m *WebSocketService) GetConnection(id string) (*websocket.Conn, bool) {
-	m.mu.RLock()
-	defer m.mu.RUnlock()
-	conn, ok := m.connections[id]
+func (wss *WebSocketServiceImpl) GetConnection(id string) (*websocket.Conn, bool) {
+	wss.mu.RLock()
+	defer wss.mu.RUnlock()
+	conn, ok := wss.connections[id]
 	return conn, ok
 }

@@ -10,16 +10,18 @@ import (
 )
 
 type MessengerServiceImpl struct {
-	messengerRepo  infrastructureInterface.MessengerRepository
-	telegramClient infrastructureInterface.TelegramClient
-	config         *config.Config
+	messengerRepo    infrastructureInterface.MessengerRepository
+	telegramClient   infrastructureInterface.TelegramClient
+	websocketService _interface.WebsocketService
+	config           *config.Config
 }
 
-func NewMessengerServiceImpl(cfg *config.Config, messengerRepo infrastructureInterface.MessengerRepository, telegramClient infrastructureInterface.TelegramClient) _interface.MessengerService {
+func NewMessengerServiceImpl(cfg *config.Config, messengerRepo infrastructureInterface.MessengerRepository, websocketService _interface.WebsocketService, telegramClient infrastructureInterface.TelegramClient) _interface.MessengerService {
 	return &MessengerServiceImpl{
-		messengerRepo:  messengerRepo,
-		telegramClient: telegramClient,
-		config:         cfg,
+		messengerRepo:    messengerRepo,
+		telegramClient:   telegramClient,
+		websocketService: websocketService,
+		config:           cfg,
 	}
 }
 

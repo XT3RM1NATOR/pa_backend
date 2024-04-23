@@ -13,13 +13,18 @@ import (
 
 func RegisterMessengerRoutes(e *echo.Echo, cfg *config.Config, db *mongo.Database) {
 	tc := client.NewTelegramClientImpl(cfg)
-	ir := repository.NewMessengerRepositoryImpl(db, cfg)
-	is := service.NewMessengerServiceImpl(cfg, ir, tc)
-	ic := controller.NewMessengerController(is, cfg)
+	ir := repository.NewMessengerRepositoryImpl(cfg, db)
+	wss := service.NewWebSocketServiceImpl()
+	is := service.NewMessengerServiceImpl(cfg, ir, wss, tc)
+	ic := controller.NewMessengerController(cfg, is, wss)
 
 	integrationGroup := e.Group("/integrations")
 
 	telegramGroup := integrationGroup.Group("/telegram")
 	telegramGroup.POST("/bots", ic.RegisterBotIntegration, middleware.ValidateAccessTokenMiddleware(cfg.Auth.JWTSecretKey))
 	telegramGroup.POST("/bots/webhook/:token", ic.HandleBotMessage)
+
+	//messengerGroup := e.Group("/messenger")
+	//messengerGroup.GET("/ws", )
+
 }

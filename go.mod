@@ -6,6 +6,7 @@ require (
 	github.com/caarlos0/env/v6 v6.10.1
 	github.com/go-telegram-bot-api/telegram-bot-api v4.6.4+incompatible
 	github.com/golang-jwt/jwt/v4 v4.5.0
+	github.com/gorilla/websocket v1.5.1
 	github.com/joho/godotenv v1.5.1
 	github.com/labstack/echo/v4 v4.11.4
 	github.com/minio/minio-go/v7 v7.0.69

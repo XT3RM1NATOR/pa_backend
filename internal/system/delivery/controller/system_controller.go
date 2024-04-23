@@ -15,7 +15,7 @@ type SystemController struct {
 	config        *config.Config
 }
 
-func NewSystemController(systemService _interface.SystemService, cfg *config.Config) *SystemController {
+func NewSystemController(cfg *config.Config, systemService _interface.SystemService) *SystemController {
 	return &SystemController{
 		systemService: systemService,
 		config:        cfg,

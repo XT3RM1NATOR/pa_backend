@@ -17,10 +17,10 @@ func RegisterSystemRoutes(e *echo.Echo, cfg *config.Config, db *mongo.Database, 
 
 	ec := client.NewEmailClientImpl(cfg.Email.SMTPUsername, cfg.Email.SMTPPassword, cfg.Email.SMTPHost, cfg.Email.SMTPPort)
 	src := client.NewStorageClientImpl(str)
-	sr := repository.NewSystemRepositoryImpl(db, cfg)
+	sr := repository.NewSystemRepositoryImpl(cfg, db)
 	es := service.NewEmailServiceImpl(ec)
 	ss := service.NewSystemServiceImpl(cfg, src, sr, es)
-	sc := controller.NewSystemController(ss, cfg)
+	sc := controller.NewSystemController(cfg, ss)
 
 	workspaceGroup := systemGroup.Group("/workspace")
 	workspaceGroup.POST("/", sc.CreateWorkspace, middleware.ValidateAccessTokenMiddleware(cfg.Auth.JWTSecretKey))

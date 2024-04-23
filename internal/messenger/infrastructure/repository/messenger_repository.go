@@ -15,7 +15,7 @@ type MessengerRepositoryImpl struct {
 	config   *config.Config
 }
 
-func NewMessengerRepositoryImpl(db *mongo.Database, cfg *config.Config) infrastructureInterface.MessengerRepository {
+func NewMessengerRepositoryImpl(cfg *config.Config, db *mongo.Database) infrastructureInterface.MessengerRepository {
 	return &MessengerRepositoryImpl{
 		database: db,
 		config:   cfg,

@@ -18,7 +18,7 @@ type SystemRepositoryImpl struct {
 	config   *config.Config
 }
 
-func NewSystemRepositoryImpl(db *mongo.Database, cfg *config.Config) infrastructureInterface.SystemRepository {
+func NewSystemRepositoryImpl(cfg *config.Config, db *mongo.Database) infrastructureInterface.SystemRepository {
 	return &SystemRepositoryImpl{
 		database: db,
 		config:   cfg,

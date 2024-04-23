@@ -13,10 +13,11 @@ import (
 
 type MessengerController struct {
 	messengerService _interface.MessengerService
+	websocketService _interface.WebsocketService
 	config           *config.Config
 }
 
-func NewMessengerController(messengerService _interface.MessengerService, cfg *config.Config) *MessengerController {
+func NewMessengerController(cfg *config.Config, messengerService _interface.MessengerService, websocketService _interface.WebsocketService) *MessengerController {
 	return &MessengerController{
 		messengerService: messengerService,
 		config:           cfg,
