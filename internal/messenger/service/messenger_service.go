@@ -11,6 +11,7 @@ import (
 	"github.com/Point-AI/backend/utils"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"log"
 )
 
 type MessengerServiceImpl struct {
@@ -215,11 +216,30 @@ func (ms *MessengerServiceImpl) addNewTicketToWorkspace(token string, message *t
 
 func (ms *MessengerServiceImpl) getAssigneeId(workspace *entity.Workspace) (primitive.ObjectID, error) {
 	assignedCount := make(map[primitive.ObjectID]int)
-
 	for _, ticket := range workspace.Tickets {
 		if ticket.AssignedTo != primitive.NilObjectID && workspace.InternalTeams[workspace.FirstTeam][ticket.AssignedTo] == entity.StatusAvailable {
 			assignedCount[ticket.AssignedTo]++
 		}
+	}
+
+	if len(assignedCount) == 0 {
+		for _, ticket := range workspace.Tickets {
+			if ticket.AssignedTo != primitive.NilObjectID && workspace.InternalTeams[workspace.FirstTeam][ticket.AssignedTo] == entity.StatusBusy {
+				assignedCount[ticket.AssignedTo]++
+			}
+		}
+	}
+
+	if len(assignedCount) == 0 {
+		for _, ticket := range workspace.Tickets {
+			if ticket.AssignedTo != primitive.NilObjectID && workspace.InternalTeams[workspace.FirstTeam][ticket.AssignedTo] == entity.StatusOffline {
+				assignedCount[ticket.AssignedTo]++
+			}
+		}
+	}
+
+	if len(assignedCount) == 0 {
+		log.Println("no chat members yet")
 	}
 
 	var minAssignments int
