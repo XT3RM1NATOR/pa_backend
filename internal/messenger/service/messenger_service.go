@@ -59,6 +59,33 @@ func (ms *MessengerServiceImpl) RegisterBotIntegration(userId primitive.ObjectID
 	return errors.New("user does not have the permissions")
 }
 
+func (ms *MessengerServiceImpl) ReassignTicketToMember(userId primitive.ObjectID, ticketId, workspaceId, userEmail string) error {
+	workspace, err := ms.messengerRepo.FindWorkspaceByWorkspaceId(workspaceId)
+	if err != nil {
+		return err
+	}
+
+	if _, exists := workspace.Team[userId]; exists {
+		user, err := ms.messengerRepo.FindUserByEmail(userEmail)
+		if err != nil {
+			return err
+		}
+
+		for _, ticket := range workspace.Tickets {
+			if ticket.TicketId == ticketId && ticket.Status != entity.StatusClosed {
+				ticket.AssignedTo = user
+				if err := ms.messengerRepo.UpdateWorkspace(workspace); err != nil {
+					return err
+				}
+				return nil
+			}
+		}
+		return errors.New("no open or pending tickets with this id")
+	}
+
+	return errors.New("user is not from the workspace")
+}
+
 func (ms *MessengerServiceImpl) HandleTelegramBotMessage(token string, message *tgbotapi.Update) error {
 	workspace, err := ms.messengerRepo.FindWorkspaceByTelegramBotToken(token)
 	if err != nil {

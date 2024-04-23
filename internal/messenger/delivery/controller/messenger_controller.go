@@ -88,3 +88,12 @@ func (mc *MessengerController) WSHandler(c echo.Context) error {
 
 	return nil
 }
+
+func (mc *MessengerController) ReassignTicketToMember(c echo.Context) error {
+	ticketId, workspaceId, userEmail := c.Param("ticket_id"), c.Param("id"), c.Param("email")
+	userId := c.Request().Context().Value("userId").(primitive.ObjectID)
+
+	if err := mc.messengerService.ReassignTicketToMember(userId, ticketId, workspaceId, userEmail); err != nil {
+		return c.JSON(http.StatusInternalServerError, model.ErrorResponse{Error: err.Error()})
+	}
+}

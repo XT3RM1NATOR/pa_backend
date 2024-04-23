@@ -20,4 +20,5 @@ type MessengerRepository interface {
 	CheckBotExists(botToken string) (bool, error)
 	UpdateWorkspace(workspace *entity.Workspace) error
 	FindWorkspaceByTelegramBotToken(botToken string) (*entity.Workspace, error)
+	FindUserByEmail(email string) (primitive.ObjectID, error)
 }

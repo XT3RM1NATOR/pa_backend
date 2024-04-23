@@ -99,3 +99,13 @@ func (mr *MessengerRepositoryImpl) CheckBotExists(botToken string) (bool, error)
 
 	return false, nil
 }
+
+func (mr *MessengerRepositoryImpl) FindUserByEmail(email string) (primitive.ObjectID, error) {
+	var user entity.User
+	err := mr.database.Collection(mr.config.MongoDB.UserCollection).FindOne(context.Background(), bson.M{"email": email}).Decode(&user)
+	if err != nil {
+		return primitive.ObjectID{}, err
+	}
+
+	return user.Id, nil
+}
