@@ -61,11 +61,21 @@ func (sc *SystemController) AddTeamsMembers(c echo.Context) error {
 }
 
 func (sc *SystemController) UpdateMemberStatus(c echo.Context) error {
-	status := c.Param("status")
-	workspaceId := c.Param("id")
-
+	status, workspaceId := c.Param("status"), c.Param("id")
 	userId := c.Request().Context().Value("userId").(primitive.ObjectID)
+
 	if err := sc.systemService.UpdateMemberStatus(userId, status, workspaceId); err != nil {
+		return c.JSON(http.StatusInternalServerError, model.ErrorResponse{Error: err.Error()})
+	}
+
+	return c.JSON(http.StatusCreated, model.SuccessResponse{Message: "status updated"})
+}
+
+func (sc *SystemController) SetFirstTeam(c echo.Context) error {
+	teamName, workspaceId := c.Param("name"), c.Param("id")
+	userId := c.Request().Context().Value("userId").(primitive.ObjectID)
+
+	if err := sc.systemService.SetFirstTeam(userId, teamName, workspaceId); err != nil {
 		return c.JSON(http.StatusInternalServerError, model.ErrorResponse{Error: err.Error()})
 	}
 

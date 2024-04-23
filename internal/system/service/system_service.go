@@ -82,7 +82,28 @@ func (ss *SystemServiceImpl) LeaveWorkspace(workspaceId string, userId primitive
 	return nil
 }
 
-func (ss *SystemServiceImpl) UpdateMemberStatus(userId primitive.ObjectID, status string, workspaceId string) error {
+func (ss *SystemServiceImpl) SetFirstTeam(userId primitive.ObjectID, teamName, workspaceId string) error {
+	workspace, err := ss.systemRepo.FindWorkspaceByWorkspaceId(workspaceId)
+	if err != nil {
+		return err
+	}
+
+	if ss.isAdmin(workspace.Team[userId]) || ss.isOwner(workspace.Team[userId]) {
+		if _, exists := workspace.InternalTeams[teamName]; !exists {
+			return errors.New("team not found")
+		}
+		workspace.FirstTeam = teamName
+
+		err := ss.systemRepo.UpdateWorkspace(workspace)
+		if err != nil {
+			return err
+		}
+	}
+
+	return errors.New("unauthorised")
+}
+
+func (ss *SystemServiceImpl) UpdateMemberStatus(userId primitive.ObjectID, status, workspaceId string) error {
 	workspace, err := ss.systemRepo.FindWorkspaceByWorkspaceId(workspaceId)
 	if err != nil {
 		return err
