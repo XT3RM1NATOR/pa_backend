@@ -176,6 +176,36 @@ func (ms *MessengerServiceImpl) ValidateUserInWorkspace(userId primitive.ObjectI
 	return errors.New("user does not have the permissions")
 }
 
+func (ms *MessengerServiceImpl) CloseTicket(userId primitive.ObjectID, ticketId, workspaceId, status string) error {
+	workspace, err := ms.messengerRepo.FindWorkspaceByWorkspaceId(workspaceId)
+	if err != nil {
+		return err
+	}
+
+	var ticketStatus entity.TicketStatus
+	switch entity.TicketStatus(status) {
+	case entity.StatusOpen, entity.StatusPending:
+		ticketStatus = entity.TicketStatus(status)
+	default:
+		return errors.New("invalid status")
+	}
+
+	if _, exists := workspace.Team[userId]; exists {
+		for _, ticket := range workspace.Tickets {
+			if ticket.TicketId == ticketId && ticket.Status != entity.StatusClosed {
+				ticket.Status = ticketStatus
+				if err := ms.messengerRepo.UpdateWorkspace(workspace); err != nil {
+					return err
+				}
+				return nil
+			}
+		}
+		return errors.New("no open or pending tickets with this id")
+	}
+
+	return errors.New("user does not have the permissions")
+}
+
 func (ms *MessengerServiceImpl) HandleTelegramPlatformMessage(userId primitive.ObjectID, workspaceId string, message model.MessageRequest) error {
 	workspace, err := ms.messengerRepo.FindWorkspaceByWorkspaceId(workspaceId)
 	if err != nil {

@@ -26,6 +26,7 @@ func RegisterMessengerRoutes(e *echo.Echo, cfg *config.Config, db *mongo.Databas
 
 	messengerGroup := e.Group("/messenger")
 	messengerGroup.GET("/ws/:id", ic.WSHandler, middleware.ValidateAccessTokenMiddleware(cfg.Auth.JWTSecretKey))
-	messengerGroup.POST("/reassign/team/:ticket_id/:id/:name", ic.ReassignTicketToTeam, middleware.ValidateAccessTokenMiddleware(cfg.Auth.JWTSecretKey))
-	messengerGroup.POST("/reassign/member/:ticket_id/:id/:email", ic.ReassignTicketToMember, middleware.ValidateAccessTokenMiddleware(cfg.Auth.JWTSecretKey))
+	messengerGroup.POST("/ticket/reassign/team/:ticket_id/:id/:name", ic.ReassignTicketToTeam, middleware.ValidateAccessTokenMiddleware(cfg.Auth.JWTSecretKey))
+	messengerGroup.POST("/ticket/reassign/member/:ticket_id/:id/:email", ic.ReassignTicketToMember, middleware.ValidateAccessTokenMiddleware(cfg.Auth.JWTSecretKey))
+	messengerGroup.PUT("/ticket/:status/:id/:ticket_id", ic.CloseTicket, middleware.ValidateAccessTokenMiddleware(cfg.Auth.JWTSecretKey))
 }
