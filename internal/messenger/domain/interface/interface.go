@@ -13,6 +13,7 @@ type MessengerService interface {
 	ValidateUserInWorkspace(userId primitive.ObjectID, workspaceId string) error
 	HandleTelegramPlatformMessage(userId primitive.ObjectID, workspaceId string, message model.MessageRequest) error
 	HandleTelegramBotMessage(token string, message *tgbotapi.Update) error
+	ReassignTicketToMember(userId primitive.ObjectID, ticketId, workspaceId, userEmail string) error
 }
 
 type WebsocketService interface {

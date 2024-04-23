@@ -96,4 +96,17 @@ func (mc *MessengerController) ReassignTicketToMember(c echo.Context) error {
 	if err := mc.messengerService.ReassignTicketToMember(userId, ticketId, workspaceId, userEmail); err != nil {
 		return c.JSON(http.StatusInternalServerError, model.ErrorResponse{Error: err.Error()})
 	}
+
+	return c.JSON(http.StatusOK, model.SuccessResponse{Message: "ticket successfully reassigned to " + userEmail})
+}
+
+func (mc *MessengerController) ReassignTicketToTeam(c echo.Context) error {
+	ticketId, workspaceId, teamName := c.Param("ticket_id"), c.Param("id"), c.Param("name")
+	userId := c.Request().Context().Value("userId").(primitive.ObjectID)
+
+	if err := mc.messengerService.ReassignTicketToMember(userId, ticketId, workspaceId, teamName); err != nil {
+		return c.JSON(http.StatusInternalServerError, model.ErrorResponse{Error: err.Error()})
+	}
+
+	return c.JSON(http.StatusOK, model.SuccessResponse{Message: "ticket successfully reassigned to " + teamName})
 }

@@ -59,6 +59,33 @@ func (ms *MessengerServiceImpl) RegisterBotIntegration(userId primitive.ObjectID
 	return errors.New("user does not have the permissions")
 }
 
+func (ms *MessengerServiceImpl) ReassignTicketToTeam(userId primitive.ObjectID, ticketId, workspaceId, teamName string) error {
+	workspace, err := ms.messengerRepo.FindWorkspaceByWorkspaceId(workspaceId)
+	if err != nil {
+		return err
+	}
+
+	if _, exists := workspace.Team[userId]; exists {
+		for _, ticket := range workspace.Tickets {
+			if ticket.TicketId == ticketId && ticket.Status != entity.StatusClosed {
+				assigneeId, err := ms.getAssigneeId(workspace, teamName)
+				if err != nil {
+					return err
+				}
+
+				ticket.AssignedTo = assigneeId
+				if err := ms.messengerRepo.UpdateWorkspace(workspace); err != nil {
+					return err
+				}
+				return nil
+			}
+		}
+		return errors.New("no open or pending tickets with this id")
+	}
+
+	return errors.New("user is not from the workspace")
+}
+
 func (ms *MessengerServiceImpl) ReassignTicketToMember(userId primitive.ObjectID, ticketId, workspaceId, userEmail string) error {
 	workspace, err := ms.messengerRepo.FindWorkspaceByWorkspaceId(workspaceId)
 	if err != nil {
@@ -231,7 +258,7 @@ func (ms *MessengerServiceImpl) addNewTicketToWorkspace(token string, message *t
 		CreatedAt:           primitive.DateTime(int64(message.Message.Date)),
 	}
 
-	assigneeId, err := ms.getAssigneeId(workspace)
+	assigneeId, err := ms.getAssigneeId(workspace, workspace.FirstTeam)
 	if err == nil {
 		newTicket.AssignedTo = assigneeId
 	}
@@ -241,17 +268,17 @@ func (ms *MessengerServiceImpl) addNewTicketToWorkspace(token string, message *t
 	return nil
 }
 
-func (ms *MessengerServiceImpl) getAssigneeId(workspace *entity.Workspace) (primitive.ObjectID, error) {
+func (ms *MessengerServiceImpl) getAssigneeId(workspace *entity.Workspace, teamName string) (primitive.ObjectID, error) {
 	assignedCount := make(map[primitive.ObjectID]int)
 	for _, ticket := range workspace.Tickets {
-		if ticket.AssignedTo != primitive.NilObjectID && workspace.InternalTeams[workspace.FirstTeam][ticket.AssignedTo] == entity.StatusAvailable {
+		if ticket.AssignedTo != primitive.NilObjectID && workspace.InternalTeams[teamName][ticket.AssignedTo] == entity.StatusAvailable {
 			assignedCount[ticket.AssignedTo]++
 		}
 	}
 
 	if len(assignedCount) == 0 {
 		for _, ticket := range workspace.Tickets {
-			if ticket.AssignedTo != primitive.NilObjectID && workspace.InternalTeams[workspace.FirstTeam][ticket.AssignedTo] == entity.StatusBusy {
+			if ticket.AssignedTo != primitive.NilObjectID && workspace.InternalTeams[teamName][ticket.AssignedTo] == entity.StatusBusy {
 				assignedCount[ticket.AssignedTo]++
 			}
 		}
@@ -259,7 +286,7 @@ func (ms *MessengerServiceImpl) getAssigneeId(workspace *entity.Workspace) (prim
 
 	if len(assignedCount) == 0 {
 		for _, ticket := range workspace.Tickets {
-			if ticket.AssignedTo != primitive.NilObjectID && workspace.InternalTeams[workspace.FirstTeam][ticket.AssignedTo] == entity.StatusOffline {
+			if ticket.AssignedTo != primitive.NilObjectID && workspace.InternalTeams[teamName][ticket.AssignedTo] == entity.StatusOffline {
 				assignedCount[ticket.AssignedTo]++
 			}
 		}
