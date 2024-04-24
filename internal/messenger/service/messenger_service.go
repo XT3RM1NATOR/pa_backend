@@ -123,43 +123,40 @@ func (ms *MessengerServiceImpl) HandleTelegramBotMessage(token string, message *
 		Source: string(entity.SourceTelegramBot),
 	}
 
-	if message.Message != nil && message.Message.Text != "" {
-		botMessage := entity.IntegrationsMessage{
-			MessageId: message.Message.MessageID,
-			Message:   message.Message.Text,
-			Type:      entity.TypeText,
-			CreatedAt: primitive.DateTime(int64(message.Message.Date)),
-		}
-
-		messageResponse.Message = botMessage.Message
-		messageResponse.Type = string(entity.TypeText)
-		messageResponse.CreatedAt = botMessage.CreatedAt
-
-		ticket, _ := ms.findTicketBySenderId(workspace, message.Message.From.ID)
-		if ticket != nil {
-			ticket.IntegrationMessages = append(ticket.IntegrationMessages, botMessage)
-			messageResponse.TicketId = ticket.TicketId
-		} else {
-			if err := ms.addNewTicketToWorkspace(token, message, workspace, &botMessage); err != nil {
-				return err
-			}
-		}
-
-		if err := ms.messengerRepo.UpdateWorkspace(workspace); err != nil {
-			return err
-		}
-
-		jsonBytes, err := json.Marshal(messageResponse)
-		if err != nil {
-			return err
-		}
-
-		ms.websocketService.SendToAll(workspace.WorkspaceId, jsonBytes)
-	} else if message.CallbackQuery != nil {
-		//
-	} else {
-		//
+	botMessage := entity.IntegrationsMessage{
+		MessageId: message.Message.MessageID,
+		Message:   message.Message.Text,
+		Type:      entity.TypeText,
+		CreatedAt: primitive.DateTime(int64(message.Message.Date)),
 	}
+	if message.Message.Text == "" && message.Message.Caption != "" {
+		botMessage.Message = message.Message.Caption
+	}
+
+	messageResponse.Message = botMessage.Message
+	messageResponse.Type = string(entity.TypeText)
+	messageResponse.CreatedAt = botMessage.CreatedAt
+
+	ticket, _ := ms.findTicketBySenderId(workspace, message.Message.From.ID)
+	if ticket != nil && ticket.Status != entity.StatusClosed {
+		ticket.IntegrationMessages = append(ticket.IntegrationMessages, botMessage)
+		messageResponse.TicketId = ticket.TicketId
+	} else {
+		if err := ms.addNewTicketToWorkspace(token, message, workspace, &botMessage); err != nil {
+			return err
+		}
+	}
+
+	if err := ms.messengerRepo.UpdateWorkspace(workspace); err != nil {
+		return err
+	}
+
+	jsonBytes, err := json.Marshal(messageResponse)
+	if err != nil {
+		return err
+	}
+
+	ms.websocketService.SendToAll(workspace.WorkspaceId, jsonBytes)
 	return nil
 }
 
@@ -176,7 +173,7 @@ func (ms *MessengerServiceImpl) ValidateUserInWorkspace(userId primitive.ObjectI
 	return errors.New("user does not have the permissions")
 }
 
-func (ms *MessengerServiceImpl) CloseTicket(userId primitive.ObjectID, ticketId, workspaceId, status string) error {
+func (ms *MessengerServiceImpl) UpdateTicketStatus(userId primitive.ObjectID, ticketId, workspaceId, status string) error {
 	workspace, err := ms.messengerRepo.FindWorkspaceByWorkspaceId(workspaceId)
 	if err != nil {
 		return err

@@ -115,9 +115,9 @@ func (mc *MessengerController) CloseTicket(c echo.Context) error {
 	status, ticketId, workspaceId := c.Param("status"), c.Param("ticket_id"), c.Param("id")
 	userId := c.Request().Context().Value("userId").(primitive.ObjectID)
 
-	if err := mc.messengerService.CloseTicket(userId, ticketId, workspaceId, status); err != nil {
+	if err := mc.messengerService.UpdateTicketStatus(userId, ticketId, workspaceId, status); err != nil {
 		return c.JSON(http.StatusInternalServerError, model.ErrorResponse{Error: err.Error()})
 	}
 
-	return c.JSON(http.StatusOK, model.SuccessResponse{Message: "ticket successfully reassigned to " + teamName})
+	return c.JSON(http.StatusOK, model.SuccessResponse{Message: "ticket status updated successfully"})
 }
