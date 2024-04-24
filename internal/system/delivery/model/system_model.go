@@ -6,7 +6,14 @@ type CreateWorkspaceRequest struct {
 	Name        string            `json:"name"`
 	Logo        []byte            `json:"logo"`
 	Team        map[string]string `json:"team"`
-	WorkspaceID string            `json:"Workspace_id"`
+	Teams       []string          `json:"teams"`
+	WorkspaceId string            `json:"workspace_id"`
+}
+
+type AddTeamMembersRequest struct {
+	TeamName    string `json:"team_name"`
+	WorkspaceId string `json:"workspace_id"`
+	Member      string `json:"member"`
 }
 
 type AddWorkspaceMemberRequest struct {
@@ -16,13 +23,13 @@ type AddWorkspaceMemberRequest struct {
 
 type UpdateWorkspaceMemberRequest struct {
 	Team        map[string]string `json:"team"`
-	WorkspaceId string            `json:"Workspace_id"`
+	WorkspaceId string            `json:"workspace_id"`
 }
 
 type UpdateWorkspaceRequest struct {
 	Name        string `json:"name"`
 	Logo        []byte `json:"logo"`
-	WorkspaceID string `json:"Workspace_id"`
+	WorkspaceID string `json:"workspace_id"`
 }
 
 // Responses
@@ -38,7 +45,7 @@ type SuccessResponse struct {
 type WorkspaceResponse struct {
 	Name        string `json:"name"`
 	Logo        []byte `json:"logo"`
-	WorkspaceID string `json:"Workspace_id"`
+	WorkspaceID string `json:"workspace_id"`
 }
 
 type UserResponse struct {

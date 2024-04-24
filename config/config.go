@@ -8,13 +8,14 @@ const (
 )
 
 type Config struct {
-	Server  Server
-	MongoDB MongoDB
-	Auth    Auth
-	Email   Email
-	OAuth2  OAuth2
-	Website Website
-	MinIo   MinIo
+	Server       Server
+	MongoDB      MongoDB
+	Auth         Auth
+	Email        Email
+	OAuth2       OAuth2
+	Website      Website
+	MinIo        MinIo
+	Integrations Integrations
 }
 
 type (
@@ -26,6 +27,7 @@ type (
 		Database            string `env:"DB_NAME"`
 		UserCollection      string `env:"DB_USER_COLLECTION"`
 		WorkspaceCollection string `env:"DB_WORKSPACE_COLLECTION"`
+		HelpDeskCollection  string `env:"DB_HELPDESK_COLLECTION"`
 	}
 
 	Server struct {
@@ -61,5 +63,11 @@ type (
 		AccessKey  string `env:"MINIO_ACCESS_KEY"`
 		SecretKey  string `env:"MINIO_SECRET_KEY"`
 		BucketName string `env:"MINIO_BUCKET_NAME"`
+	}
+
+	Integrations struct {
+		TelegramBaseURL string `env:"TELEGRAM_BASE_URL"`
+		MetaBaseURL     string `env:"META_BASE_URL"`
+		WhatsappBaseURL string `env:"WHATSAPP_BASE_URL"`
 	}
 )

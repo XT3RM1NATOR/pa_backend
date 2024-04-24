@@ -129,6 +129,5 @@ const (
 const (
 	StatusAvailable UserStatus = "available"
 	StatusBusy      UserStatus = "busy"
-	StatusOnBreak   UserStatus = "on break"
 	StatusOffline   UserStatus = "offline"
 )

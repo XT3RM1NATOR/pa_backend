@@ -14,18 +14,18 @@ type StorageClient interface {
 }
 
 type SystemRepository interface {
-	ValidateTeam(team *map[string]string, ownerId primitive.ObjectID) (*map[primitive.ObjectID]entity.WorkspaceRole, error)
-	CreateWorkspace(ownerId primitive.ObjectID, pendingTeam *map[string]entity.WorkspaceRole, workspaceId, name string) error
+	ValidateTeam(team map[string]string, ownerId primitive.ObjectID) (map[primitive.ObjectID]entity.WorkspaceRole, error)
+	CreateWorkspace(ownerId primitive.ObjectID, pendingTeam map[string]entity.WorkspaceRole, workspaceId, name string, teams []string) error
 	RemoveUserFromWorkspace(workspace *entity.Workspace, userId primitive.ObjectID) error
 	FindWorkspaceByWorkspaceId(workspaceId string) (*entity.Workspace, error)
 	DeleteWorkspace(id primitive.ObjectID) error
 	FindWorkspacesByUser(userId primitive.ObjectID) (*[]entity.Workspace, error)
 	FindUserByEmail(email string) (primitive.ObjectID, error)
 	FindUserEmailById(userId primitive.ObjectID) (string, error)
-	AddUsersToWorkspace(workspace *entity.Workspace, teamRoles *map[primitive.ObjectID]entity.WorkspaceRole) error
-	UpdateUsersInWorkspace(workspace *entity.Workspace, teamRoles *map[primitive.ObjectID]entity.WorkspaceRole) error
+	AddUsersToWorkspace(workspace *entity.Workspace, teamRoles map[primitive.ObjectID]entity.WorkspaceRole) error
+	UpdateUsersInWorkspace(workspace *entity.Workspace, teamRoles map[primitive.ObjectID]entity.WorkspaceRole) error
 	UpdateWorkspace(workspace *entity.Workspace) error
-	FormatTeam(team *map[primitive.ObjectID]entity.WorkspaceRole) (*map[string]string, error)
+	FormatTeam(team map[primitive.ObjectID]entity.WorkspaceRole) (map[string]string, error)
 	GetUserProfiles(workspace entity.Workspace) (*[]model.User, error)
 	AddPendingInviteToUser(userId primitive.ObjectID, projectId string) error
 	ClearPendingStatus(userId primitive.ObjectID, workspaceId string) error

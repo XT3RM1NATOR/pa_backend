@@ -15,7 +15,7 @@ type SystemController struct {
 	config        *config.Config
 }
 
-func NewSystemController(systemService _interface.SystemService, cfg *config.Config) *SystemController {
+func NewSystemController(cfg *config.Config, systemService _interface.SystemService) *SystemController {
 	return &SystemController{
 		systemService: systemService,
 		config:        cfg,
@@ -39,11 +39,47 @@ func (sc *SystemController) CreateWorkspace(c echo.Context) error {
 	}
 
 	ownerId := c.Request().Context().Value("userId").(primitive.ObjectID)
-	if err := sc.systemService.CreateWorkspace(request.Logo, request.Team, ownerId, request.WorkspaceID, request.Name); err != nil {
+	if err := sc.systemService.CreateWorkspace(request.Logo, request.Team, ownerId, request.WorkspaceId, request.Name, request.Teams); err != nil {
 		return c.JSON(http.StatusInternalServerError, model.ErrorResponse{Error: err.Error()})
 	}
 
 	return c.JSON(http.StatusCreated, model.SuccessResponse{Message: "Workspace added successfully"})
+}
+
+func (sc *SystemController) AddTeamsMembers(c echo.Context) error {
+	var request model.AddTeamMembersRequest
+	if err := c.Bind(&request); err != nil {
+		return c.JSON(http.StatusBadRequest, model.ErrorResponse{Error: err.Error()})
+	}
+
+	userId := c.Request().Context().Value("userId").(primitive.ObjectID)
+	if err := sc.systemService.AddTeamsMember(userId, request.Member, request.TeamName, request.WorkspaceId); err != nil {
+		return c.JSON(http.StatusInternalServerError, model.ErrorResponse{Error: err.Error()})
+	}
+
+	return c.JSON(http.StatusCreated, model.SuccessResponse{Message: "user added to the team"})
+}
+
+func (sc *SystemController) UpdateMemberStatus(c echo.Context) error {
+	status, workspaceId := c.Param("status"), c.Param("id")
+	userId := c.Request().Context().Value("userId").(primitive.ObjectID)
+
+	if err := sc.systemService.UpdateMemberStatus(userId, status, workspaceId); err != nil {
+		return c.JSON(http.StatusInternalServerError, model.ErrorResponse{Error: err.Error()})
+	}
+
+	return c.JSON(http.StatusCreated, model.SuccessResponse{Message: "status updated"})
+}
+
+func (sc *SystemController) SetFirstTeam(c echo.Context) error {
+	teamName, workspaceId := c.Param("name"), c.Param("id")
+	userId := c.Request().Context().Value("userId").(primitive.ObjectID)
+
+	if err := sc.systemService.SetFirstTeam(userId, teamName, workspaceId); err != nil {
+		return c.JSON(http.StatusInternalServerError, model.ErrorResponse{Error: err.Error()})
+	}
+
+	return c.JSON(http.StatusCreated, model.SuccessResponse{Message: "first team is set"})
 }
 
 // LeaveWorkspace removes user from a Workspace.
@@ -66,7 +102,7 @@ func (sc *SystemController) LeaveWorkspace(c echo.Context) error {
 	return c.JSON(http.StatusOK, model.SuccessResponse{Message: "workspace left successfully"})
 }
 
-// GetWorkspaceByID retrieves Workspace details by WorkspaceId.
+// GetWorkspaceById retrieves Workspace details by WorkspaceId.
 // @Summary Retrieves Workspace details by ID.
 // @Tags System
 // @Accept json
@@ -75,7 +111,7 @@ func (sc *SystemController) LeaveWorkspace(c echo.Context) error {
 // @Success 200 {object} model.WorkspaceResponse "Workspace details"
 // @Failure 500 {object} model.ErrorResponse "Internal server error"
 // @Router /system/workspace/{id} [get]
-func (sc *SystemController) GetWorkspaceByID(c echo.Context) error {
+func (sc *SystemController) GetWorkspaceById(c echo.Context) error {
 	workspaceID := c.Param("id")
 	userId := c.Request().Context().Value("userId").(primitive.ObjectID)
 
@@ -126,7 +162,7 @@ func (sc *SystemController) GetAllWorkspaces(c echo.Context) error {
 // @Tags System
 // @Accept json
 // @Produce json
-// @Param id path string true "Workspace ID"
+// @Param id path string true "Workspace id"
 // @Param request body UpdateWorkspaceRequest true "Updated Workspace details"
 // @Success 200 {object} model.SuccessResponse "Workspace updated successfully"
 // @Failure 400 {object} model.ErrorResponse "Bad request"
@@ -219,20 +255,20 @@ func (sc *SystemController) DeleteWorkspaceMember(c echo.Context) error {
 	return c.JSON(http.StatusOK, model.SuccessResponse{Message: "member removed successfully"})
 }
 
-// DeleteWorkspaceByID removes a Workspace by ID.
-// @Summary Removes a Workspace by ID.
+// DeleteWorkspaceById removes a Workspace by id.
+// @Summary Removes a Workspace by id.
 // @Tags System
 // @Accept json
 // @Produce json
-// @Param id path string true "Workspace ID"
+// @Param id path string true "Workspace id"
 // @Success 200 {object} model.SuccessResponse "Workspace deleted successfully"
 // @Failure 500 {object} model.ErrorResponse "Internal server error"
 // @Router /system/workspace/workspace/{id} [delete]
-func (sc *SystemController) DeleteWorkspaceByID(c echo.Context) error {
+func (sc *SystemController) DeleteWorkspaceById(c echo.Context) error {
 	workspaceId := c.Param("id")
 	userId := c.Request().Context().Value("userId").(primitive.ObjectID)
 
-	if err := sc.systemService.DeleteWorkspaceByID(workspaceId, userId); err != nil {
+	if err := sc.systemService.DeleteWorkspaceById(workspaceId, userId); err != nil {
 		return c.JSON(http.StatusInternalServerError, model.ErrorResponse{Error: err.Error()})
 	}
 

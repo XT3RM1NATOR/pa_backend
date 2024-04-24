@@ -28,7 +28,7 @@ func NewSystemServiceImpl(cfg *config.Config, storageClient infrastructureInterf
 	}
 }
 
-func (ss *SystemServiceImpl) CreateWorkspace(logo []byte, team map[string]string, ownerId primitive.ObjectID, workspaceId, name string) error {
+func (ss *SystemServiceImpl) CreateWorkspace(logo []byte, team map[string]string, ownerId primitive.ObjectID, workspaceId, name string, teams []string) error {
 	if err := utils.ValidateWorkspaceId(workspaceId); err != nil {
 		return err
 	}
@@ -46,7 +46,7 @@ func (ss *SystemServiceImpl) CreateWorkspace(logo []byte, team map[string]string
 
 	_, err = ss.systemRepo.FindWorkspaceByWorkspaceId(workspaceId)
 	if errors.Is(err, mongo.ErrNoDocuments) {
-		if err := ss.systemRepo.CreateWorkspace(ownerId, &teamRoles, workspaceId, name); err != nil {
+		if err := ss.systemRepo.CreateWorkspace(ownerId, teamRoles, workspaceId, name, teams); err != nil {
 			return err
 		}
 
@@ -69,8 +69,8 @@ func (ss *SystemServiceImpl) CreateWorkspace(logo []byte, team map[string]string
 	return errors.New("workspace with this id already exists")
 }
 
-func (ss *SystemServiceImpl) LeaveWorkspace(WorkspaceId string, userId primitive.ObjectID) error {
-	workspace, err := ss.systemRepo.FindWorkspaceByWorkspaceId(WorkspaceId)
+func (ss *SystemServiceImpl) LeaveWorkspace(workspaceId string, userId primitive.ObjectID) error {
+	workspace, err := ss.systemRepo.FindWorkspaceByWorkspaceId(workspaceId)
 	if err != nil {
 		return err
 	}
@@ -80,6 +80,86 @@ func (ss *SystemServiceImpl) LeaveWorkspace(WorkspaceId string, userId primitive
 	}
 
 	return nil
+}
+
+func (ss *SystemServiceImpl) SetFirstTeam(userId primitive.ObjectID, teamName, workspaceId string) error {
+	workspace, err := ss.systemRepo.FindWorkspaceByWorkspaceId(workspaceId)
+	if err != nil {
+		return err
+	}
+
+	if ss.isAdmin(workspace.Team[userId]) || ss.isOwner(workspace.Team[userId]) {
+		if _, exists := workspace.InternalTeams[teamName]; !exists {
+			return errors.New("team not found")
+		}
+		workspace.FirstTeam = teamName
+
+		err := ss.systemRepo.UpdateWorkspace(workspace)
+		if err != nil {
+			return err
+		}
+	}
+
+	return errors.New("unauthorised")
+}
+
+func (ss *SystemServiceImpl) UpdateMemberStatus(userId primitive.ObjectID, status, workspaceId string) error {
+	workspace, err := ss.systemRepo.FindWorkspaceByWorkspaceId(workspaceId)
+	if err != nil {
+		return err
+	}
+
+	for _, team := range workspace.InternalTeams {
+		if _, exists := team[userId]; exists {
+			switch entity.UserStatus(status) {
+			case entity.StatusAvailable, entity.StatusOnBreak, entity.StatusOffline, entity.StatusBusy:
+				team[userId] = entity.UserStatus(status)
+			default:
+				return errors.New("invalid status")
+			}
+		}
+	}
+
+	err = ss.systemRepo.UpdateWorkspace(workspace)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (ss *SystemServiceImpl) AddTeamsMember(userId primitive.ObjectID, memberEmail, teamName, workspaceId string) error {
+	workspace, err := ss.systemRepo.FindWorkspaceByWorkspaceId(workspaceId)
+	if err != nil {
+		return err
+	}
+
+	if ss.isAdmin(workspace.Team[userId]) || ss.isOwner(workspace.Team[userId]) {
+		teamMembers, ok := workspace.InternalTeams[teamName]
+		if !ok {
+			return errors.New("team not found")
+		}
+
+		id, err := ss.systemRepo.FindUserByEmail(memberEmail)
+		if err != nil {
+			return err
+		}
+
+		for _, team := range workspace.InternalTeams {
+			if _, exists := team[id]; exists {
+				return errors.New("user is already a member of another team")
+			}
+		}
+
+		teamMembers[id] = entity.StatusOffline
+		err = ss.systemRepo.UpdateWorkspace(workspace)
+		if err != nil {
+			return err
+		}
+		return nil
+	}
+
+	return errors.New("unauthorised")
 }
 
 // GetWorkspaceById TODO: update function not to return team
@@ -159,7 +239,7 @@ func (ss *SystemServiceImpl) AddWorkspaceMembers(userId primitive.ObjectID, team
 	}
 
 	if ss.isAdmin(workspace.Team[userId]) || ss.isOwner(workspace.Team[userId]) {
-		teamRoles, err := ss.systemRepo.ValidateTeam(&team, userId)
+		teamRoles, err := ss.systemRepo.ValidateTeam(team, userId)
 		if err != nil {
 			return err
 		}
@@ -169,7 +249,7 @@ func (ss *SystemServiceImpl) AddWorkspaceMembers(userId primitive.ObjectID, team
 		}
 	}
 
-	return nil
+	return errors.New("user does not have the permissions")
 }
 
 func (ss *SystemServiceImpl) UpdateWorkspaceMembers(userId primitive.ObjectID, team map[string]string, workspaceId string) error {
@@ -179,7 +259,7 @@ func (ss *SystemServiceImpl) UpdateWorkspaceMembers(userId primitive.ObjectID, t
 	}
 
 	if ss.isAdmin(workspace.Team[userId]) || ss.isOwner(workspace.Team[userId]) {
-		teamRoles, err := ss.systemRepo.ValidateTeam(&team, userId)
+		teamRoles, err := ss.systemRepo.ValidateTeam(team, userId)
 		if err != nil {
 			return err
 		}
@@ -189,7 +269,7 @@ func (ss *SystemServiceImpl) UpdateWorkspaceMembers(userId primitive.ObjectID, t
 		}
 	}
 
-	return nil
+	return errors.New("user does not have the permissions")
 }
 
 func (ss *SystemServiceImpl) DeleteWorkspaceMember(userId primitive.ObjectID, workspaceId, memberEmail string) error {
@@ -209,10 +289,10 @@ func (ss *SystemServiceImpl) DeleteWorkspaceMember(userId primitive.ObjectID, wo
 		}
 	}
 
-	return nil
+	return errors.New("user does not have the permissions")
 }
 
-func (ss *SystemServiceImpl) DeleteWorkspaceByID(workspaceId string, userId primitive.ObjectID) error {
+func (ss *SystemServiceImpl) DeleteWorkspaceById(workspaceId string, userId primitive.ObjectID) error {
 	workspace, err := ss.systemRepo.FindWorkspaceByWorkspaceId(workspaceId)
 	if err != nil {
 		return err
@@ -253,12 +333,12 @@ func (ss *SystemServiceImpl) formatWorkspaces(workspaces []entity.Workspace) ([]
 	formattedWorkspaces := make([]model.Workspace, len(workspaces))
 	for i, p := range workspaces {
 		logo, _ := ss.storageClient.LoadFile(p.WorkspaceId, ss.config.MinIo.BucketName)
-		team, _ := ss.systemRepo.FormatTeam(&p.Team)
+		team, _ := ss.systemRepo.FormatTeam(p.Team)
 
 		formattedWorkspace := model.Workspace{
 			Name:        p.Name,
 			WorkspaceId: p.WorkspaceId,
-			Team:        *team,
+			Team:        team,
 			Logo:        logo,
 		}
 

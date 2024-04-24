@@ -13,7 +13,7 @@ import (
 )
 
 func RegisterAuthRoutes(e *echo.Echo, cfg *config.Config, db *mongo.Database, str *minio.Client) {
-	ur := repository.NewUserRepositoryImpl(db, cfg.MongoDB.UserCollection)
+	ur := repository.NewUserRepositoryImpl(db, cfg)
 	ec := client.NewEmailClientImpl(cfg.Email.SMTPUsername, cfg.Email.SMTPPassword, cfg.Email.SMTPHost, cfg.Email.SMTPPort)
 	sc := client.NewStorageClientImpl(str)
 	es := service.NewEmailServiceImpl(ec)
