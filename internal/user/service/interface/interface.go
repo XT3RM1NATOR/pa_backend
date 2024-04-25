@@ -26,6 +26,8 @@ type UserRepository interface {
 	ConfirmUser(userId primitive.ObjectID) error
 	UpdateUser(user *entity.User) error
 	GetAllPendingInvites(email string) ([]string, error)
+	FindWorkspaceByWorkspaceId(workspaceId string) (*entity.Workspace, error)
+	UpdateWorkspace(workspace *entity.Workspace) error
 }
 
 type EmailClient interface {

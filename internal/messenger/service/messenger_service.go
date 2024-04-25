@@ -119,45 +119,17 @@ func (ms *MessengerServiceImpl) HandleTelegramBotMessage(token string, message *
 		return err
 	}
 
-	messageResponse := &model.MessageResponse{
-		Source: string(entity.SourceTelegramBot),
-	}
+	botMessage, messageResponse := ms.createMessageEntities(message)
 
-	botMessage := entity.IntegrationsMessage{
-		MessageId: message.Message.MessageID,
-		Message:   message.Message.Text,
-		Type:      entity.TypeText,
-		CreatedAt: primitive.DateTime(int64(message.Message.Date)),
-	}
-	if message.Message.Text == "" && message.Message.Caption != "" {
-		botMessage.Message = message.Message.Caption
-	}
-
-	messageResponse.Message = botMessage.Message
-	messageResponse.Type = string(entity.TypeText)
-	messageResponse.CreatedAt = botMessage.CreatedAt
-
-	ticket, _ := ms.findTicketBySenderId(workspace, message.Message.From.ID)
-	if ticket != nil && ticket.Status != entity.StatusClosed {
-		ticket.IntegrationMessages = append(ticket.IntegrationMessages, botMessage)
-		messageResponse.TicketId = ticket.TicketId
-	} else {
-		if err := ms.addNewTicketToWorkspace(token, message, workspace, &botMessage); err != nil {
-			return err
-		}
+	if err := ms.processTicketHandling(workspace, token, message, botMessage, messageResponse); err != nil {
+		return err
 	}
 
 	if err := ms.messengerRepo.UpdateWorkspace(workspace); err != nil {
 		return err
 	}
 
-	jsonBytes, err := json.Marshal(messageResponse)
-	if err != nil {
-		return err
-	}
-
-	ms.websocketService.SendToAll(workspace.WorkspaceId, jsonBytes)
-	return nil
+	return ms.broadcastMessageResponse(workspace.WorkspaceId, messageResponse)
 }
 
 func (ms *MessengerServiceImpl) ValidateUserInWorkspace(userId primitive.ObjectID, workspaceId string) error {
@@ -296,36 +268,37 @@ func (ms *MessengerServiceImpl) addNewTicketToWorkspace(token string, message *t
 }
 
 func (ms *MessengerServiceImpl) getAssigneeId(workspace *entity.Workspace, teamName string) (primitive.ObjectID, error) {
-	assignedCount := make(map[primitive.ObjectID]int)
-	for _, ticket := range workspace.Tickets {
-		if ticket.AssignedTo != primitive.NilObjectID && workspace.InternalTeams[teamName][ticket.AssignedTo] == entity.StatusAvailable {
-			assignedCount[ticket.AssignedTo]++
-		}
-	}
+	statusPriority := []entity.UserStatus{entity.StatusAvailable, entity.StatusBusy, entity.StatusOffline}
 
-	if len(assignedCount) == 0 {
+	var assignedCount map[primitive.ObjectID]int
+	found := false
+
+	for _, status := range statusPriority {
+		assignedCount = make(map[primitive.ObjectID]int)
 		for _, ticket := range workspace.Tickets {
-			if ticket.AssignedTo != primitive.NilObjectID && workspace.InternalTeams[teamName][ticket.AssignedTo] == entity.StatusBusy {
+			if ticket.AssignedTo != primitive.NilObjectID && workspace.InternalTeams[teamName][ticket.AssignedTo] == status {
 				assignedCount[ticket.AssignedTo]++
+				found = true
 			}
 		}
-	}
-
-	if len(assignedCount) == 0 {
-		for _, ticket := range workspace.Tickets {
-			if ticket.AssignedTo != primitive.NilObjectID && workspace.InternalTeams[teamName][ticket.AssignedTo] == entity.StatusOffline {
-				assignedCount[ticket.AssignedTo]++
-			}
+		if found {
+			break
 		}
 	}
 
-	if len(assignedCount) == 0 {
+	if !found {
 		log.Println("no chat members yet")
+		return primitive.NilObjectID, errors.New("no tickets are assigned")
 	}
 
+	return ms.findMinAssignee(assignedCount)
+}
+
+func (ms *MessengerServiceImpl) findMinAssignee(assignedCount map[primitive.ObjectID]int) (primitive.ObjectID, error) {
 	var minAssignments int
 	var minAssignee primitive.ObjectID
 	first := true
+
 	for assignee, count := range assignedCount {
 		if first || count < minAssignments {
 			minAssignee = assignee
@@ -337,8 +310,59 @@ func (ms *MessengerServiceImpl) getAssigneeId(workspace *entity.Workspace, teamN
 	if first {
 		return primitive.NilObjectID, errors.New("no tickets are assigned")
 	}
-
 	return minAssignee, nil
+}
+
+func (ms *MessengerServiceImpl) createMessageEntities(message *tgbotapi.Update) (entity.IntegrationsMessage, *model.MessageResponse) {
+	botMessage := entity.IntegrationsMessage{
+		MessageId: message.Message.MessageID,
+		Message:   ms.extractMessageText(message),
+		Type:      entity.TypeText,
+		CreatedAt: primitive.DateTime(int64(message.Message.Date)),
+	}
+
+	messageResponse := &model.MessageResponse{
+		Source:    string(entity.SourceTelegramBot),
+		Message:   botMessage.Message,
+		Type:      string(entity.TypeText),
+		CreatedAt: botMessage.CreatedAt,
+	}
+
+	return botMessage, messageResponse
+}
+
+func (ms *MessengerServiceImpl) extractMessageText(message *tgbotapi.Update) string {
+	if message.Message.Text == "" && message.Message.Caption != "" {
+		return message.Message.Caption
+	}
+	return message.Message.Text
+}
+
+func (ms *MessengerServiceImpl) processTicketHandling(workspace *entity.Workspace, botToken string, message *tgbotapi.Update, botMessage entity.IntegrationsMessage, messageResponse *model.MessageResponse) error {
+	ticket, err := ms.findTicketBySenderId(workspace, message.Message.From.ID)
+	if err != nil && !errors.Is(err, errors.New("ticket not found")) {
+		return err
+	}
+
+	if ticket != nil && ticket.Status != entity.StatusClosed {
+		ticket.IntegrationMessages = append(ticket.IntegrationMessages, botMessage)
+		messageResponse.TicketId = ticket.TicketId
+	} else {
+		if err := ms.addNewTicketToWorkspace(botToken, message, workspace, &botMessage); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (ms *MessengerServiceImpl) broadcastMessageResponse(workspaceId string, messageResponse *model.MessageResponse) error {
+	jsonBytes, err := json.Marshal(messageResponse)
+	if err != nil {
+		return err
+	}
+
+	ms.websocketService.SendToAll(workspaceId, jsonBytes)
+	return nil
 }
 
 func (ms *MessengerServiceImpl) isAdmin(userRole entity.WorkspaceRole) bool {

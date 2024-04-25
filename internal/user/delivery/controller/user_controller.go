@@ -238,6 +238,16 @@ func (uc *UserController) GoogleCallback(c echo.Context) error {
 	return c.Redirect(http.StatusFound, fmt.Sprintf("%s/?oauth2token="+oAuth2Token, uc.config.Website.WebURL))
 }
 
+func (uc *UserController) FacebookCallback(c echo.Context) error {
+	code, workspaceId := c.QueryParam("code"), c.QueryParam("id")
+	if err := uc.userService.FacebookAuthCallback(code, workspaceId); err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+	}
+
+	// Redirect to your application page with the OAuth2 token
+	return c.Redirect(http.StatusFound, fmt.Sprintf(uc.config.Website.WebURL+"/integrations"))
+}
+
 // GetProfile returns the user profile.
 // @Summary returns the user profile.
 // @Tags Auth
