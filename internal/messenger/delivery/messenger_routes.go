@@ -12,10 +12,10 @@ import (
 )
 
 func RegisterMessengerRoutes(e *echo.Echo, cfg *config.Config, db *mongo.Database) {
-	tc := client.NewTelegramClientImpl(cfg)
+	tbc := client.NewTelegramBotClientImpl(cfg)
 	ir := repository.NewMessengerRepositoryImpl(cfg, db)
 	wss := service.NewWebSocketServiceImpl(ir)
-	is := service.NewMessengerServiceImpl(cfg, ir, wss, tc)
+	is := service.NewMessengerServiceImpl(cfg, ir, wss, tbc)
 	ic := controller.NewMessengerController(cfg, is, wss)
 
 	integrationGroup := e.Group("/integrations")
@@ -29,4 +29,5 @@ func RegisterMessengerRoutes(e *echo.Echo, cfg *config.Config, db *mongo.Databas
 	messengerGroup.POST("/ticket/reassign/team/:ticket_id/:id/:name", ic.ReassignTicketToTeam, middleware.ValidateAccessTokenMiddleware(cfg.Auth.JWTSecretKey))
 	messengerGroup.POST("/ticket/reassign/member/:ticket_id/:id/:email", ic.ReassignTicketToMember, middleware.ValidateAccessTokenMiddleware(cfg.Auth.JWTSecretKey))
 	messengerGroup.PUT("/ticket/:status/:id/:ticket_id", ic.CloseTicket, middleware.ValidateAccessTokenMiddleware(cfg.Auth.JWTSecretKey))
+
 }

@@ -4,8 +4,6 @@ import (
 	"github.com/Point-AI/backend/config"
 	infrastructureInterface "github.com/Point-AI/backend/internal/messenger/service/interface"
 	"github.com/go-telegram-bot-api/telegram-bot-api"
-	"io"
-	"net/http"
 )
 
 type TelegramClient struct {
@@ -18,22 +16,8 @@ func NewTelegramClientImpl(cfg *config.Config) infrastructureInterface.TelegramC
 	}
 }
 
-func (tc *TelegramClient) RegisterNewBot(botToken string) error {
-	bot, err := tgbotapi.NewBotAPI(botToken)
-	if err != nil {
-		return err
-	}
-
-	_, err = bot.SetWebhook(tgbotapi.NewWebhook(tc.config.Website.BaseURL + "integrations/telegram/bots/webhook/" + botToken))
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (tc *TelegramClient) SendTextMessage(botToken string, chatID int64, messageText string) error {
-	bot, err := tgbotapi.NewBotAPI(botToken)
+func (tc *TelegramClient) SendMessage(authToken string, chatID int64, messageText string) error {
+	bot, err := tgbotapi.NewBotAPI(authToken)
 	if err != nil {
 		return err
 	}
@@ -48,50 +32,52 @@ func (tc *TelegramClient) SendTextMessage(botToken string, chatID int64, message
 	return nil
 }
 
-func (tc *TelegramClient) DeleteWebhook(botToken string) error {
-	bot, err := tgbotapi.NewBotAPI(botToken)
+// ReceiveMessages retrieves new messages from the Telegram account with the provided authToken.
+func (tc *TelegramClient) ReceiveMessages(authToken string) ([]*tgbotapi.Message, error) {
+	bot, err := tgbotapi.NewBotAPI(authToken)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	_, err = bot.RemoveWebhook()
+	u := tgbotapi.NewUpdate(0)
+	u.Timeout = 60
+
+	updates, err := bot.GetUpdatesChan(u)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	var messages []*tgbotapi.Message
+	for update := range updates {
+		if update.Message != nil {
+			messages = append(messages, update.Message)
+		}
+	}
+
+	return messages, nil
 }
 
-func (tc *TelegramClient) HandleFileMessage(botToken, fileId string) ([]byte, string, error) {
-	bot, err := tgbotapi.NewBotAPI(botToken)
-	if err != nil {
-		return nil, "", err
-	}
-
-	fileData, err := tc.loadMessageFile(bot, fileId)
-	if err != nil {
-		return nil, "", err
-	}
-
-	return fileData, fileId, nil
-}
-
-func (tc *TelegramClient) loadMessageFile(bot *tgbotapi.BotAPI, videoMessageId string) ([]byte, error) {
-	fileURL, err := bot.GetFileDirectURL(videoMessageId)
+// ReceiveVideoMessages retrieves new video messages from the Telegram account with the provided authToken.
+func (tc *TelegramClient) ReceiveVideoMessages(authToken string) ([]*tgbotapi.Message, error) {
+	bot, err := tgbotapi.NewBotAPI(authToken)
 	if err != nil {
 		return nil, err
 	}
 
-	response, err := http.Get(fileURL)
-	if err != nil {
-		return nil, err
-	}
-	defer response.Body.Close()
+	u := tgbotapi.NewUpdate(0)
+	u.Timeout = 60
 
-	videoMessageData, err := io.ReadAll(response.Body)
+	updates, err := bot.GetUpdatesChan(u)
 	if err != nil {
 		return nil, err
 	}
 
-	return videoMessageData, nil
+	var videoMessages []*tgbotapi.Message
+	for update := range updates {
+		if update.Message != nil && update.Message.Video != nil {
+			videoMessages = append(videoMessages, update.Message)
+		}
+	}
+
+	return videoMessages, nil
 }

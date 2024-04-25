@@ -5,13 +5,19 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-type TelegramClient interface {
+type TelegramBotClient interface {
 	RegisterNewBot(botToken string) error
 	DeleteWebhook(botToken string) error
 	SendTextMessage(botToken string, chatID int64, messageText string) error
 	//SendMessage(chatID int, botToken, text string) error
 	//SendTyping(chatID int, botToken string) error
 	//DeleteMessage(botToken string, chatID int, messageID int) error
+}
+
+type TelegramClient interface {
+}
+
+type WhatsAppClient interface {
 }
 
 type MessengerRepository interface {
