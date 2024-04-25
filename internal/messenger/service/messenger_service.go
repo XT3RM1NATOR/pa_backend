@@ -15,18 +15,18 @@ import (
 )
 
 type MessengerServiceImpl struct {
-	messengerRepo    infrastructureInterface.MessengerRepository
-	telegramClient   infrastructureInterface.TelegramClient
-	websocketService _interface.WebsocketService
-	config           *config.Config
+	messengerRepo     infrastructureInterface.MessengerRepository
+	telegramBotClient infrastructureInterface.TelegramBotClient
+	websocketService  _interface.WebsocketService
+	config            *config.Config
 }
 
-func NewMessengerServiceImpl(cfg *config.Config, messengerRepo infrastructureInterface.MessengerRepository, websocketService _interface.WebsocketService, telegramClient infrastructureInterface.TelegramClient) _interface.MessengerService {
+func NewMessengerServiceImpl(cfg *config.Config, messengerRepo infrastructureInterface.MessengerRepository, websocketService _interface.WebsocketService, telegramBotClient infrastructureInterface.TelegramBotClient) _interface.MessengerService {
 	return &MessengerServiceImpl{
-		messengerRepo:    messengerRepo,
-		telegramClient:   telegramClient,
-		websocketService: websocketService,
-		config:           cfg,
+		messengerRepo:     messengerRepo,
+		telegramBotClient: telegramBotClient,
+		websocketService:  websocketService,
+		config:            cfg,
 	}
 }
 
@@ -45,7 +45,7 @@ func (ms *MessengerServiceImpl) RegisterBotIntegration(userId primitive.ObjectID
 			return errors.New("bot token already used")
 		}
 
-		if err := ms.telegramClient.RegisterNewBot(botToken); err != nil {
+		if err := ms.telegramBotClient.RegisterNewBot(botToken); err != nil {
 			return err
 		}
 
@@ -214,7 +214,7 @@ func (ms *MessengerServiceImpl) HandleTelegramPlatformMessage(userId primitive.O
 		return err
 	}
 
-	if err := ms.telegramClient.SendTextMessage(ticket.BotToken, ticket.ChatId, message.Message); err != nil {
+	if err := ms.telegramBotClient.SendTextMessage(ticket.BotToken, ticket.ChatId, message.Message); err != nil {
 		return err
 	}
 

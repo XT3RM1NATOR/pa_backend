@@ -29,7 +29,7 @@ func NewUserServiceImpl(userRepo infrastructureInterface.UserRepository, storage
 }
 
 func (us *UserServiceImpl) GoogleAuthCallback(code string) (string, error) {
-	email, photo, err := utils.ExtractGoogleData(us.config.OAuth2.GoogleClientId, us.config.OAuth2.GoogleClientSecret, code, us.config.OAuth2.GoogleRedirectURL)
+	email, photo, err := utils.ExtractGoogleData(us.config.OAuth2.GoogleClientId, us.config.OAuth2.GoogleClientSecret, code, us.config.Website.BaseURL+us.config.OAuth2.GoogleRedirectURL)
 	if err != nil {
 		return "", err
 	}

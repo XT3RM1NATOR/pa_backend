@@ -47,10 +47,18 @@ type (
 	}
 
 	OAuth2 struct {
-		StateText          string `env:"STATE_TEXT"`
+		StateText string `env:"STATE_TEXT"`
+
 		GoogleClientId     string `env:"GOOGLE_CLIENT_ID"`
 		GoogleRedirectURL  string `env:"GOOGLE_REDIRECT_URL"`
 		GoogleClientSecret string `env:"GOOGLE_CLIENT_SECRET"`
+
+		MetaClientId     string `env:"META_CLIENT_ID"`
+		MetaRedirectURL  string `env:"META_REDIRECT_URL"`
+		MetaClientSecret string `env:"META_CLIENT_SECRET"`
+
+		TelegramClientId     string `env:"TELEGRAM_CLIENT_ID"`
+		TelegramClientSecret string `env:"TELEGRAM_CLIENT_SECRET"`
 	}
 
 	Website struct {

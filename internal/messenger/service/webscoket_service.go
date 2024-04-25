@@ -47,8 +47,7 @@ func (wss *WebSocketServiceImpl) SendToAll(workspaceId string, message []byte) {
 
 	for _, conn := range conns {
 		if err := conn.WriteMessage(websocket.TextMessage, message); err != nil {
-			// Handle error (e.g., connection closed)
-			// You may choose to remove the connection or log the error
+			wss.RemoveConnection(workspaceId, conn)
 		}
 	}
 }
