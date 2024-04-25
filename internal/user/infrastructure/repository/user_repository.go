@@ -196,3 +196,27 @@ func (ur *UserRepositoryImpl) UpdateUser(user *entity.User) error {
 	_, err := ur.database.Collection(ur.config.MongoDB.UserCollection).ReplaceOne(context.Background(), bson.M{"_id": user.Id}, user)
 	return err
 }
+
+func (ur *UserRepositoryImpl) FindWorkspaceByWorkspaceId(workspaceId string) (*entity.Workspace, error) {
+	var workspace entity.Workspace
+	err := ur.database.Collection(ur.config.MongoDB.WorkspaceCollection).FindOne(context.Background(), bson.M{"workspace_id": workspaceId}).Decode(&workspace)
+	if err != nil {
+		return &workspace, err
+	}
+
+	return &workspace, nil
+}
+
+func (ur *UserRepositoryImpl) UpdateWorkspace(workspace *entity.Workspace) error {
+	filter, update := bson.M{"_id": workspace.Id}, bson.M{"$set": workspace}
+
+	res, err := ur.database.Collection(ur.config.MongoDB.WorkspaceCollection).ReplaceOne(context.Background(), filter, update)
+	if err != nil {
+		return err
+	}
+	if res.MatchedCount == 0 {
+		return errors.New("workspace not found")
+	}
+
+	return nil
+}

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"golang.org/x/oauth2"
+	"golang.org/x/oauth2/facebook"
 	"golang.org/x/oauth2/google"
 	"io"
 )
@@ -55,4 +56,21 @@ func ExtractGoogleData(clientID, clientSecret, code, redirectURL string) (string
 	}
 
 	return profile.Email, pictureData, nil
+}
+
+func ExchangeFacebookCodeForToken(clientID, clientSecret, code, redirectURL string) (string, string, error) {
+	config := &oauth2.Config{
+		ClientID:     clientID,
+		ClientSecret: clientSecret,
+		RedirectURL:  redirectURL,
+		Endpoint:     facebook.Endpoint,
+		Scopes:       []string{},
+	}
+
+	token, err := config.Exchange(context.Background(), code)
+	if err != nil {
+		return "", "", err
+	}
+
+	return token.AccessToken, token.RefreshToken, nil
 }

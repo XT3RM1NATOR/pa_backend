@@ -45,6 +45,31 @@ func (us *UserServiceImpl) GoogleAuthCallback(code string) (string, error) {
 	return oAuth2Token, nil
 }
 
+func (us *UserServiceImpl) FacebookAuthCallback(code, workspaceId string) error {
+	accessToken, refreshToken, err := utils.ExchangeFacebookCodeForToken(us.config.OAuth2.MetaClientId, us.config.OAuth2.MetaClientSecret, code, us.config.Website.BaseURL+us.config.OAuth2.MetaRedirectURL)
+	if err != nil {
+		return err
+	}
+
+	workspace, err := us.userRepo.FindWorkspaceByWorkspaceId(workspaceId)
+	if err != nil {
+		return err
+	}
+
+	facebookIntegration := entity.MetaIntegration{
+		AccessToken:  accessToken,
+		RefreshToken: refreshToken,
+		IsActive:     true,
+	}
+
+	*workspace.Integrations.Meta = append(*workspace.Integrations.Meta, facebookIntegration)
+	if err = us.userRepo.UpdateWorkspace(workspace); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (us *UserServiceImpl) GoogleTokens(token string) (string, string, error) {
 	user, err := us.userRepo.GetUserByOAuth2Token(token)
 	if err != nil {
