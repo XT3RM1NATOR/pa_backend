@@ -8,23 +8,23 @@ import (
 	"net/http"
 )
 
-type TelegramBotClient struct {
+type TelegramBotClientManager struct {
 	config *config.Config
 }
 
-func NewTelegramBotClientImpl(cfg *config.Config) infrastructureInterface.TelegramBotClient {
-	return &TelegramBotClient{
+func NewTelegramBotClientManagerImpl(cfg *config.Config) infrastructureInterface.TelegramBotClientManager {
+	return &TelegramBotClientManager{
 		config: cfg,
 	}
 }
 
-func (tbc *TelegramBotClient) RegisterNewBot(botToken string) error {
+func (tbcm *TelegramBotClientManager) RegisterNewBot(botToken string) error {
 	bot, err := tgbotapi.NewBotAPI(botToken)
 	if err != nil {
 		return err
 	}
 
-	_, err = bot.SetWebhook(tgbotapi.NewWebhook(tbc.config.Website.BaseURL + "integrations/telegram/bots/webhook/" + botToken))
+	_, err = bot.SetWebhook(tgbotapi.NewWebhook(tbcm.config.Website.BaseURL + "integrations/telegram/bots/webhook/" + botToken))
 	if err != nil {
 		return err
 	}
@@ -32,7 +32,7 @@ func (tbc *TelegramBotClient) RegisterNewBot(botToken string) error {
 	return nil
 }
 
-func (tbc *TelegramBotClient) SendTextMessage(botToken string, chatID int64, messageText string) error {
+func (tbcm *TelegramBotClientManager) SendTextMessage(botToken string, chatID int64, messageText string) error {
 	bot, err := tgbotapi.NewBotAPI(botToken)
 	if err != nil {
 		return err
@@ -48,7 +48,7 @@ func (tbc *TelegramBotClient) SendTextMessage(botToken string, chatID int64, mes
 	return nil
 }
 
-func (tbc *TelegramBotClient) DeleteWebhook(botToken string) error {
+func (tbcm *TelegramBotClientManager) DeleteWebhook(botToken string) error {
 	bot, err := tgbotapi.NewBotAPI(botToken)
 	if err != nil {
 		return err
@@ -62,13 +62,13 @@ func (tbc *TelegramBotClient) DeleteWebhook(botToken string) error {
 	return nil
 }
 
-func (tbc *TelegramBotClient) HandleFileMessage(botToken, fileId string) ([]byte, error) {
+func (tbcm *TelegramBotClientManager) HandleFileMessage(botToken, fileId string) ([]byte, error) {
 	bot, err := tgbotapi.NewBotAPI(botToken)
 	if err != nil {
 		return nil, err
 	}
 
-	fileData, err := tbc.loadMessageFile(bot, fileId)
+	fileData, err := tbcm.loadMessageFile(bot, fileId)
 	if err != nil {
 		return nil, err
 	}
@@ -76,7 +76,7 @@ func (tbc *TelegramBotClient) HandleFileMessage(botToken, fileId string) ([]byte
 	return fileData, nil
 }
 
-func (tbc *TelegramBotClient) loadMessageFile(bot *tgbotapi.BotAPI, videoMessageId string) ([]byte, error) {
+func (tbcm *TelegramBotClientManager) loadMessageFile(bot *tgbotapi.BotAPI, videoMessageId string) ([]byte, error) {
 	fileURL, err := bot.GetFileDirectURL(videoMessageId)
 	if err != nil {
 		return nil, err

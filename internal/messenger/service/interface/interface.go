@@ -1,13 +1,13 @@
 package infrastructureInterface
 
 import (
-	"context"
 	"github.com/Point-AI/backend/internal/messenger/domain/entity"
-	"github.com/gotd/td/tg"
+	"github.com/Point-AI/backend/internal/messenger/infrastructure/client"
+	"github.com/celestix/gotgproto"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-type TelegramBotClient interface {
+type TelegramBotClientManager interface {
 	RegisterNewBot(botToken string) error
 	DeleteWebhook(botToken string) error
 	SendTextMessage(botToken string, chatID int64, messageText string) error
@@ -17,13 +17,15 @@ type TelegramBotClient interface {
 	//DeleteMessage(botToken string, chatID int, messageID int) error
 }
 
-type TelegramClient interface {
-	Authenticate(ctx context.Context, phoneNumber string) (*tg.AuthSentCode, error)
-	SignIn(ctx context.Context, phoneNumber, phoneCodeHash, phoneCode string) (*tg.AuthAuthorization, error)
-	SignInFA(ctx context.Context, password string) (*tg.AuthAuthorization, error)
+type TelegramClientManager interface {
+	CreateClient(phone, workspaceId string) error
+	GetClient(workspaceId string) (*gotgproto.Client, bool)
+	GetAuthConversator(workspaceId string) (*client.TelegramAuthConversator, bool)
+	SetClient(workspaceId string, client *gotgproto.Client)
+	SetAuthConversator(workspaceId string, authConversator *client.TelegramAuthConversator)
 }
 
-type WhatsAppClient interface {
+type WhatsAppClientManager interface {
 }
 
 type MessengerRepository interface {

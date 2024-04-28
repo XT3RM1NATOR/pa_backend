@@ -1,7 +1,6 @@
 package service
 
 import (
-	"context"
 	"encoding/json"
 	"errors"
 	"github.com/Point-AI/backend/config"
@@ -13,24 +12,23 @@ import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"log"
-	"time"
 )
 
 type MessengerServiceImpl struct {
-	messengerRepo     infrastructureInterface.MessengerRepository
-	telegramBotClient infrastructureInterface.TelegramBotClient
-	telegramClient    infrastructureInterface.TelegramClient
-	websocketService  _interface.WebsocketService
-	config            *config.Config
+	messengerRepo            infrastructureInterface.MessengerRepository
+	telegramBotClientManager infrastructureInterface.TelegramBotClientManager
+	telegramClientManager    infrastructureInterface.TelegramClientManager
+	websocketService         _interface.WebsocketService
+	config                   *config.Config
 }
 
-func NewMessengerServiceImpl(cfg *config.Config, messengerRepo infrastructureInterface.MessengerRepository, websocketService _interface.WebsocketService, telegramBotClient infrastructureInterface.TelegramBotClient, telegramClient infrastructureInterface.TelegramClient) _interface.MessengerService {
+func NewMessengerServiceImpl(cfg *config.Config, messengerRepo infrastructureInterface.MessengerRepository, websocketService _interface.WebsocketService, telegramBotClientManager infrastructureInterface.TelegramBotClientManager, telegramClientManager infrastructureInterface.TelegramClientManager) _interface.MessengerService {
 	return &MessengerServiceImpl{
-		messengerRepo:     messengerRepo,
-		telegramBotClient: telegramBotClient,
-		telegramClient:    telegramClient,
-		websocketService:  websocketService,
-		config:            cfg,
+		messengerRepo:            messengerRepo,
+		telegramBotClientManager: telegramBotClientManager,
+		telegramClientManager:    telegramClientManager,
+		websocketService:         websocketService,
+		config:                   cfg,
 	}
 }
 
@@ -49,7 +47,7 @@ func (ms *MessengerServiceImpl) RegisterBotIntegration(userId primitive.ObjectID
 			return errors.New("bot token already used")
 		}
 
-		if err := ms.telegramBotClient.RegisterNewBot(botToken); err != nil {
+		if err := ms.telegramBotClientManager.RegisterNewBot(botToken); err != nil {
 			return err
 		}
 
@@ -155,54 +153,41 @@ func (ms *MessengerServiceImpl) ValidateUserInWorkspace(userId primitive.ObjectI
 	return errors.New("user does not have the permissions")
 }
 
-func (ms *MessengerServiceImpl) AuthenticateTelegram(phoneNumber, workspaceId string) (string, error) {
+func (ms *MessengerServiceImpl) HandleTelegramClientAuth(userId primitive.ObjectID, workspaceId, action, value string) (string, error) {
 	workspace, err := ms.messengerRepo.FindWorkspaceByWorkspaceId(workspaceId)
 	if err != nil {
 		return "", err
 	}
 
-	result, err := ms.telegramClient.Authenticate(context.Background(), phoneNumber)
-	if err != nil {
-		return "", err
+	if ms.isAdmin(workspace.Team[userId]) || ms.isOwner(workspace.Team[userId]) {
+		switch action {
+		case "phone":
+			err := ms.telegramClientManager.CreateClient(value, workspaceId)
+			if err != nil {
+				return "", err
+			}
+
+			if authConversator, ok := ms.telegramClientManager.GetAuthConversator(workspaceId); ok {
+				authConversator.ReceivePhone(value)
+				return authConversator.Status, nil
+			}
+			return "", errors.New("error adding the phone number")
+		case "code":
+			if authConversator, ok := ms.telegramClientManager.GetAuthConversator(workspaceId); ok {
+				authConversator.ReceiveCode(value)
+				return authConversator.Status, nil
+			}
+			return "", errors.New("error validating the code")
+		case "passwd":
+			if authConversator, ok := ms.telegramClientManager.GetAuthConversator(workspaceId); ok {
+				authConversator.ReceivePasswd(value)
+				return authConversator.Status, nil
+			}
+			return "", errors.New("error validating the password")
+		}
 	}
 
-	telegramIntegration := entity.TelegramAccountIntegration{
-		PhoneCodeHash: result.PhoneCodeHash,
-		PhoneNumber:   phoneNumber,
-		CreatedAt:     primitive.DateTime(time.Now().Unix()),
-		IsActive:      false,
-	}
-
-	if workspace.Integrations.Telegram == nil {
-		workspace.Integrations.Telegram = &entity.TelegramAccountIntegration{}
-	}
-
-	*workspace.Integrations.Telegram = telegramIntegration
-	if err := ms.messengerRepo.UpdateWorkspace(workspace); err != nil {
-		return "", err
-	}
-
-	return result.PhoneCodeHash, nil
-}
-
-func (ms *MessengerServiceImpl) AuthenticateTelegramCode(codeHash, code, phoneNumber, workspaceId string) error {
-	workspace, err := ms.messengerRepo.FindWorkspaceByWorkspaceId(workspaceId)
-	if err != nil {
-		return err
-	}
-
-	_, err = ms.telegramClient.SignIn(context.Background(), phoneNumber, codeHash, code)
-	if err != nil {
-		return err
-	}
-
-	workspace.Integrations.Telegram.IsActive = true
-
-	if err := ms.messengerRepo.UpdateWorkspace(workspace); err != nil {
-		return err
-	}
-
-	return nil
+	return "", errors.New("user does not have the permissions")
 }
 
 func (ms *MessengerServiceImpl) UpdateTicketStatus(userId primitive.ObjectID, ticketId, workspaceId, status string) error {
@@ -246,7 +231,7 @@ func (ms *MessengerServiceImpl) HandleTelegramPlatformMessage(userId primitive.O
 		return err
 	}
 
-	if err := ms.telegramBotClient.SendTextMessage(ticket.BotToken, ticket.ChatId, message.Message); err != nil {
+	if err := ms.telegramBotClientManager.SendTextMessage(ticket.BotToken, ticket.ChatId, message.Message); err != nil {
 		return err
 	}
 
@@ -375,7 +360,7 @@ func (ms *MessengerServiceImpl) findMinAssignee(assignedCount map[primitive.Obje
 
 func (ms *MessengerServiceImpl) createMessageEntities(botToken string, message *tgbotapi.Update) (entity.IntegrationsMessage, *model.MessageResponse) {
 	messageType, fileId := utils.GetMessageTypeAndFileID(message.Message)
-	content, err := ms.telegramBotClient.HandleFileMessage(botToken, fileId)
+	content, err := ms.telegramBotClientManager.HandleFileMessage(botToken, fileId)
 	if err != nil {
 		log.Println(err)
 	}

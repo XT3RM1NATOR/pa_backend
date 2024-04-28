@@ -52,29 +52,16 @@ func (mc *MessengerController) HandleBotMessage(c echo.Context) error {
 	return nil
 }
 
-func (mc *MessengerController) AuthenticateTelegram(c echo.Context) error {
-	phoneNumber, workspaceId := c.Param("number"), c.Param("id")
+func (mc *MessengerController) HandleTelegramClientAuth(c echo.Context) error {
+	workspaceId, action := c.Param("id"), c.QueryParam("set")
+	value, userId := c.QueryParam(action), c.Request().Context().Value("userId").(primitive.ObjectID)
 
-	codeHash, err := mc.messengerService.AuthenticateTelegram(phoneNumber, workspaceId)
-
+	status, err := mc.messengerService.HandleTelegramClientAuth(userId, workspaceId, action, value)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, model.ErrorResponse{Error: err.Error()})
 	}
 
-	return c.JSON(http.StatusOK, model.TelegramCodeResponse{PhoneCodeHash: codeHash})
-}
-
-func (mc *MessengerController) AuthenticateTelegramCode(c echo.Context) error {
-	var request model.TelegramAuthRequest
-	if err := c.Bind(&request); err != nil {
-		return c.JSON(http.StatusBadRequest, model.ErrorResponse{Error: err.Error()})
-	}
-
-	//if err := mc.messengerService.AuthenticateTelegramCode(request.PhoneCodeHash, request.Code, request.PhoneNumber, request.WorkspaceId); err != nil {
-	//	return c.JSON(http.StatusInternalServerError, model.ErrorResponse{Error: err.Error()})
-	//}
-
-	return c.JSON(http.StatusOK, model.TelegramCodeResponse{PhoneCodeHash: "codeHash"})
+	return c.JSON(http.StatusCreated, model.SuccessResponse{Message: status})
 }
 
 func (mc *MessengerController) WSHandler(c echo.Context) error {
@@ -93,23 +80,23 @@ func (mc *MessengerController) WSHandler(c echo.Context) error {
 
 	defer mc.websocketService.RemoveConnection(workspaceId, ws)
 
-	for {
-		_, message, err := ws.ReadMessage()
-		if err != nil {
-			break
-		}
-		var receivedMessage model.MessageRequest
-		if err := json.Unmarshal(message, &receivedMessage); err != nil {
-			continue
-		}
+	go func() {
+		for {
+			_, message, err := ws.ReadMessage()
+			if err != nil {
+				break
+			}
 
-		if receivedMessage.Source == "telegramBot" {
-			if err := mc.messengerService.HandleTelegramPlatformMessage(userId, workspaceId, receivedMessage); err != nil {
+			var receivedMessage model.MessageRequest
+			if err := json.Unmarshal(message, &receivedMessage); err != nil {
 				continue
 			}
 
+			if receivedMessage.Source == "telegramBot" {
+				mc.messengerService.HandleTelegramPlatformMessage(userId, workspaceId, receivedMessage)
+			}
 		}
-	}
+	}()
 
 	return nil
 }

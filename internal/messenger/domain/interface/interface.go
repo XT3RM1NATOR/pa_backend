@@ -15,7 +15,7 @@ type MessengerService interface {
 	HandleTelegramBotMessage(token string, message *tgbotapi.Update) error
 	ReassignTicketToMember(userId primitive.ObjectID, ticketId, workspaceId, userEmail string) error
 	UpdateTicketStatus(userId primitive.ObjectID, ticketId, workspaceId, status string) error
-	AuthenticateTelegram(phoneNumber, workspaceId string) (string, error)
+	HandleTelegramClientAuth(userId primitive.ObjectID, workspaceId, action, value string) (string, error)
 }
 
 type WebsocketService interface {
