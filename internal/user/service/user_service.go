@@ -62,7 +62,7 @@ func (us *UserServiceImpl) FacebookAuthCallback(code, workspaceId string) error 
 		IsActive:     true,
 	}
 
-	*workspace.Integrations.Meta = append(*workspace.Integrations.Meta, facebookIntegration)
+	*workspace.Integrations.Meta = facebookIntegration
 	if err = us.userRepo.UpdateWorkspace(workspace); err != nil {
 		return err
 	}

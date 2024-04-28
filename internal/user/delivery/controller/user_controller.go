@@ -244,7 +244,6 @@ func (uc *UserController) FacebookCallback(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
 	}
 
-	// Redirect to your application page with the OAuth2 token
 	return c.Redirect(http.StatusFound, fmt.Sprintf(uc.config.Website.WebURL+"/integrations"))
 }
 

@@ -52,6 +52,31 @@ func (mc *MessengerController) HandleBotMessage(c echo.Context) error {
 	return nil
 }
 
+func (mc *MessengerController) AuthenticateTelegram(c echo.Context) error {
+	phoneNumber, workspaceId := c.Param("number"), c.Param("id")
+
+	codeHash, err := mc.messengerService.AuthenticateTelegram(phoneNumber, workspaceId)
+
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, model.ErrorResponse{Error: err.Error()})
+	}
+
+	return c.JSON(http.StatusOK, model.TelegramCodeResponse{PhoneCodeHash: codeHash})
+}
+
+func (mc *MessengerController) AuthenticateTelegramCode(c echo.Context) error {
+	var request model.TelegramAuthRequest
+	if err := c.Bind(&request); err != nil {
+		return c.JSON(http.StatusBadRequest, model.ErrorResponse{Error: err.Error()})
+	}
+
+	//if err := mc.messengerService.AuthenticateTelegramCode(request.PhoneCodeHash, request.Code, request.PhoneNumber, request.WorkspaceId); err != nil {
+	//	return c.JSON(http.StatusInternalServerError, model.ErrorResponse{Error: err.Error()})
+	//}
+
+	return c.JSON(http.StatusOK, model.TelegramCodeResponse{PhoneCodeHash: "codeHash"})
+}
+
 func (mc *MessengerController) WSHandler(c echo.Context) error {
 	userId := c.Request().Context().Value("userId").(primitive.ObjectID)
 	workspaceId := c.Param("id")

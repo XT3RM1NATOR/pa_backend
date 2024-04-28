@@ -62,18 +62,18 @@ func (tbc *TelegramBotClient) DeleteWebhook(botToken string) error {
 	return nil
 }
 
-func (tbc *TelegramBotClient) HandleFileMessage(botToken, fileId string) ([]byte, string, error) {
+func (tbc *TelegramBotClient) HandleFileMessage(botToken, fileId string) ([]byte, error) {
 	bot, err := tgbotapi.NewBotAPI(botToken)
 	if err != nil {
-		return nil, "", err
+		return nil, err
 	}
 
 	fileData, err := tbc.loadMessageFile(bot, fileId)
 	if err != nil {
-		return nil, "", err
+		return nil, err
 	}
 
-	return fileData, fileId, nil
+	return fileData, nil
 }
 
 func (tbc *TelegramBotClient) loadMessageFile(bot *tgbotapi.BotAPI, videoMessageId string) ([]byte, error) {

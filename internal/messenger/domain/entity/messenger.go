@@ -63,23 +63,34 @@ type ResponseMessage struct {
 type IntegrationsMessage struct {
 	Id        primitive.ObjectID `bson:"_id,omitempty"`
 	MessageId int                `bson:"message_id"`
+	FileId    string             `bson:"file_id"`
 	Message   string             `bson:"message"`
 	Type      MessageType        `bson:"type"`
 	CreatedAt primitive.DateTime `bson:"created_at,omitempty"`
 }
 
 type Integrations struct {
-	Id          primitive.ObjectID        `bson:"_id"`
-	TelegramBot *[]TelegramBotIntegration `bson:"telegram_bot"`
-	Meta        *[]MetaIntegration        `bson:"meta"`
-	Instagram   *[]InstagramIntegration
-	WhatsApp    *[]WhatsAppIntegration `bson:"whatsapp"`
-	CreatedAt   time.Time              `bson:"created_at"`
+	Id          primitive.ObjectID          `bson:"_id"`
+	TelegramBot *TelegramBotIntegration     `bson:"telegram_bot"`
+	Telegram    *TelegramAccountIntegration `bson:"telegram"`
+	Meta        *MetaIntegration            `bson:"meta"`
+	Instagram   *InstagramIntegration       `bson:"instagram"`
+	WhatsApp    *WhatsAppIntegration        `bson:"whatsapp"`
+	CreatedAt   time.Time                   `bson:"created_at"`
 }
 
 type TelegramBotIntegration struct {
 	BotToken string `bson:"bot_token"`
 	IsActive bool   `bson:"is_active"`
+}
+
+type TelegramAccountIntegration struct {
+	AccountID     int64              `bson:"account_id"`
+	AccessHash    int64              `bson:"access_hash"`
+	PhoneCodeHash string             `bson:"phone_code_hash"`
+	PhoneNumber   string             `bson:"phone_number"`
+	IsActive      bool               `bson:"is_active"`
+	CreatedAt     primitive.DateTime `bson:"created_at"`
 }
 
 type MetaIntegration struct {
@@ -108,11 +119,34 @@ type TicketStatus string
 type UserStatus string
 
 const (
-	TypeText     MessageType = "text"
-	TypeImage    MessageType = "image"
-	TypeVideo    MessageType = "video"
-	TypeAudio    MessageType = "audio"
-	TypeDocument MessageType = "document"
+	TypeText                  MessageType = "text"
+	TypeImage                 MessageType = "image"
+	TypeAudio                 MessageType = "audio"
+	TypeDocument              MessageType = "document"
+	TypeSticker               MessageType = "sticker"
+	TypeVideo                 MessageType = "video"
+	TypeVoice                 MessageType = "voice"
+	TypeVideoNote             MessageType = "video_note"
+	TypeLocation              MessageType = "location"
+	TypeContact               MessageType = "contact"
+	TypeVenue                 MessageType = "venue"
+	TypeNewChatMembers        MessageType = "new_chat_members"
+	TypeLeftChatMember        MessageType = "left_chat_member"
+	TypeNewChatTitle          MessageType = "new_chat_title"
+	TypeNewChatPhoto          MessageType = "new_chat_photo"
+	TypeDeleteChatPhoto       MessageType = "delete_chat_photo"
+	TypeGroupChatCreated      MessageType = "group_chat_created"
+	TypeSupergroupChatCreated MessageType = "supergroup_chat_created"
+	TypeChannelChatCreated    MessageType = "channel_chat_created"
+	TypeMigrateToChatID       MessageType = "migrate_to_chat_id"
+	TypeMigrateFromChatID     MessageType = "migrate_from_chat_id"
+	TypePinnedMessage         MessageType = "pinned_message"
+	TypeInvoice               MessageType = "invoice"
+	TypeSuccessfulPayment     MessageType = "successful_payment"
+	TypeConnectedWebsite      MessageType = "connected_website"
+	TypePassportData          MessageType = "passport_data"
+	TypeAnimation             MessageType = "animation"
+	TypeGame                  MessageType = "game"
 )
 
 const (

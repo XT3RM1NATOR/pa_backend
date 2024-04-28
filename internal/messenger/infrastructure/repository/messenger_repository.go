@@ -9,11 +9,13 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
+	"sync"
 )
 
 type MessengerRepositoryImpl struct {
 	database *mongo.Database
 	config   *config.Config
+	mu       sync.RWMutex
 }
 
 func NewMessengerRepositoryImpl(cfg *config.Config, db *mongo.Database) infrastructureInterface.MessengerRepository {
@@ -67,22 +69,6 @@ func (mr *MessengerRepositoryImpl) FindWorkspaceByWorkspaceId(workspaceId string
 	}
 
 	return &workspace, nil
-}
-
-func (mr *MessengerRepositoryImpl) AddTelegramIntegration(id primitive.ObjectID, botToken string) error {
-	integration := entity.TelegramBotIntegration{
-		BotToken: botToken,
-		IsActive: true,
-	}
-
-	_, err := mr.database.Collection(mr.config.MongoDB.WorkspaceCollection).UpdateOne(context.Background(), bson.M{"_id": id}, bson.M{
-		"$push": bson.M{"integrations.telegram_bot": integration},
-	})
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func (mr *MessengerRepositoryImpl) CheckBotExists(botToken string) (bool, error) {

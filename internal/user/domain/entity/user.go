@@ -69,17 +69,27 @@ type IntegrationsMessage struct {
 }
 
 type Integrations struct {
-	Id          primitive.ObjectID        `bson:"_id"`
-	TelegramBot *[]TelegramBotIntegration `bson:"telegram_bot"`
-	Meta        *[]MetaIntegration        `bson:"meta"`
-	Instagram   *[]InstagramIntegration
-	WhatsApp    *[]WhatsAppIntegration `bson:"whatsapp"`
-	CreatedAt   time.Time              `bson:"created_at"`
+	Id          primitive.ObjectID          `bson:"_id"`
+	TelegramBot *TelegramBotIntegration     `bson:"telegram_bot"`
+	Telegram    *TelegramAccountIntegration `bson:"telegram"`
+	Meta        *MetaIntegration            `bson:"meta"`
+	Instagram   *InstagramIntegration       `bson:"instagram"`
+	WhatsApp    *WhatsAppIntegration        `bson:"whatsapp"`
+	CreatedAt   time.Time                   `bson:"created_at"`
 }
 
 type TelegramBotIntegration struct {
 	BotToken string `bson:"bot_token"`
 	IsActive bool   `bson:"is_active"`
+}
+
+type TelegramAccountIntegration struct {
+	AccountID     int64              `bson:"account_id"`
+	AccessHash    int64              `bson:"access_hash"`
+	PhoneCodeHash string             `bson:"phone_code_hash"`
+	PhoneNumber   string             `bson:"phone_number"`
+	IsActive      bool               `bson:"is_active"`
+	CreatedAt     primitive.DateTime `bson:"created_at"`
 }
 
 type MetaIntegration struct {

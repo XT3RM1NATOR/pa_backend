@@ -1,83 +1,98 @@
 package client
 
 import (
+	"context"
+	"errors"
 	"github.com/Point-AI/backend/config"
 	infrastructureInterface "github.com/Point-AI/backend/internal/messenger/service/interface"
-	"github.com/go-telegram-bot-api/telegram-bot-api"
+	"github.com/gotd/td/telegram"
+	"github.com/gotd/td/tg"
+	"strconv"
 )
 
 type TelegramClient struct {
+	client *telegram.Client
 	config *config.Config
 }
 
-func NewTelegramClientImpl(cfg *config.Config) infrastructureInterface.TelegramClient {
+func NewTelegramClientImpl(config *config.Config) infrastructureInterface.TelegramClient {
+	clientId, err := strconv.Atoi(config.OAuth2.TelegramClientId)
+	if err != nil {
+		panic(err)
+	}
+
 	return &TelegramClient{
-		config: cfg,
+		config: config,
+		client: telegram.NewClient(clientId, config.OAuth2.TelegramClientSecret, telegram.Options{}),
 	}
 }
 
-func (tc *TelegramClient) SendMessage(authToken string, chatID int64, messageText string) error {
-	bot, err := tgbotapi.NewBotAPI(authToken)
+func (tc *TelegramClient) Authenticate(ctx context.Context, phoneNumber string) (*tg.AuthSentCode, error) {
+	var sentCode *tg.AuthSentCode
+	clientId, err := strconv.Atoi(tc.config.OAuth2.TelegramClientId)
 	if err != nil {
-		return err
+		return sentCode, err
 	}
 
-	message := tgbotapi.NewMessage(chatID, messageText)
-
-	_, err = bot.Send(message)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-// ReceiveMessages retrieves new messages from the Telegram account with the provided authToken.
-func (tc *TelegramClient) ReceiveMessages(authToken string) ([]*tgbotapi.Message, error) {
-	bot, err := tgbotapi.NewBotAPI(authToken)
-	if err != nil {
-		return nil, err
-	}
-
-	u := tgbotapi.NewUpdate(0)
-	u.Timeout = 60
-
-	updates, err := bot.GetUpdatesChan(u)
-	if err != nil {
-		return nil, err
-	}
-
-	var messages []*tgbotapi.Message
-	for update := range updates {
-		if update.Message != nil {
-			messages = append(messages, update.Message)
+	err = tc.client.Run(ctx, func(ctx context.Context) error {
+		api := tc.client.API()
+		result, err := api.AuthSendCode(ctx, &tg.AuthSendCodeRequest{
+			PhoneNumber: phoneNumber,
+			APIID:       clientId,
+			APIHash:     tc.config.OAuth2.TelegramClientSecret,
+			Settings:    tg.CodeSettings{AllowFlashcall: false, AllowAppHash: true},
+		})
+		if err != nil {
+			return err
 		}
+
+		code, ok := result.(*tg.AuthSentCode)
+		if !ok {
+			return errors.New("failed to assert the type")
+		}
+
+		sentCode = code
+		return nil
+	})
+	if err != nil {
+		return &tg.AuthSentCode{}, err
 	}
 
-	return messages, nil
+	return sentCode, err
 }
 
-// ReceiveVideoMessages retrieves new video messages from the Telegram account with the provided authToken.
-func (tc *TelegramClient) ReceiveVideoMessages(authToken string) ([]*tgbotapi.Message, error) {
-	bot, err := tgbotapi.NewBotAPI(authToken)
-	if err != nil {
-		return nil, err
-	}
-
-	u := tgbotapi.NewUpdate(0)
-	u.Timeout = 60
-
-	updates, err := bot.GetUpdatesChan(u)
-	if err != nil {
-		return nil, err
-	}
-
-	var videoMessages []*tgbotapi.Message
-	for update := range updates {
-		if update.Message != nil && update.Message.Video != nil {
-			videoMessages = append(videoMessages, update.Message)
+func (tc *TelegramClient) SignIn(ctx context.Context, phoneNumber, phoneCodeHash, phoneCode string) (*tg.AuthAuthorization, error) {
+	var authResult *tg.AuthAuthorization
+	err := tc.client.Run(ctx, func(ctx context.Context) error {
+		api := tc.client.API()
+		result, err := api.AuthSignIn(ctx, &tg.AuthSignInRequest{
+			PhoneNumber:   phoneNumber,
+			PhoneCodeHash: phoneCodeHash,
+			PhoneCode:     phoneCode,
+		})
+		if err != nil {
+			return err
 		}
-	}
 
-	return videoMessages, nil
+		authorization, ok := result.(*tg.AuthAuthorization)
+		if !ok {
+			return errors.New("failed to assert a type")
+		}
+
+		authResult = authorization
+
+		return nil
+	})
+	return authResult, err
+}
+
+func (tc *TelegramClient) SignInFA(ctx context.Context, password string) (*tg.AuthAuthorization, error) {
+	var authResult *tg.AuthAuthorization
+	err := tc.client.Run(ctx, func(ctx context.Context) error {
+		//api := tc.client.API()
+		//api.AuthSi
+		return nil
+	})
+
+	return authResult, err
 }
