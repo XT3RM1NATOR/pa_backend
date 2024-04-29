@@ -46,9 +46,15 @@ func (wss *WebSocketServiceImpl) SendToAll(workspaceId string, message []byte) {
 	}
 
 	for _, conn := range conns {
-		if err := conn.WriteMessage(websocket.TextMessage, message); err != nil {
+		if err := conn.WriteMessage(websocket.BinaryMessage, message); err != nil {
 			wss.RemoveConnection(workspaceId, conn)
 		}
+	}
+}
+
+func (wss *WebSocketServiceImpl) SendToOne(conn *websocket.Conn, message []byte, workspaceId string) {
+	if err := conn.WriteMessage(websocket.BinaryMessage, message); err != nil {
+		wss.RemoveConnection(workspaceId, conn)
 	}
 }
 
@@ -68,7 +74,6 @@ func (wss *WebSocketServiceImpl) RemoveConnection(workspaceId string, conn *webs
 	for i, c := range conns {
 		if c == conn {
 			c.Close()
-
 			wss.connections[workspaceId] = append(conns[:i], conns[i+1:]...)
 			return
 		}

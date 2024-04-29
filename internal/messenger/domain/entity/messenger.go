@@ -47,6 +47,7 @@ type Ticket struct {
 	ResponseMessages    []ResponseMessage     `bson:"response_messages"`
 	Status              TicketStatus          `bson:"status"`
 	Source              TicketSource          `bson:"source"`
+	SenderUsername      string                `bson:"from"`
 	AssignedTo          primitive.ObjectID    `bson:"assigned_to,omitempty"`
 	CreatedAt           primitive.DateTime    `bson:"created_at"`
 	ResolvedAt          *primitive.DateTime   `bson:"resolved_at,omitempty"`
@@ -65,6 +66,7 @@ type IntegrationsMessage struct {
 	MessageId int                `bson:"message_id"`
 	FileId    string             `bson:"file_id"`
 	Message   string             `bson:"message"`
+	From      string             `bson:"from"`
 	Type      MessageType        `bson:"type"`
 	CreatedAt primitive.DateTime `bson:"created_at,omitempty"`
 }
@@ -85,12 +87,10 @@ type TelegramBotIntegration struct {
 }
 
 type TelegramAccountIntegration struct {
-	AccountID     int64              `bson:"account_id"`
-	AccessHash    int64              `bson:"access_hash"`
-	PhoneCodeHash string             `bson:"phone_code_hash"`
-	PhoneNumber   string             `bson:"phone_number"`
-	IsActive      bool               `bson:"is_active"`
-	CreatedAt     primitive.DateTime `bson:"created_at"`
+	Session     string             `bson:"session"`
+	PhoneNumber string             `bson:"phone_number"`
+	IsActive    bool               `bson:"is_active"`
+	CreatedAt   primitive.DateTime `bson:"created_at"`
 }
 
 type MetaIntegration struct {

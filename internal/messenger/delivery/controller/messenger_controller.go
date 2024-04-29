@@ -61,7 +61,7 @@ func (mc *MessengerController) HandleTelegramClientAuth(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, model.ErrorResponse{Error: err.Error()})
 	}
 
-	return c.JSON(http.StatusCreated, model.SuccessResponse{Message: status})
+	return c.JSON(http.StatusCreated, model.TelegramStatusResponse{Status: string(status)})
 }
 
 func (mc *MessengerController) WSHandler(c echo.Context) error {
@@ -77,10 +77,10 @@ func (mc *MessengerController) WSHandler(c echo.Context) error {
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, model.ErrorResponse{Error: err.Error()})
 	}
-
-	defer mc.websocketService.RemoveConnection(workspaceId, ws)
+	//mc.websocketService.
 
 	go func() {
+		defer mc.websocketService.RemoveConnection(workspaceId, ws)
 		for {
 			_, message, err := ws.ReadMessage()
 			if err != nil {
@@ -98,7 +98,7 @@ func (mc *MessengerController) WSHandler(c echo.Context) error {
 		}
 	}()
 
-	return nil
+	return c.JSON(http.StatusOK, model.SuccessResponse{Message: "connection upgraded successfully"})
 }
 
 func (mc *MessengerController) ReassignTicketToMember(c echo.Context) error {

@@ -7,6 +7,7 @@ import (
 	"github.com/Point-AI/backend/internal/messenger/delivery/model"
 	"github.com/Point-AI/backend/internal/messenger/domain/entity"
 	_interface "github.com/Point-AI/backend/internal/messenger/domain/interface"
+	"github.com/Point-AI/backend/internal/messenger/infrastructure/client"
 	infrastructureInterface "github.com/Point-AI/backend/internal/messenger/service/interface"
 	"github.com/Point-AI/backend/utils"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
@@ -153,10 +154,13 @@ func (ms *MessengerServiceImpl) ValidateUserInWorkspace(userId primitive.ObjectI
 	return errors.New("user does not have the permissions")
 }
 
-func (ms *MessengerServiceImpl) HandleTelegramClientAuth(userId primitive.ObjectID, workspaceId, action, value string) (string, error) {
+func (ms *MessengerServiceImpl) HandleTelegramClientAuth(userId primitive.ObjectID, workspaceId, action, value string) (client.AuthStatus, error) {
 	workspace, err := ms.messengerRepo.FindWorkspaceByWorkspaceId(workspaceId)
 	if err != nil {
 		return "", err
+	}
+	if workspace.Integrations.Telegram != nil {
+		return "", errors.New("telegram integration already exists")
 	}
 
 	if ms.isAdmin(workspace.Team[userId]) || ms.isOwner(workspace.Team[userId]) {
@@ -298,6 +302,7 @@ func (ms *MessengerServiceImpl) addNewTicketToWorkspace(token string, message *t
 		IntegrationMessages: []entity.IntegrationsMessage{*botMessage},
 		Status:              entity.StatusPending,
 		Source:              entity.SourceTelegramBot,
+		SenderUsername:      message.Message.From.UserName,
 		AssignedTo:          primitive.NilObjectID,
 		CreatedAt:           primitive.DateTime(int64(message.Message.Date)),
 	}
@@ -400,6 +405,11 @@ func (ms *MessengerServiceImpl) processTicketHandling(workspace *entity.Workspac
 	if ticket != nil && ticket.Status != entity.StatusClosed {
 		ticket.IntegrationMessages = append(ticket.IntegrationMessages, botMessage)
 		messageResponse.TicketId = ticket.TicketId
+
+		if message.Message != nil && message.Message.From != nil {
+			messageResponse.Username = message.Message.From.UserName
+		}
+
 	} else {
 		if err := ms.addNewTicketToWorkspace(botToken, message, workspace, &botMessage); err != nil {
 			return err

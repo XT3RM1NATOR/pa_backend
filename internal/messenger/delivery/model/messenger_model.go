@@ -42,9 +42,10 @@ type MessageResponse struct {
 	Content   []byte             `json:"content"`
 	Type      string             `json:"type"`
 	Source    string             `json:"source"`
+	Username  string             `json:"username"`
 	CreatedAt primitive.DateTime `json:"created_at"`
 }
 
-type TelegramCodeResponse struct {
-	PhoneCodeHash string `json:"phone_code_hash"`
+type TelegramStatusResponse struct {
+	Status string `json:"status"`
 }
