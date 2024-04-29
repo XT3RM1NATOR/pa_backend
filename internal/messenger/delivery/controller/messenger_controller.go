@@ -133,3 +133,10 @@ func (mc *MessengerController) CloseTicket(c echo.Context) error {
 
 	return c.JSON(http.StatusOK, model.SuccessResponse{Message: "ticket status updated successfully"})
 }
+
+func (mc *MessengerController) SetUpTelegramClients() error {
+	if err := mc.messengerService.SetUpTelegramClients(); err != nil {
+		return err
+	}
+	return nil
+}

@@ -2,7 +2,6 @@ package client
 
 import (
 	"github.com/Point-AI/backend/config"
-	infrastructureInterface "github.com/Point-AI/backend/internal/messenger/service/interface"
 	"github.com/go-telegram-bot-api/telegram-bot-api"
 	"io"
 	"net/http"
@@ -12,7 +11,7 @@ type TelegramBotClientManager struct {
 	config *config.Config
 }
 
-func NewTelegramBotClientManagerImpl(cfg *config.Config) infrastructureInterface.TelegramBotClientManager {
+func NewTelegramBotClientManagerImpl(cfg *config.Config) *TelegramBotClientManager {
 	return &TelegramBotClientManager{
 		config: cfg,
 	}

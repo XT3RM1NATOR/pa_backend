@@ -61,6 +61,30 @@ func (mr *MessengerRepositoryImpl) FindWorkspaceByTelegramBotToken(botToken stri
 	return &workspace, nil
 }
 
+func (mr *MessengerRepositoryImpl) GetAllWorkspaceRepositories() ([]*entity.Workspace, error) {
+	var workspaces []*entity.Workspace
+
+	cursor, err := mr.database.Collection(mr.config.MongoDB.WorkspaceCollection).Find(context.Background(), bson.M{})
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(context.Background())
+
+	for cursor.Next(context.Background()) {
+		var workspace entity.Workspace
+		if err := cursor.Decode(&workspace); err != nil {
+			return nil, err
+		}
+		workspaces = append(workspaces, &workspace)
+	}
+
+	if err := cursor.Err(); err != nil {
+		return nil, err
+	}
+
+	return workspaces, nil
+}
+
 func (mr *MessengerRepositoryImpl) FindWorkspaceByWorkspaceId(workspaceId string) (*entity.Workspace, error) {
 	var workspace entity.Workspace
 	err := mr.database.Collection(mr.config.MongoDB.WorkspaceCollection).FindOne(context.Background(), bson.M{"workspace_id": workspaceId}).Decode(&workspace)

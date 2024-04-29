@@ -3,7 +3,6 @@ package client
 import (
 	"errors"
 	"github.com/Point-AI/backend/config"
-	infrastructureInterface "github.com/Point-AI/backend/internal/messenger/service/interface"
 	"github.com/celestix/gotgproto"
 	"github.com/celestix/gotgproto/dispatcher/handlers"
 	"github.com/celestix/gotgproto/dispatcher/handlers/filters"
@@ -21,7 +20,7 @@ type TelegramClientManager struct {
 	mu               sync.RWMutex
 }
 
-func NewTelegramClientManagerImpl(cfg *config.Config) infrastructureInterface.TelegramClientManager {
+func NewTelegramClientManagerImpl(cfg *config.Config) *TelegramClientManager {
 	return &TelegramClientManager{
 		config:  cfg,
 		clients: make(map[string]*gotgproto.Client),
@@ -47,6 +46,38 @@ func (tcm *TelegramClientManager) CreateClient(phone, workspaceId string) error 
 		&gotgproto.ClientOpts{
 			AuthConversator: authConversator,
 			Session:         sessionMaker.SimpleSession(),
+		},
+	)
+
+	if err != nil {
+		log.Fatalf("failed to create client for phone %s: %v", phone, err)
+	}
+
+	go func() {
+		client.Dispatcher.AddHandler(handlers.NewMessage(filters.Message.All, echo))
+		client.Idle()
+	}()
+
+	tcm.SetClient(workspaceId, client)
+	tcm.SetAuthConversator(workspaceId, authConversator)
+	return nil
+}
+
+func (tcm *TelegramClientManager) CreateClientBySession(session, phone, workspaceId string) error {
+	clientId, err := strconv.Atoi(tcm.config.OAuth2.TelegramClientId)
+	if err != nil {
+		return err
+	}
+
+	authConversator := newTelegramAuthConversator()
+
+	client, err := gotgproto.NewClient(
+		clientId,
+		tcm.config.OAuth2.TelegramClientSecret,
+		gotgproto.ClientType{Phone: phone},
+		&gotgproto.ClientOpts{
+			AuthConversator: authConversator,
+			Session:         sessionMaker.StringSession(session),
 		},
 	)
 

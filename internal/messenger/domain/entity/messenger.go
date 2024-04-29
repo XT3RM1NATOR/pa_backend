@@ -87,10 +87,9 @@ type TelegramBotIntegration struct {
 }
 
 type TelegramAccountIntegration struct {
-	Session     string             `bson:"session"`
-	PhoneNumber string             `bson:"phone_number"`
-	IsActive    bool               `bson:"is_active"`
-	CreatedAt   primitive.DateTime `bson:"created_at"`
+	Session     string `bson:"session"`
+	PhoneNumber string `bson:"phone_number"`
+	IsActive    bool   `bson:"is_active"`
 }
 
 type MetaIntegration struct {

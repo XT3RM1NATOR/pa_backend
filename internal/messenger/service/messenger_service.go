@@ -179,12 +179,42 @@ func (ms *MessengerServiceImpl) HandleTelegramClientAuth(userId primitive.Object
 		case "code":
 			if authConversator, ok := ms.telegramClientManager.GetAuthConversator(workspaceId); ok {
 				authConversator.ReceiveCode(value)
+				if authConversator.Status != client.StatusPassword {
+					if telegramClient, ok := ms.telegramClientManager.GetClient(workspaceId); ok {
+						session, err := telegramClient.ExportStringSession()
+						if err != nil {
+							return "", err
+						}
+
+						workspace.Integrations.Telegram.Session = session
+						workspace.Integrations.Telegram.PhoneNumber = telegramClient.Self.Phone
+						workspace.Integrations.Telegram.IsActive = true
+						err = ms.messengerRepo.UpdateWorkspace(workspace)
+						if err != nil {
+							return "", err
+						}
+					}
+				}
 				return authConversator.Status, nil
 			}
 			return "", errors.New("error validating the code")
 		case "passwd":
 			if authConversator, ok := ms.telegramClientManager.GetAuthConversator(workspaceId); ok {
 				authConversator.ReceivePasswd(value)
+				if telegramClient, ok := ms.telegramClientManager.GetClient(workspaceId); ok {
+					session, err := telegramClient.ExportStringSession()
+					if err != nil {
+						return "", err
+					}
+
+					workspace.Integrations.Telegram.Session = session
+					workspace.Integrations.Telegram.PhoneNumber = telegramClient.Self.Phone
+					workspace.Integrations.Telegram.IsActive = true
+					err = ms.messengerRepo.UpdateWorkspace(workspace)
+					if err != nil {
+						return "", err
+					}
+				}
 				return authConversator.Status, nil
 			}
 			return "", errors.New("error validating the password")
@@ -259,6 +289,21 @@ func (ms *MessengerServiceImpl) HandleTelegramPlatformMessage(userId primitive.O
 
 	ms.websocketService.SendToAll(workspaceId, jsonMessage)
 
+	return nil
+}
+
+func (ms *MessengerServiceImpl) SetUpTelegramClients() error {
+	workspaces, err := ms.messengerRepo.GetAllWorkspaceRepositories()
+	if err != nil {
+		return err
+	}
+	for _, workspace := range workspaces {
+		if workspace.Integrations.Telegram.Session != "" {
+			if err := ms.telegramClientManager.CreateClientBySession(workspace.Integrations.Telegram.Session, workspace.Integrations.Telegram.PhoneNumber, workspace.WorkspaceId); err != nil {
+				return err
+			}
+		}
+	}
 	return nil
 }
 

@@ -17,6 +17,7 @@ type MessengerService interface {
 	ReassignTicketToMember(userId primitive.ObjectID, ticketId, workspaceId, userEmail string) error
 	UpdateTicketStatus(userId primitive.ObjectID, ticketId, workspaceId, status string) error
 	HandleTelegramClientAuth(userId primitive.ObjectID, workspaceId, action, value string) (client.AuthStatus, error)
+	SetUpTelegramClients() error
 }
 
 type WebsocketService interface {
