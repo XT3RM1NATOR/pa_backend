@@ -43,7 +43,7 @@ func (sc *SystemController) CreateWorkspace(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, model.ErrorResponse{Error: err.Error()})
 	}
 
-	return c.JSON(http.StatusCreated, model.SuccessResponse{Message: "Workspace added successfully"})
+	return c.JSON(http.StatusCreated, model.SuccessResponse{Message: "workspace added successfully"})
 }
 
 func (sc *SystemController) AddTeamsMembers(c echo.Context) error {

@@ -13,7 +13,6 @@ type TelegramBotClientManager interface {
 	DeleteWebhook(botToken string) error
 	SendTextMessage(botToken string, chatID int64, messageText string) error
 	HandleFileMessage(botToken, fileId string) ([]byte, error)
-	//SendMessage(chatID int, botToken, text string) error
 	//SendTyping(chatID int, botToken string) error
 	//DeleteMessage(botToken string, chatID int, messageID int) error
 }
