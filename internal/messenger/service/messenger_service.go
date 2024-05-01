@@ -10,7 +10,9 @@ import (
 	"github.com/Point-AI/backend/internal/messenger/infrastructure/client"
 	infrastructureInterface "github.com/Point-AI/backend/internal/messenger/service/interface"
 	"github.com/Point-AI/backend/utils"
+	"github.com/celestix/gotgproto/ext"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
+	"github.com/gotd/td/tg"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"log"
 )
@@ -122,13 +124,32 @@ func (ms *MessengerServiceImpl) ReassignTicketToMember(userId primitive.ObjectID
 	return errors.New("user is not from the workspace")
 }
 
+func (ms *MessengerServiceImpl) HandleTelegramAccountMessage(ctx *ext.Context, update *ext.Update) error {
+	workspace, err := ms.messengerRepo.FindWorkspaceByPhoneNumber(ctx.Self.Phone)
+	if err != nil {
+		return err
+	}
+
+	tgMessage, messageResponse := ms.createMessageEntitiesFromTelegramAccount("", update.EffectiveMessage.Message)
+
+	if err := ms.processTicketHandlingTelegramAccount(workspace, update.EffectiveMessage.Message, tgMessage, messageResponse); err != nil {
+		return err
+	}
+
+	if err := ms.messengerRepo.UpdateWorkspace(workspace); err != nil {
+		return err
+	}
+
+	return ms.broadcastMessageResponse(workspace.WorkspaceId, messageResponse)
+}
+
 func (ms *MessengerServiceImpl) HandleTelegramBotMessage(token string, message *tgbotapi.Update) error {
 	workspace, err := ms.messengerRepo.FindWorkspaceByTelegramBotToken(token)
 	if err != nil {
 		return err
 	}
 
-	botMessage, messageResponse := ms.createMessageEntities(token, message)
+	botMessage, messageResponse := ms.createMessageEntitiesFromTelegramBot(token, message)
 
 	if err := ms.processTicketHandling(workspace, token, message, botMessage, messageResponse); err != nil {
 		return err
@@ -254,44 +275,6 @@ func (ms *MessengerServiceImpl) UpdateTicketStatus(userId primitive.ObjectID, ti
 	return errors.New("user does not have the permissions")
 }
 
-func (ms *MessengerServiceImpl) HandleTelegramPlatformMessage(userId primitive.ObjectID, workspaceId string, message model.MessageRequest) error {
-	workspace, err := ms.messengerRepo.FindWorkspaceByWorkspaceId(workspaceId)
-	if err != nil {
-		return err
-	}
-
-	ticket, err := ms.findTicketByTicketId(workspace, message.TicketId)
-	if err != nil {
-		return err
-	}
-
-	if err := ms.telegramBotClientManager.SendTextMessage(ticket.BotToken, ticket.ChatId, message.Message); err != nil {
-		return err
-	}
-
-	responseMessage := entity.ResponseMessage{
-		SenderId:  userId,
-		Message:   message.Message,
-		Type:      entity.TypeText,
-		CreatedAt: message.CreatedAt,
-	}
-	ticket.ResponseMessages = append(ticket.ResponseMessages, responseMessage)
-
-	err = ms.messengerRepo.UpdateWorkspace(workspace)
-	if err != nil {
-		return err
-	}
-
-	jsonMessage, err := json.Marshal(responseMessage)
-	if err != nil {
-		return err
-	}
-
-	ms.websocketService.SendToAll(workspaceId, jsonMessage)
-
-	return nil
-}
-
 func (ms *MessengerServiceImpl) SetUpTelegramClients() error {
 	workspaces, err := ms.messengerRepo.GetAllWorkspaceRepositories()
 	if err != nil {
@@ -362,6 +345,30 @@ func (ms *MessengerServiceImpl) addNewTicketToWorkspace(token string, message *t
 	return nil
 }
 
+func (ms *MessengerServiceImpl) addNewTicketToWorkspaceTelegramAccount(workspace *entity.Workspace, tgMessage *entity.IntegrationsMessage, senderId int, chatId int64) error {
+	ticketId, _ := utils.GenerateToken()
+	newTicket := entity.Ticket{
+		TicketId:            ticketId,
+		SenderId:            senderId,
+		ChatId:              chatId,
+		IntegrationMessages: []entity.IntegrationsMessage{*tgMessage},
+		Status:              entity.StatusPending,
+		Source:              entity.SourceTelegramBot,
+		SenderUsername:      "Michael Bay",
+		AssignedTo:          primitive.NilObjectID,
+		CreatedAt:           tgMessage.CreatedAt,
+	}
+
+	assigneeId, err := ms.getAssigneeId(workspace, workspace.FirstTeam)
+	if err == nil {
+		newTicket.AssignedTo = assigneeId
+	}
+
+	workspace.Tickets = append(workspace.Tickets, newTicket)
+
+	return nil
+}
+
 func (ms *MessengerServiceImpl) getAssigneeId(workspace *entity.Workspace, teamName string) (primitive.ObjectID, error) {
 	statusPriority := []entity.UserStatus{entity.StatusAvailable, entity.StatusBusy, entity.StatusOffline}
 
@@ -408,7 +415,7 @@ func (ms *MessengerServiceImpl) findMinAssignee(assignedCount map[primitive.Obje
 	return minAssignee, nil
 }
 
-func (ms *MessengerServiceImpl) createMessageEntities(botToken string, message *tgbotapi.Update) (entity.IntegrationsMessage, *model.MessageResponse) {
+func (ms *MessengerServiceImpl) createMessageEntitiesFromTelegramBot(botToken string, message *tgbotapi.Update) (entity.IntegrationsMessage, *model.MessageResponse) {
 	messageType, fileId := utils.GetMessageTypeAndFileID(message.Message)
 	content, err := ms.telegramBotClientManager.HandleFileMessage(botToken, fileId)
 	if err != nil {
@@ -418,7 +425,7 @@ func (ms *MessengerServiceImpl) createMessageEntities(botToken string, message *
 	botMessage := entity.IntegrationsMessage{
 		MessageId: message.Message.MessageID,
 		Message:   ms.extractMessageText(message),
-		FileId:    fileId,
+		FileIdStr: fileId,
 		Type:      messageType,
 		CreatedAt: primitive.DateTime(int64(message.Message.Date)),
 	}
@@ -428,6 +435,33 @@ func (ms *MessengerServiceImpl) createMessageEntities(botToken string, message *
 		Message:   botMessage.Message,
 		Type:      string(messageType),
 		Content:   content,
+		CreatedAt: botMessage.CreatedAt,
+	}
+
+	return botMessage, messageResponse
+}
+
+// TODO: change the content extraction method
+func (ms *MessengerServiceImpl) createMessageEntitiesFromTelegramAccount(botToken string, message *tg.Message) (entity.IntegrationsMessage, *model.MessageResponse) {
+	messageType, fileId := utils.GetMessageTypeAndFileIDFromTelegramAccount(message)
+	//content, err := ms.telegramBotClientManager.HandleFileMessage(botToken, fileId)
+	//if err != nil {
+	//	log.Println(err)
+	//}
+
+	botMessage := entity.IntegrationsMessage{
+		MessageId:   message.ID,
+		Message:     message.Message,
+		FileIdInt64: fileId,
+		Type:        messageType,
+		CreatedAt:   primitive.DateTime(int64(message.Date)),
+	}
+
+	messageResponse := &model.MessageResponse{
+		Source:    string(entity.SourceTelegramBot),
+		Message:   botMessage.Message,
+		Type:      string(messageType),
+		Content:   nil,
 		CreatedAt: botMessage.CreatedAt,
 	}
 
@@ -461,6 +495,32 @@ func (ms *MessengerServiceImpl) processTicketHandling(workspace *entity.Workspac
 		}
 	}
 	return nil
+}
+
+func (ms *MessengerServiceImpl) processTicketHandlingTelegramAccount(workspace *entity.Workspace, message *tg.Message, tgMessage entity.IntegrationsMessage, messageResponse *model.MessageResponse) error {
+	switch v := message.FromID.(type) {
+	case *tg.PeerUser:
+		ticket, err := ms.findTicketBySenderId(workspace, int(v.UserID))
+		if err != nil && !errors.Is(err, errors.New("ticket not found")) {
+			return err
+		}
+
+		if ticket != nil && ticket.Status != entity.StatusClosed {
+			ticket.IntegrationMessages = append(ticket.IntegrationMessages, tgMessage)
+			messageResponse.TicketId = ticket.TicketId
+
+			if message.Message != "" {
+				messageResponse.Username = "Michael Bay"
+			}
+
+		} else {
+			if err := ms.addNewTicketToWorkspaceTelegramAccount(workspace, &tgMessage, int(v.UserID), -1); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+	return errors.New("wrong message resource")
 }
 
 func (ms *MessengerServiceImpl) broadcastMessageResponse(workspaceId string, messageResponse *model.MessageResponse) error {

@@ -62,13 +62,14 @@ type ResponseMessage struct {
 }
 
 type IntegrationsMessage struct {
-	Id        primitive.ObjectID `bson:"_id,omitempty"`
-	MessageId int                `bson:"message_id"`
-	FileId    string             `bson:"file_id"`
-	Message   string             `bson:"message"`
-	From      string             `bson:"from"`
-	Type      MessageType        `bson:"type"`
-	CreatedAt primitive.DateTime `bson:"created_at,omitempty"`
+	Id          primitive.ObjectID `bson:"_id,omitempty"`
+	MessageId   int                `bson:"message_id"`
+	FileIdStr   string             `bson:"file_id_str"`
+	FileIdInt64 int64              `bson:"file_id_int64"`
+	Message     string             `bson:"message"`
+	From        string             `bson:"from"`
+	Type        MessageType        `bson:"type"`
+	CreatedAt   primitive.DateTime `bson:"created_at,omitempty"`
 }
 
 type Integrations struct {
@@ -126,6 +127,7 @@ const (
 	TypeVideo                 MessageType = "video"
 	TypeVoice                 MessageType = "voice"
 	TypeVideoNote             MessageType = "video_note"
+	TypeGif                   MessageType = "gif"
 	TypeLocation              MessageType = "location"
 	TypeContact               MessageType = "contact"
 	TypeVenue                 MessageType = "venue"

@@ -185,8 +185,7 @@ func (uc *UserController) ResetPassword(c echo.Context) error {
 // @Router /user/logout [post]
 func (uc *UserController) Logout(c echo.Context) error {
 	userId := c.Request().Context().Value("userId").(primitive.ObjectID)
-	err := uc.userService.Logout(userId)
-	if err != nil {
+	if err := uc.userService.Logout(userId); err != nil {
 		return c.JSON(http.StatusInternalServerError, model.ErrorResponse{Error: err.Error()})
 	}
 	return c.JSON(http.StatusOK, model.SuccessResponse{Message: "successfully logged out"})

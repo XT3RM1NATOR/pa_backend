@@ -61,6 +61,21 @@ func (mr *MessengerRepositoryImpl) FindWorkspaceByTelegramBotToken(botToken stri
 	return &workspace, nil
 }
 
+func (mr *MessengerRepositoryImpl) FindWorkspaceByPhoneNumber(phoneNumber string) (*entity.Workspace, error) {
+	filter := bson.M{"integrations.telegram.phone_number": phoneNumber}
+
+	var workspace entity.Workspace
+	err := mr.database.Collection(mr.config.MongoDB.WorkspaceCollection).FindOne(context.Background(), filter).Decode(&workspace)
+	if err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return nil, errors.New("workspace not found")
+		}
+		return nil, err
+	}
+
+	return &workspace, nil
+}
+
 func (mr *MessengerRepositoryImpl) GetAllWorkspaceRepositories() ([]*entity.Workspace, error) {
 	var workspaces []*entity.Workspace
 

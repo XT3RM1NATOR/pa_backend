@@ -27,7 +27,9 @@ func NewTelegramClientManagerImpl(cfg *config.Config) *TelegramClientManager {
 	}
 }
 
-func (tcm *TelegramClientManager) CreateClient(phone, workspaceId string) error {
+func (tcm *TelegramClientManager) CreateClient(phone, workspaceId string,
+	messageHandler func(ctx *ext.Context, update *ext.Update) error,
+) error {
 	if _, exists := tcm.clients[workspaceId]; exists {
 		return errors.New("the client already exists")
 	}
@@ -54,7 +56,7 @@ func (tcm *TelegramClientManager) CreateClient(phone, workspaceId string) error 
 	}
 
 	go func() {
-		client.Dispatcher.AddHandler(handlers.NewMessage(filters.Message.All, echo))
+		client.Dispatcher.AddHandler(handlers.NewMessage(filters.Message.All, messageHandler))
 		client.Idle()
 	}()
 
@@ -63,7 +65,9 @@ func (tcm *TelegramClientManager) CreateClient(phone, workspaceId string) error 
 	return nil
 }
 
-func (tcm *TelegramClientManager) CreateClientBySession(session, phone, workspaceId string) error {
+func (tcm *TelegramClientManager) CreateClientBySession(session, phone, workspaceId string,
+	messageHandler func(ctx *ext.Context, update *ext.Update) error,
+) error {
 	clientId, err := strconv.Atoi(tcm.config.OAuth2.TelegramClientId)
 	if err != nil {
 		return err
@@ -86,7 +90,7 @@ func (tcm *TelegramClientManager) CreateClientBySession(session, phone, workspac
 	}
 
 	go func() {
-		client.Dispatcher.AddHandler(handlers.NewMessage(filters.Message.All, echo))
+		client.Dispatcher.AddHandler(handlers.NewMessage(filters.Message.All, messageHandler))
 		client.Idle()
 	}()
 

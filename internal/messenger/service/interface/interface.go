@@ -36,4 +36,5 @@ type MessengerRepository interface {
 	FindWorkspaceByTelegramBotToken(botToken string) (*entity.Workspace, error)
 	FindUserByEmail(email string) (primitive.ObjectID, error)
 	GetAllWorkspaceRepositories() ([]*entity.Workspace, error)
+	FindWorkspaceByPhoneNumber(phoneNumber string) (*entity.Workspace, error)
 }
