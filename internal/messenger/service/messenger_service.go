@@ -143,6 +143,59 @@ func (ms *MessengerServiceImpl) HandleTelegramAccountMessage(ctx *ext.Context, u
 	return ms.broadcastMessageResponse(workspace.WorkspaceId, messageResponse)
 }
 
+func (ms *MessengerServiceImpl) HandleTelegramPlatformMessageToBot(request model.MessageRequest, workspaceId string, userId primitive.ObjectID) error {
+	workspace, err := ms.messengerRepo.FindWorkspaceByWorkspaceId(workspaceId)
+	if err != nil {
+		return err
+	}
+
+	user, err := ms.messengerRepo.GetUserById(userId)
+	if err != nil {
+		return err
+	}
+
+	if _, ok := workspace.Team[userId]; !ok {
+		return errors.New("user does not belong to the workspace")
+	}
+
+	if workspace.Integrations.TelegramBot == nil || !workspace.Integrations.TelegramBot.IsActive {
+		return errors.New("no active telegram bot integration found")
+	}
+
+	chatID := extractChatIDFromTicket(workspace, request.TicketId)
+	if chatID == 0 {
+		return errors.New("invalid ticket ID or chat ID not found")
+	}
+	err = ms.telegramBotClientManager.SendTextMessage(workspace.Integrations.TelegramBot.BotToken, chatID, request.Message)
+	if err != nil {
+		return err
+	}
+
+	messageResponse := createMessageResponseFromRequest(request, user.Email)
+
+	return ms.broadcastMessageResponse(workspace.WorkspaceId, messageResponse)
+}
+
+func extractChatIDFromTicket(workspace *entity.Workspace, ticketId string) int64 {
+	for _, ticket := range workspace.Tickets {
+		if ticket.TicketId == ticketId {
+			return ticket.ChatId
+		}
+	}
+	return 0
+}
+
+func createMessageResponseFromRequest(request model.MessageRequest, email string) *model.MessageResponse {
+	return &model.MessageResponse{
+		TicketId:  request.TicketId,
+		Message:   request.Message,
+		Type:      request.Type,
+		Source:    "platform",
+		Username:  email,
+		CreatedAt: *request.CreatedAt,
+	}
+}
+
 func (ms *MessengerServiceImpl) HandleTelegramBotMessage(token string, message *tgbotapi.Update) error {
 	workspace, err := ms.messengerRepo.FindWorkspaceByTelegramBotToken(token)
 	if err != nil {
@@ -187,7 +240,7 @@ func (ms *MessengerServiceImpl) HandleTelegramClientAuth(userId primitive.Object
 	if ms.isAdmin(workspace.Team[userId]) || ms.isOwner(workspace.Team[userId]) {
 		switch action {
 		case "phone":
-			err := ms.telegramClientManager.CreateClient(value, workspaceId)
+			err := ms.telegramClientManager.CreateClient(value, workspaceId, ms.HandleTelegramAccountMessage)
 			if err != nil {
 				return "", err
 			}
@@ -282,7 +335,7 @@ func (ms *MessengerServiceImpl) SetUpTelegramClients() error {
 	}
 	for _, workspace := range workspaces {
 		if workspace.Integrations.Telegram.Session != "" {
-			if err := ms.telegramClientManager.CreateClientBySession(workspace.Integrations.Telegram.Session, workspace.Integrations.Telegram.PhoneNumber, workspace.WorkspaceId); err != nil {
+			if err := ms.telegramClientManager.CreateClientBySession(workspace.Integrations.Telegram.Session, workspace.Integrations.Telegram.PhoneNumber, workspace.WorkspaceId, ms.HandleTelegramAccountMessage); err != nil {
 				return err
 			}
 		}

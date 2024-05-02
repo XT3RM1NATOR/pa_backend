@@ -76,6 +76,21 @@ func (mr *MessengerRepositoryImpl) FindWorkspaceByPhoneNumber(phoneNumber string
 	return &workspace, nil
 }
 
+func (mr *MessengerRepositoryImpl) FindWorkspaceByTicketId(ticketId string) (*entity.Workspace, error) {
+	filter := bson.M{"tickets.ticket_id": ticketId}
+
+	var workspace entity.Workspace
+	err := mr.database.Collection(mr.config.MongoDB.WorkspaceCollection).FindOne(context.Background(), filter).Decode(&workspace)
+	if err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return nil, errors.New("workspace not found")
+		}
+		return nil, err
+	}
+
+	return &workspace, nil
+}
+
 func (mr *MessengerRepositoryImpl) GetAllWorkspaceRepositories() ([]*entity.Workspace, error) {
 	var workspaces []*entity.Workspace
 
@@ -108,6 +123,18 @@ func (mr *MessengerRepositoryImpl) FindWorkspaceByWorkspaceId(workspaceId string
 	}
 
 	return &workspace, nil
+}
+
+func (mr *MessengerRepositoryImpl) GetUserById(id primitive.ObjectID) (*entity.User, error) {
+	var user entity.User
+	err := mr.database.Collection(mr.config.MongoDB.UserCollection).FindOne(context.Background(), bson.M{"_id": id}).Decode(&user)
+	if err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return nil, errors.New("user not found")
+		}
+		return nil, err
+	}
+	return &user, nil
 }
 
 func (mr *MessengerRepositoryImpl) CheckBotExists(botToken string) (bool, error) {

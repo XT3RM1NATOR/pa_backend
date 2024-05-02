@@ -8,6 +8,7 @@ import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 	"github.com/labstack/echo/v4"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"log"
 	"net/http"
 )
 
@@ -93,7 +94,10 @@ func (mc *MessengerController) WSHandler(c echo.Context) error {
 			}
 
 			if receivedMessage.Source == "telegramBot" {
-				mc.messengerService.HandleTelegramPlatformMessage(userId, workspaceId, receivedMessage)
+				err = mc.messengerService.HandleTelegramPlatformMessageToBot(receivedMessage, workspaceId, userId)
+				if err != nil {
+					log.Println(err)
+				}
 			}
 		}
 	}()

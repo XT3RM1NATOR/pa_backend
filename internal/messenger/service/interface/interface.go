@@ -3,6 +3,7 @@ package infrastructureInterface
 import (
 	"github.com/Point-AI/backend/internal/messenger/domain/entity"
 	"github.com/Point-AI/backend/internal/messenger/infrastructure/client"
+	"github.com/celestix/gotgproto/ext"
 
 	"github.com/celestix/gotgproto"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -18,12 +19,16 @@ type TelegramBotClientManager interface {
 }
 
 type TelegramClientManager interface {
-	CreateClient(phone, workspaceId string) error
+	CreateClient(phone, workspaceId string,
+		messageHandler func(ctx *ext.Context, update *ext.Update) error,
+	) error
 	GetClient(workspaceId string) (*gotgproto.Client, bool)
 	GetAuthConversator(workspaceId string) (*client.TelegramAuthConversator, bool)
 	SetClient(workspaceId string, client *gotgproto.Client)
 	SetAuthConversator(workspaceId string, authConversator *client.TelegramAuthConversator)
-	CreateClientBySession(session, phone, workspaceId string) error
+	CreateClientBySession(session, phone, workspaceId string,
+		messageHandler func(ctx *ext.Context, update *ext.Update) error,
+	) error
 }
 
 type WhatsAppClientManager interface {
@@ -37,4 +42,6 @@ type MessengerRepository interface {
 	FindUserByEmail(email string) (primitive.ObjectID, error)
 	GetAllWorkspaceRepositories() ([]*entity.Workspace, error)
 	FindWorkspaceByPhoneNumber(phoneNumber string) (*entity.Workspace, error)
+	FindWorkspaceByTicketId(ticketId string) (*entity.Workspace, error)
+	GetUserById(id primitive.ObjectID) (*entity.User, error)
 }
