@@ -19,6 +19,13 @@ type MessageRequest struct {
 	CreatedAt *primitive.DateTime `json:"created_at,omitempty"`
 }
 
+type TelegramAuthRequest struct {
+	WorkspaceId   string `json:"workspace_id"`
+	PhoneNumber   string `json:"phone_number"`
+	PhoneCodeHash string `json:"phone_code_hash"`
+	Code          string `json:"code"`
+}
+
 // Responses
 
 type ErrorResponse struct {
@@ -35,5 +42,10 @@ type MessageResponse struct {
 	Content   []byte             `json:"content"`
 	Type      string             `json:"type"`
 	Source    string             `json:"source"`
+	Username  string             `json:"username"`
 	CreatedAt primitive.DateTime `json:"created_at"`
+}
+
+type TelegramStatusResponse struct {
+	Status string `json:"status"`
 }

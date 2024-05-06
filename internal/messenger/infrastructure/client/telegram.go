@@ -1,83 +1,137 @@
 package client
 
 import (
+	"errors"
 	"github.com/Point-AI/backend/config"
-	infrastructureInterface "github.com/Point-AI/backend/internal/messenger/service/interface"
-	"github.com/go-telegram-bot-api/telegram-bot-api"
+	"github.com/celestix/gotgproto"
+	"github.com/celestix/gotgproto/dispatcher/handlers"
+	"github.com/celestix/gotgproto/dispatcher/handlers/filters"
+	"github.com/celestix/gotgproto/ext"
+	"github.com/celestix/gotgproto/sessionMaker"
+	"log"
+	"strconv"
+	"sync"
 )
 
-type TelegramClient struct {
-	config *config.Config
+type TelegramClientManager struct {
+	clients          map[string]*gotgproto.Client
+	authConversators map[string]*TelegramAuthConversator
+	config           *config.Config
+	mu               sync.RWMutex
 }
 
-func NewTelegramClientImpl(cfg *config.Config) infrastructureInterface.TelegramClient {
-	return &TelegramClient{
-		config: cfg,
+func NewTelegramClientManagerImpl(cfg *config.Config) *TelegramClientManager {
+	return &TelegramClientManager{
+		config:  cfg,
+		clients: make(map[string]*gotgproto.Client),
 	}
 }
 
-func (tc *TelegramClient) SendMessage(authToken string, chatID int64, messageText string) error {
-	bot, err := tgbotapi.NewBotAPI(authToken)
+func (tcm *TelegramClientManager) CreateClient(phone, workspaceId string,
+	messageHandler func(ctx *ext.Context, update *ext.Update) error,
+) error {
+	if _, exists := tcm.clients[workspaceId]; exists {
+		return errors.New("the client already exists")
+	}
+
+	clientId, err := strconv.Atoi(tcm.config.OAuth2.TelegramClientId)
 	if err != nil {
 		return err
 	}
 
-	message := tgbotapi.NewMessage(chatID, messageText)
+	authConversator := newTelegramAuthConversator()
 
-	_, err = bot.Send(message)
+	client, err := gotgproto.NewClient(
+		clientId,
+		tcm.config.OAuth2.TelegramClientSecret,
+		gotgproto.ClientType{Phone: phone},
+		&gotgproto.ClientOpts{
+			AuthConversator: authConversator,
+			Session:         sessionMaker.SimpleSession(),
+		},
+	)
+
 	if err != nil {
-		return err
+		log.Fatalf("failed to create client for phone %s: %v", phone, err)
 	}
 
+	go func() {
+		client.Dispatcher.AddHandler(handlers.NewMessage(filters.Message.All, messageHandler))
+		client.Idle()
+	}()
+
+	tcm.SetClient(workspaceId, client)
+	tcm.SetAuthConversator(workspaceId, authConversator)
 	return nil
 }
 
-// ReceiveMessages retrieves new messages from the Telegram account with the provided authToken.
-func (tc *TelegramClient) ReceiveMessages(authToken string) ([]*tgbotapi.Message, error) {
-	bot, err := tgbotapi.NewBotAPI(authToken)
+func (tcm *TelegramClientManager) CreateClientBySession(session, phone, workspaceId string,
+	messageHandler func(ctx *ext.Context, update *ext.Update) error,
+) error {
+	clientId, err := strconv.Atoi(tcm.config.OAuth2.TelegramClientId)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	u := tgbotapi.NewUpdate(0)
-	u.Timeout = 60
+	authConversator := newTelegramAuthConversator()
 
-	updates, err := bot.GetUpdatesChan(u)
+	client, err := gotgproto.NewClient(
+		clientId,
+		tcm.config.OAuth2.TelegramClientSecret,
+		gotgproto.ClientType{Phone: phone},
+		&gotgproto.ClientOpts{
+			AuthConversator: authConversator,
+			Session:         sessionMaker.StringSession(session),
+		},
+	)
+
 	if err != nil {
-		return nil, err
+		log.Fatalf("failed to create client for phone %s: %v", phone, err)
 	}
 
-	var messages []*tgbotapi.Message
-	for update := range updates {
-		if update.Message != nil {
-			messages = append(messages, update.Message)
-		}
-	}
+	go func() {
+		client.Dispatcher.AddHandler(handlers.NewMessage(filters.Message.All, messageHandler))
+		client.Idle()
+	}()
 
-	return messages, nil
+	tcm.SetClient(workspaceId, client)
+	tcm.SetAuthConversator(workspaceId, authConversator)
+	return nil
 }
 
-// ReceiveVideoMessages retrieves new video messages from the Telegram account with the provided authToken.
-func (tc *TelegramClient) ReceiveVideoMessages(authToken string) ([]*tgbotapi.Message, error) {
-	bot, err := tgbotapi.NewBotAPI(authToken)
-	if err != nil {
-		return nil, err
-	}
+func (tcm *TelegramClientManager) GetClient(workspaceId string) (*gotgproto.Client, bool) {
+	tcm.mu.RLock()
+	defer tcm.mu.RUnlock()
 
-	u := tgbotapi.NewUpdate(0)
-	u.Timeout = 60
+	client, exists := tcm.clients[workspaceId]
+	return client, exists
+}
 
-	updates, err := bot.GetUpdatesChan(u)
-	if err != nil {
-		return nil, err
-	}
+func (tcm *TelegramClientManager) GetAuthConversator(workspaceId string) (*TelegramAuthConversator, bool) {
+	tcm.mu.RLock()
+	defer tcm.mu.RUnlock()
 
-	var videoMessages []*tgbotapi.Message
-	for update := range updates {
-		if update.Message != nil && update.Message.Video != nil {
-			videoMessages = append(videoMessages, update.Message)
-		}
-	}
+	authConversator, exists := tcm.authConversators[workspaceId]
+	return authConversator, exists
+}
 
-	return videoMessages, nil
+func (tcm *TelegramClientManager) SetClient(workspaceId string, client *gotgproto.Client) {
+	tcm.mu.Lock()
+	defer tcm.mu.Unlock()
+
+	tcm.clients[workspaceId] = client
+}
+
+func (tcm *TelegramClientManager) SetAuthConversator(workspaceId string, authConversator *TelegramAuthConversator) {
+	tcm.mu.Lock()
+	defer tcm.mu.Unlock()
+
+	tcm.authConversators[workspaceId] = authConversator
+}
+
+func echo(ctx *ext.Context, update *ext.Update) error {
+	msg := update.EffectiveMessage
+	log.Printf("Received message from %v: %s", msg.FromID, msg.Text)
+	_, err := ctx.Reply(update, msg.Text, nil)
+	return err
 }

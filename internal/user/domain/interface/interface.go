@@ -17,6 +17,7 @@ type UserService interface {
 	Logout(userId primitive.ObjectID) error
 	GetUserProfile(userId primitive.ObjectID) (*entity.User, []byte, error)
 	UpdateUserProfile(userId primitive.ObjectID, logo []byte, name string) error
+	FacebookAuthCallback(code, workspaceId string) error
 }
 
 type EmailService interface {

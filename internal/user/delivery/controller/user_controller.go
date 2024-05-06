@@ -185,8 +185,7 @@ func (uc *UserController) ResetPassword(c echo.Context) error {
 // @Router /user/logout [post]
 func (uc *UserController) Logout(c echo.Context) error {
 	userId := c.Request().Context().Value("userId").(primitive.ObjectID)
-	err := uc.userService.Logout(userId)
-	if err != nil {
+	if err := uc.userService.Logout(userId); err != nil {
 		return c.JSON(http.StatusInternalServerError, model.ErrorResponse{Error: err.Error()})
 	}
 	return c.JSON(http.StatusOK, model.SuccessResponse{Message: "successfully logged out"})
@@ -244,7 +243,6 @@ func (uc *UserController) FacebookCallback(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
 	}
 
-	// Redirect to your application page with the OAuth2 token
 	return c.Redirect(http.StatusFound, fmt.Sprintf(uc.config.Website.WebURL+"/integrations"))
 }
 

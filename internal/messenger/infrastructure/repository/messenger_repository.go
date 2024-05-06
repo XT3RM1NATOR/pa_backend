@@ -9,11 +9,13 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
+	"sync"
 )
 
 type MessengerRepositoryImpl struct {
 	database *mongo.Database
 	config   *config.Config
+	mu       sync.RWMutex
 }
 
 func NewMessengerRepositoryImpl(cfg *config.Config, db *mongo.Database) infrastructureInterface.MessengerRepository {
@@ -59,6 +61,60 @@ func (mr *MessengerRepositoryImpl) FindWorkspaceByTelegramBotToken(botToken stri
 	return &workspace, nil
 }
 
+func (mr *MessengerRepositoryImpl) FindWorkspaceByPhoneNumber(phoneNumber string) (*entity.Workspace, error) {
+	filter := bson.M{"integrations.telegram.phone_number": phoneNumber}
+
+	var workspace entity.Workspace
+	err := mr.database.Collection(mr.config.MongoDB.WorkspaceCollection).FindOne(context.Background(), filter).Decode(&workspace)
+	if err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return nil, errors.New("workspace not found")
+		}
+		return nil, err
+	}
+
+	return &workspace, nil
+}
+
+func (mr *MessengerRepositoryImpl) FindWorkspaceByTicketId(ticketId string) (*entity.Workspace, error) {
+	filter := bson.M{"tickets.ticket_id": ticketId}
+
+	var workspace entity.Workspace
+	err := mr.database.Collection(mr.config.MongoDB.WorkspaceCollection).FindOne(context.Background(), filter).Decode(&workspace)
+	if err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return nil, errors.New("workspace not found")
+		}
+		return nil, err
+	}
+
+	return &workspace, nil
+}
+
+func (mr *MessengerRepositoryImpl) GetAllWorkspaceRepositories() ([]*entity.Workspace, error) {
+	var workspaces []*entity.Workspace
+
+	cursor, err := mr.database.Collection(mr.config.MongoDB.WorkspaceCollection).Find(context.Background(), bson.M{})
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(context.Background())
+
+	for cursor.Next(context.Background()) {
+		var workspace entity.Workspace
+		if err := cursor.Decode(&workspace); err != nil {
+			return nil, err
+		}
+		workspaces = append(workspaces, &workspace)
+	}
+
+	if err := cursor.Err(); err != nil {
+		return nil, err
+	}
+
+	return workspaces, nil
+}
+
 func (mr *MessengerRepositoryImpl) FindWorkspaceByWorkspaceId(workspaceId string) (*entity.Workspace, error) {
 	var workspace entity.Workspace
 	err := mr.database.Collection(mr.config.MongoDB.WorkspaceCollection).FindOne(context.Background(), bson.M{"workspace_id": workspaceId}).Decode(&workspace)
@@ -69,20 +125,16 @@ func (mr *MessengerRepositoryImpl) FindWorkspaceByWorkspaceId(workspaceId string
 	return &workspace, nil
 }
 
-func (mr *MessengerRepositoryImpl) AddTelegramIntegration(id primitive.ObjectID, botToken string) error {
-	integration := entity.TelegramBotIntegration{
-		BotToken: botToken,
-		IsActive: true,
-	}
-
-	_, err := mr.database.Collection(mr.config.MongoDB.WorkspaceCollection).UpdateOne(context.Background(), bson.M{"_id": id}, bson.M{
-		"$push": bson.M{"integrations.telegram_bot": integration},
-	})
+func (mr *MessengerRepositoryImpl) GetUserById(id primitive.ObjectID) (*entity.User, error) {
+	var user entity.User
+	err := mr.database.Collection(mr.config.MongoDB.UserCollection).FindOne(context.Background(), bson.M{"_id": id}).Decode(&user)
 	if err != nil {
-		return err
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return nil, errors.New("user not found")
+		}
+		return nil, err
 	}
-
-	return nil
+	return &user, nil
 }
 
 func (mr *MessengerRepositoryImpl) CheckBotExists(botToken string) (bool, error) {

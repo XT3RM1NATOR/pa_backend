@@ -8,6 +8,7 @@ import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 	"github.com/labstack/echo/v4"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"log"
 	"net/http"
 )
 
@@ -52,6 +53,18 @@ func (mc *MessengerController) HandleBotMessage(c echo.Context) error {
 	return nil
 }
 
+func (mc *MessengerController) HandleTelegramClientAuth(c echo.Context) error {
+	workspaceId, action := c.Param("id"), c.QueryParam("set")
+	value, userId := c.QueryParam(action), c.Request().Context().Value("userId").(primitive.ObjectID)
+
+	status, err := mc.messengerService.HandleTelegramClientAuth(userId, workspaceId, action, value)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, model.ErrorResponse{Error: err.Error()})
+	}
+
+	return c.JSON(http.StatusCreated, model.TelegramStatusResponse{Status: string(status)})
+}
+
 func (mc *MessengerController) WSHandler(c echo.Context) error {
 	userId := c.Request().Context().Value("userId").(primitive.ObjectID)
 	workspaceId := c.Param("id")
@@ -65,28 +78,31 @@ func (mc *MessengerController) WSHandler(c echo.Context) error {
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, model.ErrorResponse{Error: err.Error()})
 	}
+	//mc.websocketService.
 
-	defer mc.websocketService.RemoveConnection(workspaceId, ws)
+	go func() {
+		defer mc.websocketService.RemoveConnection(workspaceId, ws)
+		for {
+			_, message, err := ws.ReadMessage()
+			if err != nil {
+				break
+			}
 
-	for {
-		_, message, err := ws.ReadMessage()
-		if err != nil {
-			break
-		}
-		var receivedMessage model.MessageRequest
-		if err := json.Unmarshal(message, &receivedMessage); err != nil {
-			continue
-		}
-
-		if receivedMessage.Source == "telegramBot" {
-			if err := mc.messengerService.HandleTelegramPlatformMessage(userId, workspaceId, receivedMessage); err != nil {
+			var receivedMessage model.MessageRequest
+			if err := json.Unmarshal(message, &receivedMessage); err != nil {
 				continue
 			}
 
+			if receivedMessage.Source == "telegramBot" {
+				err = mc.messengerService.HandleTelegramPlatformMessageToBot(receivedMessage, workspaceId, userId)
+				if err != nil {
+					log.Println(err)
+				}
+			}
 		}
-	}
+	}()
 
-	return nil
+	return c.JSON(http.StatusOK, model.SuccessResponse{Message: "connection upgraded successfully"})
 }
 
 func (mc *MessengerController) ReassignTicketToMember(c echo.Context) error {
@@ -120,4 +136,11 @@ func (mc *MessengerController) CloseTicket(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, model.SuccessResponse{Message: "ticket status updated successfully"})
+}
+
+func (mc *MessengerController) SetUpTelegramClients() error {
+	if err := mc.messengerService.SetUpTelegramClients(); err != nil {
+		return err
+	}
+	return nil
 }

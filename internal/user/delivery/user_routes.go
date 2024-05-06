@@ -35,8 +35,4 @@ func RegisterAuthRoutes(e *echo.Echo, cfg *config.Config, db *mongo.Database, st
 	oAuth2Group.GET("/google/callback", uc.GoogleCallback)
 	oAuth2Group.GET("/google/tokens", uc.GoogleTokens)
 	oAuth2Group.GET("/facebook/callback", uc.FacebookCallback)
-
-	oAuth2Group.GET("/facebook/callback", uc.GoogleCallback)
-	oAuth2Group.GET("/facebook/tokens", uc.GoogleTokens)
-
 }

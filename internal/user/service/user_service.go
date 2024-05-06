@@ -62,7 +62,7 @@ func (us *UserServiceImpl) FacebookAuthCallback(code, workspaceId string) error 
 		IsActive:     true,
 	}
 
-	*workspace.Integrations.Meta = append(*workspace.Integrations.Meta, facebookIntegration)
+	*workspace.Integrations.Meta = facebookIntegration
 	if err = us.userRepo.UpdateWorkspace(workspace); err != nil {
 		return err
 	}
@@ -131,25 +131,24 @@ func (us *UserServiceImpl) RegisterUser(email string, password string) error {
 
 	confirmToken, err := utils.GenerateToken()
 	if err != nil {
+		log.Println(err)
 		return err
 	}
-
 	passwordHash, err := utils.HashPassword(password)
 	if err != nil {
+		log.Println(err)
 		return err
 	}
-
 	confirmationLink := fmt.Sprintf("%s/confirm?token=%s", us.config.Website.WebURL, confirmToken)
 	if err := us.emailService.SendConfirmationEmail(email, confirmationLink); err != nil {
+		log.Println(err)
 		return err
 	}
 
 	invites, _ := us.userRepo.GetAllPendingInvites(email)
-
 	if err := us.userRepo.CreateUser(invites, email, passwordHash, confirmToken); err != nil {
 		return err
 	}
-
 	return nil
 }
 

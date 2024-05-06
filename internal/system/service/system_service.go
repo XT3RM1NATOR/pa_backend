@@ -112,7 +112,7 @@ func (ss *SystemServiceImpl) UpdateMemberStatus(userId primitive.ObjectID, statu
 	for _, team := range workspace.InternalTeams {
 		if _, exists := team[userId]; exists {
 			switch entity.UserStatus(status) {
-			case entity.StatusAvailable, entity.StatusOnBreak, entity.StatusOffline, entity.StatusBusy:
+			case entity.StatusAvailable, entity.StatusOffline, entity.StatusBusy:
 				team[userId] = entity.UserStatus(status)
 			default:
 				return errors.New("invalid status")
