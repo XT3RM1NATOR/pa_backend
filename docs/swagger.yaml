@@ -1,38 +1,150 @@
 basePath: /
 definitions:
-  model.ErrorResponse:
+  github_com_Point-AI_backend_internal_api_delivery_model.ErrorResponse:
     properties:
       error:
         type: string
     type: object
-  model.ForgotPasswordRequest:
+  github_com_Point-AI_backend_internal_api_delivery_model.HelpDeskArticleResponse:
+    properties:
+      article_id:
+        type: integer
+      view_count:
+        type: integer
+    type: object
+  github_com_Point-AI_backend_internal_api_delivery_model.SuccessResponse:
+    properties:
+      message:
+        type: string
+    type: object
+  github_com_Point-AI_backend_internal_messenger_delivery_model.ErrorResponse:
+    properties:
+      error:
+        type: string
+    type: object
+  github_com_Point-AI_backend_internal_messenger_delivery_model.RegisterBotRequest:
+    properties:
+      bot_token:
+        type: string
+      workspace_id:
+        type: string
+    type: object
+  github_com_Point-AI_backend_internal_messenger_delivery_model.SuccessResponse:
+    properties:
+      message:
+        type: string
+    type: object
+  github_com_Point-AI_backend_internal_system_delivery_model.AddTeamMembersRequest:
+    properties:
+      member:
+        type: string
+      team_name:
+        type: string
+      workspace_id:
+        type: string
+    type: object
+  github_com_Point-AI_backend_internal_system_delivery_model.AddWorkspaceMemberRequest:
+    properties:
+      Workspace_id:
+        type: string
+      team:
+        additionalProperties:
+          type: string
+        type: object
+    type: object
+  github_com_Point-AI_backend_internal_system_delivery_model.CreateWorkspaceRequest:
+    properties:
+      logo:
+        items:
+          type: integer
+        type: array
+      name:
+        type: string
+      team:
+        additionalProperties:
+          type: string
+        type: object
+      teams:
+        items:
+          type: string
+        type: array
+      workspace_id:
+        type: string
+    type: object
+  github_com_Point-AI_backend_internal_system_delivery_model.ErrorResponse:
+    properties:
+      error:
+        type: string
+    type: object
+  github_com_Point-AI_backend_internal_system_delivery_model.SuccessResponse:
+    properties:
+      message:
+        type: string
+    type: object
+  github_com_Point-AI_backend_internal_system_delivery_model.UpdateWorkspaceMemberRequest:
+    properties:
+      team:
+        additionalProperties:
+          type: string
+        type: object
+      workspace_id:
+        type: string
+    type: object
+  github_com_Point-AI_backend_internal_system_delivery_model.UpdateWorkspaceRequest:
+    properties:
+      logo:
+        items:
+          type: integer
+        type: array
+      name:
+        type: string
+      workspace_id:
+        type: string
+    type: object
+  github_com_Point-AI_backend_internal_system_delivery_model.WorkspaceResponse:
+    properties:
+      logo:
+        items:
+          type: integer
+        type: array
+      name:
+        type: string
+      workspace_id:
+        type: string
+    type: object
+  github_com_Point-AI_backend_internal_user_delivery_model.ErrorResponse:
+    properties:
+      error:
+        type: string
+    type: object
+  github_com_Point-AI_backend_internal_user_delivery_model.ForgotPasswordRequest:
     properties:
       email:
         type: string
     type: object
-  model.OAuth2TokenRequest:
+  github_com_Point-AI_backend_internal_user_delivery_model.OAuth2TokenRequest:
     properties:
       oAuth2Token:
         type: string
     type: object
-  model.PasswordResetRequest:
+  github_com_Point-AI_backend_internal_user_delivery_model.PasswordResetRequest:
     properties:
       new_password:
         type: string
       token:
         type: string
     type: object
-  model.RenewAccessTokenRequest:
+  github_com_Point-AI_backend_internal_user_delivery_model.RenewAccessTokenRequest:
     properties:
       refresh_token:
         type: string
     type: object
-  model.SuccessResponse:
+  github_com_Point-AI_backend_internal_user_delivery_model.SuccessResponse:
     properties:
       message:
         type: string
     type: object
-  model.TokenResponse:
+  github_com_Point-AI_backend_internal_user_delivery_model.TokenResponse:
     properties:
       access_token:
         type: string
@@ -40,11 +152,33 @@ definitions:
         description: Optional field for some responses
         type: string
     type: object
-  model.UserRequest:
+  github_com_Point-AI_backend_internal_user_delivery_model.UserProfileResponse:
+    properties:
+      created_at:
+        type: integer
+      email:
+        type: string
+      logo:
+        items:
+          type: integer
+        type: array
+      name:
+        type: string
+    type: object
+  github_com_Point-AI_backend_internal_user_delivery_model.UserRequest:
     properties:
       email:
         type: string
       password:
+        type: string
+    type: object
+  github_com_Point-AI_backend_internal_user_delivery_model.UserUpdateProfileRequest:
+    properties:
+      logo:
+        items:
+          type: integer
+        type: array
+      name:
         type: string
     type: object
 externalDocs:
@@ -63,7 +197,637 @@ info:
   title: PointAI
   version: "1.0"
 paths:
-  /auth/logout:
+  /api/v1/article/{id}:
+    post:
+      consumes:
+      - application/json
+      description: Creates a new instance of a helpdesk article or increments its
+        view count.
+      parameters:
+      - description: Article ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: view count incremented successfully
+          schema:
+            $ref: '#/definitions/github_com_Point-AI_backend_internal_api_delivery_model.SuccessResponse'
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/github_com_Point-AI_backend_internal_api_delivery_model.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/github_com_Point-AI_backend_internal_api_delivery_model.ErrorResponse'
+      tags:
+      - HelpDesk
+  /api/v1/articles:
+    get:
+      consumes:
+      - application/json
+      description: Returns all Articles and View Count.
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: User registered successfully
+          schema:
+            items:
+              $ref: '#/definitions/github_com_Point-AI_backend_internal_api_delivery_model.HelpDeskArticleResponse'
+            type: array
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/github_com_Point-AI_backend_internal_api_delivery_model.ErrorResponse'
+      tags:
+      - HelpDesk
+  /integrations/telegram/bots:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: User ID
+        in: path
+        name: userId
+        required: true
+        type: string
+      - description: Bot registration details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_Point-AI_backend_internal_messenger_delivery_model.RegisterBotRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Bot added successfully
+          schema:
+            $ref: '#/definitions/github_com_Point-AI_backend_internal_messenger_delivery_model.SuccessResponse'
+        "400":
+          description: Bad request, unable to parse the request body
+          schema:
+            $ref: '#/definitions/github_com_Point-AI_backend_internal_messenger_delivery_model.ErrorResponse'
+        "500":
+          description: Internal server error, failed to register the bot
+          schema:
+            $ref: '#/definitions/github_com_Point-AI_backend_internal_messenger_delivery_model.ErrorResponse'
+      summary: Registers a new bot integration.
+      tags:
+      - Messenger
+  /messenger/ticket/{status}/{id}/{ticket_id}:
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: New status of the ticket
+        in: path
+        name: status
+        required: true
+        type: string
+      - description: Workspace ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Ticket ID
+        in: path
+        name: ticket_id
+        required: true
+        type: string
+      - description: User ID
+        in: path
+        name: userId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Ticket status updated successfully
+          schema:
+            $ref: '#/definitions/github_com_Point-AI_backend_internal_messenger_delivery_model.SuccessResponse'
+        "500":
+          description: Internal server error, failed to update ticket status
+          schema:
+            $ref: '#/definitions/github_com_Point-AI_backend_internal_messenger_delivery_model.ErrorResponse'
+      summary: Updates the status of a support ticket.
+      tags:
+      - Messenger
+  /messenger/ticket/reassign/member/{ticket_id}/{id}/{email}:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Ticket ID
+        in: path
+        name: ticket_id
+        required: true
+        type: string
+      - description: Workspace ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Member email
+        in: path
+        name: email
+        required: true
+        type: string
+      - description: User ID
+        in: path
+        name: userId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Ticket successfully reassigned to member
+          schema:
+            $ref: '#/definitions/github_com_Point-AI_backend_internal_messenger_delivery_model.SuccessResponse'
+        "500":
+          description: Internal server error, failed to reassign ticket
+          schema:
+            $ref: '#/definitions/github_com_Point-AI_backend_internal_messenger_delivery_model.ErrorResponse'
+      summary: Reassigns a support ticket to a member.
+      tags:
+      - Messenger
+  /messenger/ticket/reassign/team/{ticket_id}/{id}/{name}:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Ticket ID
+        in: path
+        name: ticket_id
+        required: true
+        type: string
+      - description: Workspace ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Team name
+        in: path
+        name: name
+        required: true
+        type: string
+      - description: User ID
+        in: path
+        name: userId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Ticket successfully reassigned to team
+          schema:
+            $ref: '#/definitions/github_com_Point-AI_backend_internal_messenger_delivery_model.SuccessResponse'
+        "500":
+          description: Internal server error, failed to reassign ticket
+          schema:
+            $ref: '#/definitions/github_com_Point-AI_backend_internal_messenger_delivery_model.ErrorResponse'
+      summary: Reassigns a support ticket to a team.
+      tags:
+      - Messenger
+  /messenger/ws/{id}:
+    get:
+      parameters:
+      - description: Workspace ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: User ID
+        in: path
+        name: userId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Connection upgraded successfully
+          schema:
+            $ref: '#/definitions/github_com_Point-AI_backend_internal_messenger_delivery_model.SuccessResponse'
+        "400":
+          description: Bad request, user not valid in workspace
+          schema:
+            $ref: '#/definitions/github_com_Point-AI_backend_internal_messenger_delivery_model.ErrorResponse'
+        "500":
+          description: Internal server error, failed to upgrade connection
+          schema:
+            $ref: '#/definitions/github_com_Point-AI_backend_internal_messenger_delivery_model.ErrorResponse'
+      summary: Handles WebSocket connections.
+      tags:
+      - Messenger
+  /system/teams:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Team member details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_Point-AI_backend_internal_system_delivery_model.AddTeamMembersRequest'
+      - description: User ID
+        in: path
+        name: userId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: User added to the team successfully
+          schema:
+            $ref: '#/definitions/github_com_Point-AI_backend_internal_system_delivery_model.SuccessResponse'
+        "400":
+          description: Bad request, unable to parse the request body
+          schema:
+            $ref: '#/definitions/github_com_Point-AI_backend_internal_system_delivery_model.ErrorResponse'
+        "500":
+          description: Internal server error, failed to add the team member
+          schema:
+            $ref: '#/definitions/github_com_Point-AI_backend_internal_system_delivery_model.ErrorResponse'
+      summary: Adds a new member to a team.
+      tags:
+      - System
+  /system/teams/{id}/{name}:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Team name
+        in: path
+        name: name
+        required: true
+        type: string
+      - description: Workspace ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: User ID
+        in: path
+        name: userId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: First team set successfully
+          schema:
+            $ref: '#/definitions/github_com_Point-AI_backend_internal_system_delivery_model.SuccessResponse'
+        "500":
+          description: Internal server error, failed to set the first team
+          schema:
+            $ref: '#/definitions/github_com_Point-AI_backend_internal_system_delivery_model.ErrorResponse'
+      summary: Sets the first team for a user in a specific workspace.
+      tags:
+      - System
+  /system/workspace:
+    get:
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of Workspaces
+          schema:
+            items:
+              $ref: '#/definitions/github_com_Point-AI_backend_internal_system_delivery_model.WorkspaceResponse'
+            type: array
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/github_com_Point-AI_backend_internal_system_delivery_model.ErrorResponse'
+      summary: Retrieves all Workspaces for a user.
+      tags:
+      - System
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Workspace details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_Point-AI_backend_internal_system_delivery_model.CreateWorkspaceRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Workspace added successfully
+          schema:
+            $ref: '#/definitions/github_com_Point-AI_backend_internal_system_delivery_model.SuccessResponse'
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/github_com_Point-AI_backend_internal_system_delivery_model.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/github_com_Point-AI_backend_internal_system_delivery_model.ErrorResponse'
+      summary: Creates a new Workspace.
+      tags:
+      - System
+  /system/workspace/{id}:
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: Workspace ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Workspace details
+          schema:
+            $ref: '#/definitions/github_com_Point-AI_backend_internal_system_delivery_model.WorkspaceResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/github_com_Point-AI_backend_internal_system_delivery_model.ErrorResponse'
+      summary: Retrieves Workspace details by ID.
+      tags:
+      - System
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Workspace id
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Updated Workspace details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_Point-AI_backend_internal_system_delivery_model.UpdateWorkspaceRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Workspace updated successfully
+          schema:
+            $ref: '#/definitions/github_com_Point-AI_backend_internal_system_delivery_model.SuccessResponse'
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/github_com_Point-AI_backend_internal_system_delivery_model.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/github_com_Point-AI_backend_internal_system_delivery_model.ErrorResponse'
+      summary: Updates Workspace details.
+      tags:
+      - System
+  /system/workspace/{id}/{status}:
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Workspace id
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Status of invite
+        in: path
+        name: status
+        required: true
+        type: boolean
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Workspace deleted successfully
+          schema:
+            $ref: '#/definitions/github_com_Point-AI_backend_internal_system_delivery_model.SuccessResponse'
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/github_com_Point-AI_backend_internal_system_delivery_model.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/github_com_Point-AI_backend_internal_system_delivery_model.ErrorResponse'
+      summary: Returns users in the Workspace.
+      tags:
+      - System
+  /system/workspace/{id}/status/{status}:
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Workspace ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: New status
+        in: path
+        name: status
+        required: true
+        type: string
+      - description: User ID
+        in: path
+        name: userId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Status updated successfully
+          schema:
+            $ref: '#/definitions/github_com_Point-AI_backend_internal_system_delivery_model.SuccessResponse'
+        "500":
+          description: Internal server error, failed to update member status
+          schema:
+            $ref: '#/definitions/github_com_Point-AI_backend_internal_system_delivery_model.ErrorResponse'
+      summary: Updates the status of a member within a workspace.
+      tags:
+      - System
+  /system/workspace/leave/{id}:
+    delete:
+      consumes:
+      - application/json
+      parameters:
+      - description: Workspace ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Workspace left successfully
+          schema:
+            $ref: '#/definitions/github_com_Point-AI_backend_internal_system_delivery_model.SuccessResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/github_com_Point-AI_backend_internal_system_delivery_model.ErrorResponse'
+      summary: Removes user from a Workspace.
+      tags:
+      - System
+  /system/workspace/member:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Member details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_Point-AI_backend_internal_system_delivery_model.AddWorkspaceMemberRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Users added successfully
+          schema:
+            $ref: '#/definitions/github_com_Point-AI_backend_internal_system_delivery_model.SuccessResponse'
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/github_com_Point-AI_backend_internal_system_delivery_model.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/github_com_Point-AI_backend_internal_system_delivery_model.ErrorResponse'
+      summary: Adds members to a Workspace.
+      tags:
+      - System
+  /system/workspace/member/{id}/{email}:
+    delete:
+      consumes:
+      - application/json
+      parameters:
+      - description: Workspace ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Member email
+        in: path
+        name: email
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Member removed successfully
+          schema:
+            $ref: '#/definitions/github_com_Point-AI_backend_internal_system_delivery_model.SuccessResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/github_com_Point-AI_backend_internal_system_delivery_model.ErrorResponse'
+      summary: Removes a member from a Workspace.
+      tags:
+      - System
+  /system/workspace/members/{id}:
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: Workspace id
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Workspace deleted successfully
+          schema:
+            $ref: '#/definitions/github_com_Point-AI_backend_internal_system_delivery_model.SuccessResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/github_com_Point-AI_backend_internal_system_delivery_model.ErrorResponse'
+      summary: Returns users in the Workspace.
+      tags:
+      - System
+  /system/workspace/update:
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Updated member details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_Point-AI_backend_internal_system_delivery_model.UpdateWorkspaceMemberRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Users updated successfully
+          schema:
+            $ref: '#/definitions/github_com_Point-AI_backend_internal_system_delivery_model.SuccessResponse'
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/github_com_Point-AI_backend_internal_system_delivery_model.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/github_com_Point-AI_backend_internal_system_delivery_model.ErrorResponse'
+      summary: Updates Workspace members.
+      tags:
+      - System
+  /system/workspace/workspace/{id}:
+    delete:
+      consumes:
+      - application/json
+      parameters:
+      - description: Workspace id
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Workspace deleted successfully
+          schema:
+            $ref: '#/definitions/github_com_Point-AI_backend_internal_system_delivery_model.SuccessResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/github_com_Point-AI_backend_internal_system_delivery_model.ErrorResponse'
+      summary: Removes a Workspace by id.
+      tags:
+      - System
+  /user/logout:
     post:
       consumes:
       - application/json
@@ -74,15 +838,15 @@ paths:
         "200":
           description: Successfully logged out
           schema:
-            $ref: '#/definitions/model.SuccessResponse'
+            $ref: '#/definitions/github_com_Point-AI_backend_internal_user_delivery_model.SuccessResponse'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/model.ErrorResponse'
+            $ref: '#/definitions/github_com_Point-AI_backend_internal_user_delivery_model.ErrorResponse'
       summary: Logout
       tags:
       - Auth
-  /auth/oauth2/google/callback:
+  /user/oauth2/google/callback:
     get:
       consumes:
       - application/json
@@ -99,19 +863,19 @@ paths:
         "302":
           description: Redirect to website URL with OAuth2 token
           schema:
-            $ref: '#/definitions/model.SuccessResponse'
+            $ref: '#/definitions/github_com_Point-AI_backend_internal_user_delivery_model.SuccessResponse'
         "400":
           description: Bad request
           schema:
-            $ref: '#/definitions/model.ErrorResponse'
+            $ref: '#/definitions/github_com_Point-AI_backend_internal_user_delivery_model.ErrorResponse'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/model.ErrorResponse'
+            $ref: '#/definitions/github_com_Point-AI_backend_internal_user_delivery_model.ErrorResponse'
       summary: Google OAuth2 callback
       tags:
       - Auth
-  /auth/oauth2/google/tokens:
+  /user/oauth2/google/tokens:
     get:
       consumes:
       - application/json
@@ -122,30 +886,72 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/model.OAuth2TokenRequest'
+          $ref: '#/definitions/github_com_Point-AI_backend_internal_user_delivery_model.OAuth2TokenRequest'
       produces:
       - application/json
       responses:
         "200":
           description: Tokens exchanged successfully
           schema:
-            $ref: '#/definitions/model.TokenResponse'
+            $ref: '#/definitions/github_com_Point-AI_backend_internal_user_delivery_model.TokenResponse'
         "400":
           description: Bad request
           schema:
-            $ref: '#/definitions/model.ErrorResponse'
+            $ref: '#/definitions/github_com_Point-AI_backend_internal_user_delivery_model.ErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/model.ErrorResponse'
+            $ref: '#/definitions/github_com_Point-AI_backend_internal_user_delivery_model.ErrorResponse'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/model.ErrorResponse'
+            $ref: '#/definitions/github_com_Point-AI_backend_internal_user_delivery_model.ErrorResponse'
       summary: Exchange OAuth2 tokens for Google tokens
       tags:
       - Auth
-  /auth/recover:
+  /user/profile:
+    get:
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: user profile data
+          schema:
+            $ref: '#/definitions/github_com_Point-AI_backend_internal_user_delivery_model.UserProfileResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/github_com_Point-AI_backend_internal_user_delivery_model.ErrorResponse'
+      summary: returns the user profile.
+      tags:
+      - Auth
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Access token renewal request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_Point-AI_backend_internal_user_delivery_model.UserUpdateProfileRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: user profile data
+          schema:
+            $ref: '#/definitions/github_com_Point-AI_backend_internal_user_delivery_model.SuccessResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/github_com_Point-AI_backend_internal_user_delivery_model.ErrorResponse'
+      summary: updates the user profile.
+      tags:
+      - Auth
+  /user/recover:
     post:
       consumes:
       - application/json
@@ -156,26 +962,26 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/model.ForgotPasswordRequest'
+          $ref: '#/definitions/github_com_Point-AI_backend_internal_user_delivery_model.ForgotPasswordRequest'
       produces:
       - application/json
       responses:
         "200":
           description: Password reset email sent successfully
           schema:
-            $ref: '#/definitions/model.SuccessResponse'
+            $ref: '#/definitions/github_com_Point-AI_backend_internal_user_delivery_model.SuccessResponse'
         "400":
           description: Bad request
           schema:
-            $ref: '#/definitions/model.ErrorResponse'
+            $ref: '#/definitions/github_com_Point-AI_backend_internal_user_delivery_model.ErrorResponse'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/model.ErrorResponse'
+            $ref: '#/definitions/github_com_Point-AI_backend_internal_user_delivery_model.ErrorResponse'
       summary: Forgot password
       tags:
       - Auth
-  /auth/renew:
+  /user/renew:
     put:
       consumes:
       - application/json
@@ -186,26 +992,26 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/model.RenewAccessTokenRequest'
+          $ref: '#/definitions/github_com_Point-AI_backend_internal_user_delivery_model.RenewAccessTokenRequest'
       produces:
       - application/json
       responses:
         "200":
           description: Access token renewed successfully
           schema:
-            $ref: '#/definitions/model.TokenResponse'
+            $ref: '#/definitions/github_com_Point-AI_backend_internal_user_delivery_model.TokenResponse'
         "400":
           description: Bad request
           schema:
-            $ref: '#/definitions/model.ErrorResponse'
+            $ref: '#/definitions/github_com_Point-AI_backend_internal_user_delivery_model.ErrorResponse'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/model.ErrorResponse'
+            $ref: '#/definitions/github_com_Point-AI_backend_internal_user_delivery_model.ErrorResponse'
       summary: Renew access token
       tags:
       - Auth
-  /auth/reset:
+  /user/reset:
     post:
       consumes:
       - application/json
@@ -216,26 +1022,26 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/model.PasswordResetRequest'
+          $ref: '#/definitions/github_com_Point-AI_backend_internal_user_delivery_model.PasswordResetRequest'
       produces:
       - application/json
       responses:
         "200":
           description: Password reset successfully
           schema:
-            $ref: '#/definitions/model.SuccessResponse'
+            $ref: '#/definitions/github_com_Point-AI_backend_internal_user_delivery_model.SuccessResponse'
         "400":
           description: Bad request
           schema:
-            $ref: '#/definitions/model.ErrorResponse'
+            $ref: '#/definitions/github_com_Point-AI_backend_internal_user_delivery_model.ErrorResponse'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/model.ErrorResponse'
+            $ref: '#/definitions/github_com_Point-AI_backend_internal_user_delivery_model.ErrorResponse'
       summary: Reset password
       tags:
       - Auth
-  /auth/signin:
+  /user/signin:
     post:
       consumes:
       - application/json
@@ -246,30 +1052,30 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/model.UserRequest'
+          $ref: '#/definitions/github_com_Point-AI_backend_internal_user_delivery_model.UserRequest'
       produces:
       - application/json
       responses:
         "200":
           description: User logged in successfully
           schema:
-            $ref: '#/definitions/model.TokenResponse'
+            $ref: '#/definitions/github_com_Point-AI_backend_internal_user_delivery_model.TokenResponse'
         "400":
           description: Bad request
           schema:
-            $ref: '#/definitions/model.ErrorResponse'
+            $ref: '#/definitions/github_com_Point-AI_backend_internal_user_delivery_model.ErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/model.ErrorResponse'
+            $ref: '#/definitions/github_com_Point-AI_backend_internal_user_delivery_model.ErrorResponse'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/model.ErrorResponse'
+            $ref: '#/definitions/github_com_Point-AI_backend_internal_user_delivery_model.ErrorResponse'
       summary: User login
       tags:
       - Auth
-  /auth/signup:
+  /user/signup:
     post:
       consumes:
       - application/json
@@ -280,25 +1086,25 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/model.UserRequest'
+          $ref: '#/definitions/github_com_Point-AI_backend_internal_user_delivery_model.UserRequest'
       produces:
       - application/json
       responses:
         "201":
           description: User registered successfully
           schema:
-            $ref: '#/definitions/model.SuccessResponse'
+            $ref: '#/definitions/github_com_Point-AI_backend_internal_user_delivery_model.SuccessResponse'
         "400":
           description: Bad request
           schema:
-            $ref: '#/definitions/model.ErrorResponse'
+            $ref: '#/definitions/github_com_Point-AI_backend_internal_user_delivery_model.ErrorResponse'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/model.ErrorResponse'
+            $ref: '#/definitions/github_com_Point-AI_backend_internal_user_delivery_model.ErrorResponse'
       tags:
       - Auth
-  /auth/verify/{token}:
+  /user/verify/{token}:
     get:
       consumes:
       - application/json
@@ -315,15 +1121,15 @@ paths:
         "200":
           description: User confirmed successfully
           schema:
-            $ref: '#/definitions/model.SuccessResponse'
+            $ref: '#/definitions/github_com_Point-AI_backend_internal_user_delivery_model.SuccessResponse'
         "400":
           description: Bad request
           schema:
-            $ref: '#/definitions/model.ErrorResponse'
+            $ref: '#/definitions/github_com_Point-AI_backend_internal_user_delivery_model.ErrorResponse'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/model.ErrorResponse'
+            $ref: '#/definitions/github_com_Point-AI_backend_internal_user_delivery_model.ErrorResponse'
       tags:
       - Auth
 swagger: "2.0"
