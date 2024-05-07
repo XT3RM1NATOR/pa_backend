@@ -7,7 +7,6 @@ import (
 	"github.com/Point-AI/backend/internal/messenger/delivery/model"
 	"github.com/Point-AI/backend/internal/messenger/domain/entity"
 	_interface "github.com/Point-AI/backend/internal/messenger/domain/interface"
-	"github.com/Point-AI/backend/internal/messenger/infrastructure/client"
 	infrastructureInterface "github.com/Point-AI/backend/internal/messenger/service/interface"
 	"github.com/Point-AI/backend/utils"
 	"github.com/celestix/gotgproto/ext"
@@ -70,31 +69,47 @@ func (ms *MessengerServiceImpl) RegisterBotIntegration(userId primitive.ObjectID
 	return errors.New("user does not have the permissions")
 }
 
-func (ms *MessengerServiceImpl) ReassignTicketToTeam(userId primitive.ObjectID, ticketId, workspaceId, teamName string) error {
-	workspace, err := ms.messengerRepo.FindWorkspaceByWorkspaceId(workspaceId)
+func (ms *MessengerServiceImpl) ReassignTicketToTeam(userId primitive.ObjectID, ticketId string, workspaceId primitive.ObjectID, tgClientId int, teamName string) error {
+	originalChat, err := ms.messengerRepo.FindChatByTicketID(ticketId)
 	if err != nil {
 		return err
 	}
 
-	if _, exists := workspace.Team[userId]; exists {
-		for _, ticket := range workspace.Tickets {
-			if ticket.TicketId == ticketId && ticket.Status != entity.StatusClosed {
-				assigneeId, err := ms.getAssigneeId(workspace, teamName)
-				if err != nil {
-					return err
-				}
-
-				ticket.AssignedTo = assigneeId
-				if err := ms.messengerRepo.UpdateWorkspace(workspace); err != nil {
-					return err
-				}
-				return nil
-			}
+	var ticketToMove entity.Ticket
+	for i, ticket := range originalChat.Tickets {
+		if ticket.TicketId == ticketId {
+			ticketToMove = ticket
+			originalChat.Tickets = append(originalChat.Tickets[:i], originalChat.Tickets[i+1:]...)
+			break
 		}
-		return errors.New("no open or pending tickets with this id")
 	}
 
-	return errors.New("user is not from the workspace")
+	if &ticketToMove == nil {
+		return errors.New("ticket not found")
+	}
+
+	if len(originalChat.Tickets) == 0 {
+		if err := ms.messengerRepo.DeleteChat(originalChat.Id); err != nil {
+			return err
+		}
+	} else {
+		if err := ms.messengerRepo.UpdateChat(originalChat); err != nil {
+			return err
+		}
+	}
+
+	assigneeId, err := ms.getAssigneeIdByTeam(workspaceId, teamName)
+	if err != nil {
+		return err
+	}
+	newChat, err := ms.messengerRepo.FindOrCreateChatByUserId(workspaceID, assigneeId)
+	if err != nil {
+		return err
+	}
+
+	// Add the ticket to the new chat
+	newChat.Tickets = append(newChat.Tickets, ticketToMove)
+	return ms.messengerRepo.UpdateChat(newChat)
 }
 
 func (ms *MessengerServiceImpl) ReassignTicketToMember(userId primitive.ObjectID, ticketId, workspaceId, userEmail string) error {
@@ -143,17 +158,6 @@ func (ms *MessengerServiceImpl) HandleTelegramAccountMessage(ctx *ext.Context, u
 	return ms.broadcastMessageResponse(workspace.WorkspaceId, messageResponse)
 }
 
-func createMessageResponseFromRequest(request model.MessageRequest, email string) *model.MessageResponse {
-	return &model.MessageResponse{
-		TicketId:  request.TicketId,
-		Message:   request.Message,
-		Type:      request.Type,
-		Source:    "platform",
-		Username:  email,
-		CreatedAt: *request.CreatedAt,
-	}
-}
-
 func (ms *MessengerServiceImpl) HandleTelegramBotMessage(token string, message *tgbotapi.Update) error {
 	workspace, err := ms.messengerRepo.FindWorkspaceByTelegramBotToken(token)
 	if err != nil {
@@ -184,76 +188,6 @@ func (ms *MessengerServiceImpl) ValidateUserInWorkspace(userId primitive.ObjectI
 	}
 
 	return errors.New("user does not have the permissions")
-}
-
-func (ms *MessengerServiceImpl) HandleTelegramClientAuth(userId primitive.ObjectID, workspaceId, action, value string) (client.AuthStatus, error) {
-	workspace, err := ms.messengerRepo.FindWorkspaceByWorkspaceId(workspaceId)
-	if err != nil {
-		return "", err
-	}
-	if workspace.Integrations.Telegram != nil {
-		return "", errors.New("telegram integration already exists")
-	}
-
-	if ms.isAdmin(workspace.Team[userId]) || ms.isOwner(workspace.Team[userId]) {
-		switch action {
-		case "phone":
-			err := ms.telegramClientManager.CreateClient(value, workspaceId, ms.HandleTelegramAccountMessage)
-			if err != nil {
-				return "", err
-			}
-
-			if authConversator, ok := ms.telegramClientManager.GetAuthConversator(workspaceId); ok {
-				authConversator.ReceivePhone(value)
-				return authConversator.Status, nil
-			}
-			return "", errors.New("error adding the phone number")
-		case "code":
-			if authConversator, ok := ms.telegramClientManager.GetAuthConversator(workspaceId); ok {
-				authConversator.ReceiveCode(value)
-				if authConversator.Status != client.StatusPassword {
-					if telegramClient, ok := ms.telegramClientManager.GetClient(workspaceId); ok {
-						session, err := telegramClient.ExportStringSession()
-						if err != nil {
-							return "", err
-						}
-
-						workspace.Integrations.Telegram.Session = session
-						workspace.Integrations.Telegram.PhoneNumber = telegramClient.Self.Phone
-						workspace.Integrations.Telegram.IsActive = true
-						err = ms.messengerRepo.UpdateWorkspace(workspace)
-						if err != nil {
-							return "", err
-						}
-					}
-				}
-				return authConversator.Status, nil
-			}
-			return "", errors.New("error validating the code")
-		case "passwd":
-			if authConversator, ok := ms.telegramClientManager.GetAuthConversator(workspaceId); ok {
-				authConversator.ReceivePasswd(value)
-				if telegramClient, ok := ms.telegramClientManager.GetClient(workspaceId); ok {
-					session, err := telegramClient.ExportStringSession()
-					if err != nil {
-						return "", err
-					}
-
-					workspace.Integrations.Telegram.Session = session
-					workspace.Integrations.Telegram.PhoneNumber = telegramClient.Self.Phone
-					workspace.Integrations.Telegram.IsActive = true
-					err = ms.messengerRepo.UpdateWorkspace(workspace)
-					if err != nil {
-						return "", err
-					}
-				}
-				return authConversator.Status, nil
-			}
-			return "", errors.New("error validating the password")
-		}
-	}
-
-	return "", errors.New("user does not have the permissions")
 }
 
 func (ms *MessengerServiceImpl) UpdateTicketStatus(userId primitive.ObjectID, ticketId, workspaceId, status string) error {
@@ -331,55 +265,6 @@ func (ms *MessengerServiceImpl) findTicketBySenderId(workspace *entity.Workspace
 	return existingTicket, nil
 }
 
-func (ms *MessengerServiceImpl) addNewTicketToWorkspace(token string, message *tgbotapi.Update, workspace *entity.Workspace, botMessage *entity.IntegrationsMessage) error {
-	ticketId, _ := utils.GenerateToken()
-	newTicket := entity.Ticket{
-		TicketId:            ticketId,
-		BotToken:            token,
-		SenderId:            message.Message.From.ID,
-		ChatId:              message.Message.Chat.ID,
-		IntegrationMessages: []entity.IntegrationsMessage{*botMessage},
-		Status:              entity.StatusPending,
-		Source:              entity.SourceTelegramBot,
-		SenderUsername:      message.Message.From.UserName,
-		AssignedTo:          primitive.NilObjectID,
-		CreatedAt:           primitive.DateTime(int64(message.Message.Date)),
-	}
-
-	assigneeId, err := ms.getAssigneeId(workspace, workspace.FirstTeam)
-	if err == nil {
-		newTicket.AssignedTo = assigneeId
-	}
-
-	workspace.Tickets = append(workspace.Tickets, newTicket)
-
-	return nil
-}
-
-func (ms *MessengerServiceImpl) addNewTicketToWorkspaceTelegramAccount(workspace *entity.Workspace, tgMessage *entity.IntegrationsMessage, senderId int, chatId int64) error {
-	ticketId, _ := utils.GenerateToken()
-	newTicket := entity.Ticket{
-		TicketId:            ticketId,
-		SenderId:            senderId,
-		ChatId:              chatId,
-		IntegrationMessages: []entity.IntegrationsMessage{*tgMessage},
-		Status:              entity.StatusPending,
-		Source:              entity.SourceTelegramBot,
-		SenderUsername:      "Michael Bay",
-		AssignedTo:          primitive.NilObjectID,
-		CreatedAt:           tgMessage.CreatedAt,
-	}
-
-	assigneeId, err := ms.getAssigneeId(workspace, workspace.FirstTeam)
-	if err == nil {
-		newTicket.AssignedTo = assigneeId
-	}
-
-	workspace.Tickets = append(workspace.Tickets, newTicket)
-
-	return nil
-}
-
 func (ms *MessengerServiceImpl) getAssigneeId(workspace *entity.Workspace, teamName string) (primitive.ObjectID, error) {
 	statusPriority := []entity.UserStatus{entity.StatusAvailable, entity.StatusBusy, entity.StatusOffline}
 
@@ -407,23 +292,39 @@ func (ms *MessengerServiceImpl) getAssigneeId(workspace *entity.Workspace, teamN
 	return ms.findMinAssignee(assignedCount)
 }
 
-func (ms *MessengerServiceImpl) findMinAssignee(assignedCount map[primitive.ObjectID]int) (primitive.ObjectID, error) {
-	var minAssignments int
-	var minAssignee primitive.ObjectID
-	first := true
+func (ms *MessengerServiceImpl) getAssigneeIdByTeam(workspaceId, teamName string) (primitive.ObjectID, error) {
+	workspace, err := ms.messengerRepo.FindWorkspaceByWorkspaceId(workspaceId)
+	if err != nil {
+		return primitive.NilObjectID, err
+	}
 
-	for assignee, count := range assignedCount {
-		if first || count < minAssignments {
-			minAssignee = assignee
-			minAssignments = count
-			first = false
+	if team, exists := workspace.InternalTeams[teamName]; exists {
+		return ms.findLeastBusyMember(team)
+	}
+
+	return primitive.NilObjectID, errors.New("specified team does not exist in the workspace")
+}
+
+func (ms *MessengerServiceImpl) findLeastBusyMember(team map[primitive.ObjectID]entity.UserStatus) (primitive.ObjectID, error) {
+	var leastBusyMember primitive.ObjectID
+	minTickets := int(^uint(0) >> 1)
+
+	for memberId := range team {
+		activeTicketsCount, err := ms.messengerRepo.CountActiveTickets(memberId)
+		if err != nil {
+			continue
+		}
+		if activeTicketsCount < minTickets {
+			minTickets = activeTicketsCount
+			leastBusyMember = memberId
 		}
 	}
 
-	if first {
-		return primitive.NilObjectID, errors.New("no tickets are assigned")
+	if leastBusyMember.IsZero() {
+		return primitive.NilObjectID, errors.New("no suitable team member found")
 	}
-	return minAssignee, nil
+
+	return leastBusyMember, nil
 }
 
 func (ms *MessengerServiceImpl) createMessageEntitiesFromTelegramBot(botToken string, message *tgbotapi.Update) (entity.IntegrationsMessage, *model.MessageResponse) {

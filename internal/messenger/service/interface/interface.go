@@ -44,4 +44,8 @@ type MessengerRepository interface {
 	FindWorkspaceByPhoneNumber(phoneNumber string) (*entity.Workspace, error)
 	FindWorkspaceByTicketId(ticketId string) (*entity.Workspace, error)
 	GetUserById(id primitive.ObjectID) (*entity.User, error)
+	FindChatByWorkspaceIdAndTgClientId(workspaceId primitive.ObjectID, tgClientId int) (*entity.Chat, error)
+	FindChatByTicketID(ticketId string) (*entity.Chat, error)
+	DeleteChat(chatId primitive.ObjectID) error
+	UpdateChat(chat *entity.Chat) error
 }

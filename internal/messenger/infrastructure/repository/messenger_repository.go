@@ -61,11 +61,27 @@ func (mr *MessengerRepositoryImpl) FindWorkspaceByTelegramBotToken(botToken stri
 	return &workspace, nil
 }
 
-func (mr *MessengerRepositoryImpl) FindWorkspaceByPhoneNumber(phoneNumber string) (*entity.Workspace, error) {
-	filter := bson.M{"integrations.telegram.phone_number": phoneNumber}
+func (mr *MessengerRepositoryImpl) FindChatByWorkspaceIdAndTgClientId(workspaceId primitive.ObjectID, tgClientId int) (*entity.Chat, error) {
+	var chat entity.Chat
+	err := mr.database.Collection(mr.config.MongoDB.ChatCollection).FindOne(context.Background(), bson.M{"workspace_id": workspaceId, "tg_user_id": tgClientId}).Decode(&chat)
+	if err != nil {
+		return nil, err
+	}
+	return &chat, nil
+}
 
+func (mr *MessengerRepositoryImpl) FindChatByTicketID(ticketId string) (*entity.Chat, error) {
+	var chat entity.Chat
+	err := mr.database.Collection(mr.config.MongoDB.ChatCollection).FindOne(context.Background(), bson.M{"tickets.ticket_id": ticketId}).Decode(&chat)
+	if err != nil {
+		return nil, err
+	}
+	return &chat, nil
+}
+
+func (mr *MessengerRepositoryImpl) FindWorkspaceByPhoneNumber(phoneNumber string) (*entity.Workspace, error) {
 	var workspace entity.Workspace
-	err := mr.database.Collection(mr.config.MongoDB.WorkspaceCollection).FindOne(context.Background(), filter).Decode(&workspace)
+	err := mr.database.Collection(mr.config.MongoDB.WorkspaceCollection).FindOne(context.Background(), bson.M{"integrations.telegram.phone_number": phoneNumber}).Decode(&workspace)
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
 			return nil, errors.New("workspace not found")
@@ -160,4 +176,17 @@ func (mr *MessengerRepositoryImpl) FindUserByEmail(email string) (primitive.Obje
 	}
 
 	return user.Id, nil
+}
+
+func (mr *MessengerRepositoryImpl) DeleteChat(chatId primitive.ObjectID) error {
+	_, err := mr.database.Collection(mr.config.MongoDB.ChatCollection).DeleteOne(context.Background(), bson.M{"_id": chatId})
+	return err
+}
+
+func (mr *MessengerRepositoryImpl) UpdateChat(chat *entity.Chat) error {
+	_, err := mr.database.Collection(mr.config.MongoDB.ChatCollection).UpdateOne(context.Background(), bson.M{"_id": chat.Id}, bson.M{"$set": chat})
+	if err != nil {
+		return err
+	}
+	return nil
 }

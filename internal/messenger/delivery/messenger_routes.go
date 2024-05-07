@@ -19,10 +19,6 @@ func RegisterMessengerRoutes(e *echo.Echo, cfg *config.Config, db *mongo.Databas
 	is := service.NewMessengerServiceImpl(cfg, ir, wss, tbc, tc)
 	ic := controller.NewMessengerController(cfg, is, wss)
 
-	if err := ic.SetUpTelegramClients(); err != nil {
-		panic(err)
-	}
-
 	integrationGroup := e.Group("/integrations")
 
 	telegramGroup := integrationGroup.Group("/telegram")

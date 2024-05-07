@@ -5,18 +5,6 @@ import (
 	"time"
 )
 
-type Workspace struct {
-	Id            primitive.ObjectID                           `bson:"_id,omitempty"`
-	WorkspaceId   string                                       `bson:"workspace_id"`
-	Name          string                                       `bson:"name"`
-	Team          map[primitive.ObjectID]WorkspaceRole         `bson:"team"`
-	PendingTeam   map[string]WorkspaceRole                     `bson:"pending"`
-	InternalTeams map[string]map[primitive.ObjectID]UserStatus `bson:"teams"`
-	FirstTeam     string                                       `bson:"first_team"`
-	Integrations  Integrations                                 `bson:"integrations"`
-	CreatedAt     primitive.DateTime                           `bson:"created_at"`
-}
-
 type User struct {
 	Id             primitive.ObjectID `bson:"_id,omitempty"`
 	Email          string             `bson:"email"`
@@ -29,7 +17,27 @@ type User struct {
 	CreatedAt      primitive.DateTime `bson:"created_at"`
 }
 
+type Tokens struct {
+	ConfirmToken string `bson:"confirm_token"`
+	OAuth2Token  string `bson:"oauth2_token"`
+	ResetToken   string `bson:"reset_token"`
+	RefreshToken string `bson:"refresh_token"`
+}
+
+type Workspace struct {
+	Id            primitive.ObjectID                           `bson:"_id,omitempty"`
+	WorkspaceId   string                                       `bson:"workspace_id"`
+	Name          string                                       `bson:"name"`
+	Team          map[primitive.ObjectID]WorkspaceRole         `bson:"team"`
+	PendingTeam   map[string]WorkspaceRole                     `bson:"pending"`
+	InternalTeams map[string]map[primitive.ObjectID]UserStatus `bson:"teams"`
+	FirstTeam     string                                       `bson:"first_team"`
+	Integrations  Integrations                                 `bson:"integrations"`
+	CreatedAt     primitive.DateTime                           `bson:"created_at"`
+}
+
 type Chat struct {
+	Id          primitive.ObjectID `bson:"_id,omitempty"`
 	UserId      primitive.ObjectID `bson:"user_id"`
 	WorkspaceId primitive.ObjectID `bson:"workspace_id"`
 	TgClientId  int                `bson:"tg_user_id"`
@@ -41,13 +49,6 @@ type Chat struct {
 	CreatedAt   time.Time          `bson:"created_at"`
 }
 
-type Tokens struct {
-	ConfirmToken string `bson:"confirm_token"`
-	OAuth2Token  string `bson:"oauth2_token"`
-	ResetToken   string `bson:"reset_token"`
-	RefreshToken string `bson:"refresh_token"`
-}
-
 type Comment struct {
 	UserId    primitive.ObjectID `bson:"user_id"`
 	Text      string             `bson:"text"`
@@ -57,7 +58,7 @@ type Comment struct {
 
 type Ticket struct {
 	Id                  primitive.ObjectID    `bson:"_id,omitempty"`
-	TicketId            string                `bson:"ticket_id,omitempty"`
+	TicketId            string                `bson:"ticket_id"`
 	Subject             string                `bson:"subject"`
 	Comments            []Comment             `bson:"comments"`
 	IntegrationMessages []IntegrationsMessage `bson:"integration_messages"`
