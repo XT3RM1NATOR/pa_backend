@@ -13,7 +13,6 @@ import (
 	"github.com/sirupsen/logrus"
 	echoSwagger "github.com/swaggo/echo-swagger"
 	"go.mongodb.org/mongo-driver/mongo"
-	"net/http"
 	"os"
 )
 
@@ -40,13 +39,8 @@ func RunHTTPServer(cfg *config.Config, db *mongo.Database, str *minio.Client) {
 		Format: "${time_rfc3339_nano} [${status}] ${method} ${uri} (${latency_human})\n",
 		Output: logger.Out,
 	}))
-	corsConfig := middleware.CORSConfig{
-		AllowOrigins: []string{"*"},
-		AllowMethods: []string{http.MethodGet, http.MethodPost, http.MethodPut, http.MethodDelete, http.MethodOptions},
-		AllowHeaders: []string{echo.HeaderOrigin, echo.HeaderContentType, echo.HeaderAccept},
-	}
 
-	e.Use(middleware.CORSWithConfig(corsConfig))
+	e.Use(middleware.CORS())
 	e.GET("/swagger/*", echoSwagger.WrapHandler)
 
 	authDelivery.RegisterAuthRoutes(e, cfg, db, str)

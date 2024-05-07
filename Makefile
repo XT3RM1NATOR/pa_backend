@@ -2,7 +2,7 @@
 export
 
 CURRENT_DIR=$(shell pwd)
-APP=pointai_api_gateway
+APP=backend
 CMD_DIR=./cmd
 
 .DEFAULT_GOAL = build
