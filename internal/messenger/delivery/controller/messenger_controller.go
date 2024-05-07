@@ -8,7 +8,6 @@ import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 	"github.com/labstack/echo/v4"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"log"
 	"net/http"
 )
 
@@ -115,10 +114,7 @@ func (mc *MessengerController) WSHandler(c echo.Context) error {
 			}
 
 			if receivedMessage.Source == "telegramBot" {
-				err = mc.messengerService.HandleTelegramPlatformMessageToBot(receivedMessage, workspaceId, userId)
-				if err != nil {
-					log.Println(err)
-				}
+
 			}
 		}
 	}()
@@ -172,18 +168,6 @@ func (mc *MessengerController) ReassignTicketToTeam(c echo.Context) error {
 	return c.JSON(http.StatusOK, model.SuccessResponse{Message: "ticket successfully reassigned to " + teamName})
 }
 
-// CloseTicket updates the status of a support ticket.
-// @Summary Updates the status of a support ticket.
-// @Tags Messenger
-// @Accept json
-// @Produce json
-// @Param status path string true "New status of the ticket"
-// @Param id path string true "Workspace ID"
-// @Param ticket_id path string true "Ticket ID"
-// @Param userId path string true "User ID"
-// @Success 200 {object} model.SuccessResponse "Ticket status updated successfully"
-// @Failure 500 {object} model.ErrorResponse "Internal server error, failed to update ticket status"
-// @Router /messenger/ticket/{status}/{id}/{ticket_id} [put]
 func (mc *MessengerController) CloseTicket(c echo.Context) error {
 	status, ticketId, workspaceId := c.Param("status"), c.Param("ticket_id"), c.Param("id")
 	userId := c.Request().Context().Value("userId").(primitive.ObjectID)
@@ -193,11 +177,4 @@ func (mc *MessengerController) CloseTicket(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, model.SuccessResponse{Message: "ticket status updated successfully"})
-}
-
-func (mc *MessengerController) SetUpTelegramClients() error {
-	if err := mc.messengerService.SetUpTelegramClients(); err != nil {
-		return err
-	}
-	return nil
 }
