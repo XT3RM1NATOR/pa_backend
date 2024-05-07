@@ -27,7 +27,7 @@ func NewSystemController(cfg *config.Config, systemService _interface.SystemServ
 // @Tags System
 // @Accept json
 // @Produce json
-// @Param request body CreateWorkspaceRequest true "Workspace details"
+// @Param request body model.CreateWorkspaceRequest true "Workspace details"
 // @Success 201 {object} model.SuccessResponse "Workspace added successfully"
 // @Failure 400 {object} model.ErrorResponse "Bad request"
 // @Failure 500 {object} model.ErrorResponse "Internal server error"
@@ -46,6 +46,17 @@ func (sc *SystemController) CreateWorkspace(c echo.Context) error {
 	return c.JSON(http.StatusCreated, model.SuccessResponse{Message: "workspace added successfully"})
 }
 
+// AddTeamsMembers adds a new member to a team.
+// @Summary Adds a new member to a team.
+// @Tags System
+// @Accept json
+// @Produce json
+// @Param request body model.AddTeamMembersRequest true "Team member details"
+// @Param userId path string true "User ID"
+// @Success 201 {object} model.SuccessResponse "User added to the team successfully"
+// @Failure 400 {object} model.ErrorResponse "Bad request, unable to parse the request body"
+// @Failure 500 {object} model.ErrorResponse "Internal server error, failed to add the team member"
+// @Router /system/teams [post]
 func (sc *SystemController) AddTeamsMembers(c echo.Context) error {
 	var request model.AddTeamMembersRequest
 	if err := c.Bind(&request); err != nil {
@@ -60,6 +71,17 @@ func (sc *SystemController) AddTeamsMembers(c echo.Context) error {
 	return c.JSON(http.StatusCreated, model.SuccessResponse{Message: "user added to the team"})
 }
 
+// UpdateMemberStatus updates the status of a workspace member.
+// @Summary Updates the status of a member within a workspace.
+// @Tags System
+// @Accept json
+// @Produce json
+// @Param id path string true "Workspace ID"
+// @Param status path string true "New status"
+// @Param userId path string true "User ID"
+// @Success 201 {object} model.SuccessResponse "Status updated successfully"
+// @Failure 500 {object} model.ErrorResponse "Internal server error, failed to update member status"
+// @Router /system/workspace/{id}/status/{status} [put]
 func (sc *SystemController) UpdateMemberStatus(c echo.Context) error {
 	status, workspaceId := c.Param("status"), c.Param("id")
 	userId := c.Request().Context().Value("userId").(primitive.ObjectID)
@@ -71,6 +93,17 @@ func (sc *SystemController) UpdateMemberStatus(c echo.Context) error {
 	return c.JSON(http.StatusCreated, model.SuccessResponse{Message: "status updated"})
 }
 
+// SetFirstTeam sets the first team for a user in a workspace.
+// @Summary Sets the first team for a user in a specific workspace.
+// @Tags System
+// @Accept json
+// @Produce json
+// @Param name path string true "Team name"
+// @Param id path string true "Workspace ID"
+// @Param userId path string true "User ID"
+// @Success 201 {object} model.SuccessResponse "First team set successfully"
+// @Failure 500 {object} model.ErrorResponse "Internal server error, failed to set the first team"
+// @Router /system/teams/{id}/{name} [post]
 func (sc *SystemController) SetFirstTeam(c echo.Context) error {
 	teamName, workspaceId := c.Param("name"), c.Param("id")
 	userId := c.Request().Context().Value("userId").(primitive.ObjectID)
@@ -163,7 +196,7 @@ func (sc *SystemController) GetAllWorkspaces(c echo.Context) error {
 // @Accept json
 // @Produce json
 // @Param id path string true "Workspace id"
-// @Param request body UpdateWorkspaceRequest true "Updated Workspace details"
+// @Param request body model.UpdateWorkspaceRequest true "Updated Workspace details"
 // @Success 200 {object} model.SuccessResponse "Workspace updated successfully"
 // @Failure 400 {object} model.ErrorResponse "Bad request"
 // @Failure 500 {object} model.ErrorResponse "Internal server error"
@@ -189,7 +222,7 @@ func (sc *SystemController) UpdateWorkspace(c echo.Context) error {
 // @Tags System
 // @Accept json
 // @Produce json
-// @Param request body AddWorkspaceMemberRequest true "Member details"
+// @Param request body model.AddWorkspaceMemberRequest true "Member details"
 // @Success 200 {object} model.SuccessResponse "Users added successfully"
 // @Failure 400 {object} model.ErrorResponse "Bad request"
 // @Failure 500 {object} model.ErrorResponse "Internal server error"
@@ -214,7 +247,7 @@ func (sc *SystemController) AddWorkspaceMembers(c echo.Context) error {
 // @Tags System
 // @Accept json
 // @Produce json
-// @Param request body UpdateWorkspaceMemberRequest true "Updated member details"
+// @Param request body model.UpdateWorkspaceMemberRequest true "Updated member details"
 // @Success 200 {object} model.SuccessResponse "Users updated successfully"
 // @Failure 400 {object} model.ErrorResponse "Bad request"
 // @Failure 500 {object} model.ErrorResponse "Internal server error"
