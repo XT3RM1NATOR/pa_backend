@@ -65,7 +65,7 @@ type Ticket struct {
 	ResponseMessages    []ResponseMessage     `bson:"response_messages"`
 	Status              TicketStatus          `bson:"status"`
 	CreatedAt           primitive.DateTime    `bson:"created_at"`
-	ResolvedAt          *primitive.DateTime   `bson:"resolved_at,omitempty"`
+	ResolvedAt          primitive.DateTime    `bson:"resolved_at,omitempty"`
 }
 
 type ResponseMessage struct {

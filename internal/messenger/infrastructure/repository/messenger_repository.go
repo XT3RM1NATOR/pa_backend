@@ -70,9 +70,9 @@ func (mr *MessengerRepositoryImpl) FindChatByWorkspaceIdAndTgClientId(workspaceI
 	return &chat, nil
 }
 
-func (mr *MessengerRepositoryImpl) FindChatByTicketID(ticketId string) (*entity.Chat, error) {
+func (mr *MessengerRepositoryImpl) FindChatByTicketId(ctx mongo.SessionContext, ticketId string) (*entity.Chat, error) {
 	var chat entity.Chat
-	err := mr.database.Collection(mr.config.MongoDB.ChatCollection).FindOne(context.Background(), bson.M{"tickets.ticket_id": ticketId}).Decode(&chat)
+	err := mr.database.Collection(mr.config.MongoDB.ChatCollection).FindOne(ctx, bson.M{"tickets.ticket_id": ticketId}).Decode(&chat)
 	if err != nil {
 		return nil, err
 	}
@@ -131,14 +131,76 @@ func (mr *MessengerRepositoryImpl) GetAllWorkspaceRepositories() ([]*entity.Work
 	return workspaces, nil
 }
 
-func (mr *MessengerRepositoryImpl) FindWorkspaceByWorkspaceId(workspaceId string) (*entity.Workspace, error) {
+func (mr *MessengerRepositoryImpl) FindWorkspaceByWorkspaceId(ctx mongo.SessionContext, workspaceId string) (*entity.Workspace, error) {
 	var workspace entity.Workspace
-	err := mr.database.Collection(mr.config.MongoDB.WorkspaceCollection).FindOne(context.Background(), bson.M{"workspace_id": workspaceId}).Decode(&workspace)
+	err := mr.database.Collection(mr.config.MongoDB.WorkspaceCollection).FindOne(ctx, bson.M{"workspace_id": workspaceId}).Decode(&workspace)
 	if err != nil {
-		return &workspace, err
+		return nil, err
+	}
+	return &workspace, nil
+}
+
+func (mr *MessengerRepositoryImpl) FindWorkspaceById(id primitive.ObjectID) (*entity.Workspace, error) {
+	var workspace entity.Workspace
+	err := mr.database.Collection(mr.config.MongoDB.WorkspaceCollection).FindOne(context.Background(), bson.M{"_id": id}).Decode(&workspace)
+	if err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return nil, errors.New("workspace not found")
+		}
+		return nil, err
+	}
+	return &workspace, nil
+}
+
+func (mr *MessengerRepositoryImpl) FindChatByUserId(ctx mongo.SessionContext, tgClientId int, workspaceId, assigneeId primitive.ObjectID) (*entity.Chat, error) {
+	filter := bson.M{"workspace_id": workspaceId, "user_id": assigneeId, "tg_client_id": tgClientId}
+	var chat entity.Chat
+	err := mr.database.Collection(mr.config.MongoDB.ChatCollection).FindOne(ctx, filter).Decode(&chat)
+	if err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &chat, nil
+}
+
+func (mr *MessengerRepositoryImpl) InsertNewChat(ctx mongo.SessionContext, chat *entity.Chat) error {
+	if chat == nil {
+		return errors.New("chat cannot be nil")
 	}
 
-	return &workspace, nil
+	_, err := mr.database.Collection(mr.config.MongoDB.ChatCollection).InsertOne(ctx, chat)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (mr *MessengerRepositoryImpl) CountActiveTickets(memberId primitive.ObjectID) (int, error) {
+	filter := bson.M{
+		"user_id":        memberId,
+		"tickets.status": entity.StatusOpen,
+	}
+	pipeline := mongo.Pipeline{
+		{{"$match", filter}},
+		{{"$unwind", "$tickets"}},
+		{{"$match", bson.M{"tickets.status": "open"}}},
+		{{"$count", "activeTickets"}},
+	}
+	cursor, err := mr.database.Collection(mr.config.MongoDB.ChatCollection).Aggregate(context.Background(), pipeline)
+	if err != nil {
+		return 0, err
+	}
+	var results []bson.M
+	if err := cursor.All(context.Background(), &results); err != nil {
+		return 0, err
+	}
+	if len(results) == 0 {
+		return 0, nil
+	}
+	return int(results[0]["activeTickets"].(int32)), nil
 }
 
 func (mr *MessengerRepositoryImpl) GetUserById(id primitive.ObjectID) (*entity.User, error) {
@@ -168,25 +230,35 @@ func (mr *MessengerRepositoryImpl) CheckBotExists(botToken string) (bool, error)
 	return false, nil
 }
 
-func (mr *MessengerRepositoryImpl) FindUserByEmail(email string) (primitive.ObjectID, error) {
+func (mr *MessengerRepositoryImpl) FindUserByEmail(ctx mongo.SessionContext, email string) (primitive.ObjectID, error) {
 	var user entity.User
-	err := mr.database.Collection(mr.config.MongoDB.UserCollection).FindOne(context.Background(), bson.M{"email": email}).Decode(&user)
+	err := mr.database.Collection(mr.config.MongoDB.UserCollection).FindOne(ctx, bson.M{"email": email}).Decode(&user)
 	if err != nil {
 		return primitive.ObjectID{}, err
 	}
-
 	return user.Id, nil
 }
 
-func (mr *MessengerRepositoryImpl) DeleteChat(chatId primitive.ObjectID) error {
-	_, err := mr.database.Collection(mr.config.MongoDB.ChatCollection).DeleteOne(context.Background(), bson.M{"_id": chatId})
+func (mr *MessengerRepositoryImpl) DeleteChat(ctx mongo.SessionContext, chatId primitive.ObjectID) error {
+	_, err := mr.database.Collection(mr.config.MongoDB.ChatCollection).DeleteOne(ctx, bson.M{"_id": chatId})
 	return err
 }
 
-func (mr *MessengerRepositoryImpl) UpdateChat(chat *entity.Chat) error {
-	_, err := mr.database.Collection(mr.config.MongoDB.ChatCollection).UpdateOne(context.Background(), bson.M{"_id": chat.Id}, bson.M{"$set": chat})
+func (mr *MessengerRepositoryImpl) UpdateChat(ctx mongo.SessionContext, chat *entity.Chat) error {
+	if chat == nil {
+		return errors.New("chat cannot be nil")
+	}
+	_, err := mr.database.Collection(mr.config.MongoDB.ChatCollection).UpdateOne(ctx, bson.M{"_id": chat.Id}, bson.M{"$set": chat})
 	if err != nil {
 		return err
 	}
 	return nil
+}
+
+func (mr *MessengerRepositoryImpl) StartSession() (mongo.Session, error) {
+	session, err := mr.database.Client().StartSession()
+	if err != nil {
+		return nil, err
+	}
+	return session, nil
 }

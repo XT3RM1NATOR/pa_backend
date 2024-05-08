@@ -26,6 +26,26 @@ type TelegramAuthRequest struct {
 	Code          string `json:"code"`
 }
 
+type ReassignTicketToTeamRequest struct {
+	WorkspaceId string `json:"workspace_id"`
+	TeamName    string `json:"team_name"`
+	TicketId    string `json:"ticket_id"`
+	TgClientId  int    `json:"tg_client_id"`
+}
+
+type ReassignTicketToUserRequest struct {
+	WorkspaceId string `json:"workspace_id"`
+	Email       string `json:"email"`
+	TicketId    string `json:"ticket_id"`
+	TgClientId  int    `json:"tg_client_id"`
+}
+
+type ChangeTicketStatusRequest struct {
+	TicketId    string `json:"ticket_id"`
+	WorkspaceId string `json:"workspace_id"`
+	Status      string `json:"status"`
+}
+
 // Responses
 
 type ErrorResponse struct {
