@@ -14,7 +14,7 @@ type User struct {
 	FullName       string             `bson:"name"`
 	PendingInvites []string           `bson:"pending_invites"`
 	Tokens         Tokens             `bson:"tokens"`
-	CreatedAt      primitive.DateTime `bson:"created_at"`
+	CreatedAt      time.Time          `bson:"created_at"`
 }
 
 type Tokens struct {
@@ -34,46 +34,47 @@ type Workspace struct {
 	FirstTeam     string                                       `bson:"first_team"`
 	Integrations  Integrations                                 `bson:"integrations"`
 	Folders       map[string][]string                          `bson:"folders"`
-	CreatedAt     primitive.DateTime                           `bson:"created_at"`
+	CreatedAt     time.Time                                    `bson:"created_at"`
 }
 
 type Chat struct {
 	Id          primitive.ObjectID `bson:"_id,omitempty"`
 	UserId      primitive.ObjectID `bson:"user_id"`
 	WorkspaceId primitive.ObjectID `bson:"workspace_id"`
+	ChatId      string             `bson:"chat_id"`
 	TgClientId  int                `bson:"tg_user_id"`
 	Tags        []string           `bson:"tags"`
-	Comments    []Comment          `bson:"comments"`
+	Notes       []Note             `bson:"notes"`
 	Tickets     []Ticket           `bson:"tickets"`
 	Source      ChatSource         `bson:"source"`
 	CreatedAt   time.Time          `bson:"created_at"`
 }
 
-type Comment struct {
+type Note struct {
 	UserId    primitive.ObjectID `bson:"user_id"`
 	Text      string             `bson:"text"`
-	CreatedAt primitive.DateTime `bson:"created_at"`
-	CommentId string             `bson:"comment_id"`
+	CreatedAt time.Time          `bson:"created_at"`
+	NoteId    string             `bson:"note_id"`
 }
 
 type Ticket struct {
 	Id                  primitive.ObjectID    `bson:"_id,omitempty"`
 	TicketId            string                `bson:"ticket_id"`
 	Subject             string                `bson:"subject"`
-	Comments            []Comment             `bson:"comments"`
+	Notes               []Note                `bson:"notes"`
 	IntegrationMessages []IntegrationsMessage `bson:"integration_messages"`
 	ResponseMessages    []ResponseMessage     `bson:"response_messages"`
 	Status              TicketStatus          `bson:"status"`
-	CreatedAt           primitive.DateTime    `bson:"created_at"`
-	ResolvedAt          primitive.DateTime    `bson:"resolved_at,omitempty"`
+	CreatedAt           time.Time             `bson:"created_at"`
+	ResolvedAt          time.Time             `bson:"resolved_at,omitempty"`
 }
 
 type ResponseMessage struct {
-	Id        primitive.ObjectID  `bson:"_id,omitempty"`
-	SenderId  primitive.ObjectID  `bson:"sender_id,omitempty"`
-	Message   string              `bson:"message"`
-	Type      MessageType         `bson:"type"`
-	CreatedAt *primitive.DateTime `bson:"created_at,omitempty"`
+	Id        primitive.ObjectID `bson:"_id,omitempty"`
+	SenderId  primitive.ObjectID `bson:"sender_id,omitempty"`
+	Message   string             `bson:"message"`
+	Type      MessageType        `bson:"type"`
+	CreatedAt *time.Time         `bson:"created_at,omitempty"`
 }
 
 type IntegrationsMessage struct {
@@ -84,7 +85,7 @@ type IntegrationsMessage struct {
 	Message     string             `bson:"message"`
 	From        string             `bson:"from"`
 	Type        MessageType        `bson:"type"`
-	CreatedAt   primitive.DateTime `bson:"created_at,omitempty"`
+	CreatedAt   time.Time          `bson:"created_at,omitempty"`
 }
 
 type Integrations struct {
@@ -134,35 +135,17 @@ type TicketStatus string
 type UserStatus string
 
 const (
-	TypeText                  MessageType = "text"
-	TypeImage                 MessageType = "image"
-	TypeAudio                 MessageType = "audio"
-	TypeDocument              MessageType = "document"
-	TypeSticker               MessageType = "sticker"
-	TypeVideo                 MessageType = "video"
-	TypeVoice                 MessageType = "voice"
-	TypeVideoNote             MessageType = "video_note"
-	TypeGif                   MessageType = "gif"
-	TypeLocation              MessageType = "location"
-	TypeContact               MessageType = "contact"
-	TypeVenue                 MessageType = "venue"
-	TypeNewChatMembers        MessageType = "new_chat_members"
-	TypeLeftChatMember        MessageType = "left_chat_member"
-	TypeNewChatTitle          MessageType = "new_chat_title"
-	TypeNewChatPhoto          MessageType = "new_chat_photo"
-	TypeDeleteChatPhoto       MessageType = "delete_chat_photo"
-	TypeGroupChatCreated      MessageType = "group_chat_created"
-	TypeSupergroupChatCreated MessageType = "supergroup_chat_created"
-	TypeChannelChatCreated    MessageType = "channel_chat_created"
-	TypeMigrateToChatID       MessageType = "migrate_to_chat_id"
-	TypeMigrateFromChatID     MessageType = "migrate_from_chat_id"
-	TypePinnedMessage         MessageType = "pinned_message"
-	TypeInvoice               MessageType = "invoice"
-	TypeSuccessfulPayment     MessageType = "successful_payment"
-	TypeConnectedWebsite      MessageType = "connected_website"
-	TypePassportData          MessageType = "passport_data"
-	TypeAnimation             MessageType = "animation"
-	TypeGame                  MessageType = "game"
+	TypeChatNote   MessageType = "chat_note"
+	TypeTicketNote MessageType = "ticket_note"
+	TypeText       MessageType = "text"
+	TypeImage      MessageType = "image"
+	TypeAudio      MessageType = "audio"
+	TypeDocument   MessageType = "document"
+	TypeSticker    MessageType = "sticker"
+	TypeVideo      MessageType = "video"
+	TypeVoice      MessageType = "voice"
+	TypeVideoNote  MessageType = "video_note"
+	TypeGif        MessageType = "gif"
 )
 
 const (

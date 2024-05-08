@@ -46,7 +46,6 @@ func (mc *MessengerController) WSHandler(c echo.Context) error {
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, model.ErrorResponse{Error: err.Error()})
 	}
-	//mc.websocketService.
 
 	go func() {
 		defer mc.websocketService.RemoveConnection(workspaceId, ws)
@@ -61,7 +60,7 @@ func (mc *MessengerController) WSHandler(c echo.Context) error {
 				continue
 			}
 
-			if receivedMessage.Source == "telegramBot" {
+			if err = mc.messengerService.HandleMessage(userId, workspaceId, receivedMessage.TicketId, receivedMessage.ChatId, receivedMessage.Type, receivedMessage.Message); err != nil {
 
 			}
 		}
@@ -90,7 +89,7 @@ func (mc *MessengerController) ReassignTicketToTeam(c echo.Context) error {
 	}
 
 	userId := c.Request().Context().Value("userId").(primitive.ObjectID)
-	if err := mc.messengerService.ReassignTicketToTeam(userId, request.TgClientId, request.TicketId, request.WorkspaceId, request.TeamName); err != nil {
+	if err := mc.messengerService.ReassignTicketToTeam(userId, request.ChatId, request.TicketId, request.WorkspaceId, request.TeamName); err != nil {
 		return c.JSON(http.StatusInternalServerError, model.ErrorResponse{Error: err.Error()})
 	}
 
@@ -117,7 +116,7 @@ func (mc *MessengerController) ReassignTicketToMember(c echo.Context) error {
 	}
 
 	userId := c.Request().Context().Value("userId").(primitive.ObjectID)
-	if err := mc.messengerService.ReassignTicketToUser(userId, request.TgClientId, request.TicketId, request.WorkspaceId, request.Email); err != nil {
+	if err := mc.messengerService.ReassignTicketToUser(userId, request.ChatId, request.TicketId, request.WorkspaceId, request.Email); err != nil {
 		return c.JSON(http.StatusInternalServerError, model.ErrorResponse{Error: err.Error()})
 	}
 
@@ -144,7 +143,7 @@ func (mc *MessengerController) UpdateChatInfo(c echo.Context) error {
 	}
 
 	userId := c.Request().Context().Value("userId").(primitive.ObjectID)
-	if err := mc.messengerService.UpdateChatInfo(userId, request.TgClientId, request.Tags, request.WorkspaceId); err != nil {
+	if err := mc.messengerService.UpdateChatInfo(userId, request.ChatId, request.Tags, request.WorkspaceId); err != nil {
 		return c.JSON(http.StatusInternalServerError, model.ErrorResponse{Error: err.Error()})
 	}
 

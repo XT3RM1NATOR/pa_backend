@@ -22,13 +22,6 @@ definitions:
       error:
         type: string
     type: object
-  github_com_Point-AI_backend_internal_messenger_delivery_model.RegisterBotRequest:
-    properties:
-      bot_token:
-        type: string
-      workspace_id:
-        type: string
-    type: object
   github_com_Point-AI_backend_internal_messenger_delivery_model.SuccessResponse:
     properties:
       message:
@@ -68,6 +61,17 @@ definitions:
         items:
           type: string
         type: array
+      workspace_id:
+        type: string
+    type: object
+  github_com_Point-AI_backend_internal_system_delivery_model.EditFoldersRequest:
+    properties:
+      folders:
+        additionalProperties:
+          items:
+            type: string
+          type: array
+        type: object
       workspace_id:
         type: string
     type: object
@@ -246,48 +250,57 @@ paths:
             $ref: '#/definitions/github_com_Point-AI_backend_internal_api_delivery_model.ErrorResponse'
       tags:
       - HelpDesk
-  /integrations/telegram/bots:
-    post:
+  /messenger/chat:
+    put:
       consumes:
       - application/json
       parameters:
+      - description: Workspace ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Telegram client ID
+        in: path
+        name: tg_client_id
+        required: true
+        type: string
+      - description: Tags of the chat
+        in: path
+        name: tags
+        required: true
+        type: string
       - description: User ID
         in: path
         name: userId
         required: true
         type: string
-      - description: Bot registration details
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/github_com_Point-AI_backend_internal_messenger_delivery_model.RegisterBotRequest'
       produces:
       - application/json
       responses:
-        "201":
-          description: Bot added successfully
+        "200":
+          description: Chat information updated successfully
           schema:
             $ref: '#/definitions/github_com_Point-AI_backend_internal_messenger_delivery_model.SuccessResponse'
         "400":
-          description: Bad request, unable to parse the request body
+          description: Invalid request parameters
           schema:
             $ref: '#/definitions/github_com_Point-AI_backend_internal_messenger_delivery_model.ErrorResponse'
         "500":
-          description: Internal server error, failed to register the bot
+          description: Internal server error, failed to update chat information
           schema:
             $ref: '#/definitions/github_com_Point-AI_backend_internal_messenger_delivery_model.ErrorResponse'
-      summary: Registers a new bot integration.
+      summary: Updates chat information.
       tags:
       - Messenger
-  /messenger/ticket/{status}/{id}/{ticket_id}:
+  /messenger/ticket:
     put:
       consumes:
       - application/json
       parameters:
-      - description: New status of the ticket
+      - description: Ticket ID
         in: path
-        name: status
+        name: ticket_id
         required: true
         type: string
       - description: Workspace ID
@@ -295,9 +308,9 @@ paths:
         name: id
         required: true
         type: string
-      - description: Ticket ID
+      - description: New status of the ticket
         in: path
-        name: ticket_id
+        name: status
         required: true
         type: string
       - description: User ID
@@ -312,14 +325,18 @@ paths:
           description: Ticket status updated successfully
           schema:
             $ref: '#/definitions/github_com_Point-AI_backend_internal_messenger_delivery_model.SuccessResponse'
+        "400":
+          description: Invalid request parameters
+          schema:
+            $ref: '#/definitions/github_com_Point-AI_backend_internal_messenger_delivery_model.ErrorResponse'
         "500":
           description: Internal server error, failed to update ticket status
           schema:
             $ref: '#/definitions/github_com_Point-AI_backend_internal_messenger_delivery_model.ErrorResponse'
-      summary: Updates the status of a support ticket.
+      summary: Changes the status of a support ticket.
       tags:
       - Messenger
-  /messenger/ticket/reassign/member/{ticket_id}/{id}/{email}:
+  /messenger/ticket/reassign/member:
     post:
       consumes:
       - application/json
@@ -334,7 +351,7 @@ paths:
         name: id
         required: true
         type: string
-      - description: Member email
+      - description: Email of the member
         in: path
         name: email
         required: true
@@ -351,14 +368,18 @@ paths:
           description: Ticket successfully reassigned to member
           schema:
             $ref: '#/definitions/github_com_Point-AI_backend_internal_messenger_delivery_model.SuccessResponse'
+        "400":
+          description: Invalid request parameters
+          schema:
+            $ref: '#/definitions/github_com_Point-AI_backend_internal_messenger_delivery_model.ErrorResponse'
         "500":
           description: Internal server error, failed to reassign ticket
           schema:
             $ref: '#/definitions/github_com_Point-AI_backend_internal_messenger_delivery_model.ErrorResponse'
-      summary: Reassigns a support ticket to a member.
+      summary: Reassigns a support ticket to a team member.
       tags:
       - Messenger
-  /messenger/ticket/reassign/team/{ticket_id}/{id}/{name}:
+  /messenger/ticket/reassign/team:
     post:
       consumes:
       - application/json
@@ -390,6 +411,10 @@ paths:
           description: Ticket successfully reassigned to team
           schema:
             $ref: '#/definitions/github_com_Point-AI_backend_internal_messenger_delivery_model.SuccessResponse'
+        "400":
+          description: Invalid request parameters
+          schema:
+            $ref: '#/definitions/github_com_Point-AI_backend_internal_messenger_delivery_model.ErrorResponse'
         "500":
           description: Internal server error, failed to reassign ticket
           schema:
@@ -666,6 +691,35 @@ paths:
           schema:
             $ref: '#/definitions/github_com_Point-AI_backend_internal_system_delivery_model.ErrorResponse'
       summary: Updates the status of a member within a workspace.
+      tags:
+      - System
+  /system/workspace/folders:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: folders
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_Point-AI_backend_internal_system_delivery_model.EditFoldersRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: folders updated successfully
+          schema:
+            $ref: '#/definitions/github_com_Point-AI_backend_internal_system_delivery_model.SuccessResponse'
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/github_com_Point-AI_backend_internal_system_delivery_model.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/github_com_Point-AI_backend_internal_system_delivery_model.ErrorResponse'
+      summary: Returns users in the Workspace.
       tags:
       - System
   /system/workspace/leave/{id}:

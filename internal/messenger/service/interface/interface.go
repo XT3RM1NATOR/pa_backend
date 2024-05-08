@@ -45,7 +45,7 @@ type MessengerRepository interface {
 	FindWorkspaceByPhoneNumber(phoneNumber string) (*entity.Workspace, error)
 	FindWorkspaceByTicketId(ticketId string) (*entity.Workspace, error)
 	GetUserById(id primitive.ObjectID) (*entity.User, error)
-	FindChatByWorkspaceIdAndTgClientId(workspaceId primitive.ObjectID, tgClientId int) (*entity.Chat, error)
+	FindChatByWorkspaceIdAndChatId(workspaceId primitive.ObjectID, chatId string) (*entity.Chat, error)
 	FindChatByTicketId(ctx mongo.SessionContext, ticketId string) (*entity.Chat, error)
 	DeleteChat(ctx mongo.SessionContext, chatId primitive.ObjectID) error
 	UpdateChat(ctx mongo.SessionContext, chat *entity.Chat) error
@@ -54,4 +54,5 @@ type MessengerRepository interface {
 	InsertNewChat(ctx mongo.SessionContext, chat *entity.Chat) error
 	CountActiveTickets(memberId primitive.ObjectID) (int, error)
 	StartSession() (mongo.Session, error)
+	FindChatByChatId(chatId string) (*entity.Chat, error)
 }

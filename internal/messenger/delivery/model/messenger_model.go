@@ -1,7 +1,7 @@
 package model
 
 import (
-	"go.mongodb.org/mongo-driver/bson/primitive"
+	"time"
 )
 
 // Requests
@@ -12,11 +12,10 @@ type RegisterBotRequest struct {
 }
 
 type MessageRequest struct {
-	TicketId  string              `json:"ticket_id"`
-	Message   string              `json:"message"`
-	Type      string              `json:"type"`
-	Source    string              `json:"source"`
-	CreatedAt *primitive.DateTime `json:"created_at,omitempty"`
+	TicketId string `json:"ticket_id"`
+	ChatId   string `json:"chat_id"`
+	Message  string `json:"message"`
+	Type     string `json:"type"`
 }
 
 type TelegramAuthRequest struct {
@@ -30,14 +29,14 @@ type ReassignTicketToTeamRequest struct {
 	WorkspaceId string `json:"workspace_id"`
 	TeamName    string `json:"team_name"`
 	TicketId    string `json:"ticket_id"`
-	TgClientId  int    `json:"tg_client_id"`
+	ChatId      string `json:"tg_client_id"`
 }
 
 type ReassignTicketToUserRequest struct {
 	WorkspaceId string `json:"workspace_id"`
 	Email       string `json:"email"`
 	TicketId    string `json:"ticket_id"`
-	TgClientId  int    `json:"tg_client_id"`
+	ChatId      string `json:"tg_client_id"`
 }
 
 type ChangeTicketStatusRequest struct {
@@ -47,7 +46,7 @@ type ChangeTicketStatusRequest struct {
 }
 
 type UpdateChatInfoRequest struct {
-	TgClientId  int      `json:"tg_client_id"`
+	ChatId      string   `json:"tg_client_id"`
 	WorkspaceId string   `json:"workspace_id"`
 	Tags        []string `json:"tags"`
 }
@@ -63,13 +62,12 @@ type SuccessResponse struct {
 }
 
 type MessageResponse struct {
-	TicketId  string             `json:"ticket_id"`
-	Message   string             `json:"message"`
-	Content   []byte             `json:"content"`
-	Type      string             `json:"type"`
-	Source    string             `json:"source"`
-	Username  string             `json:"username"`
-	CreatedAt primitive.DateTime `json:"created_at"`
+	TicketId  string    `json:"ticket_id"`
+	ChatId    string    `json:"chat_id"`
+	Message   string    `json:"message"`
+	Content   []byte    `json:"content"`
+	Type      string    `json:"type"`
+	CreatedAt time.Time `json:"created_at"`
 }
 
 type TelegramStatusResponse struct {

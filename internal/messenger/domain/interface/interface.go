@@ -8,12 +8,13 @@ import (
 )
 
 type MessengerService interface {
-	ReassignTicketToTeam(userId primitive.ObjectID, tgClientId int, ticketId, workspaceId, teamName string) error
-	ReassignTicketToUser(userId primitive.ObjectID, tgClientId int, ticketId, workspaceId, email string) error
+	ReassignTicketToTeam(userId primitive.ObjectID, chatId string, ticketId, workspaceId, teamName string) error
+	ReassignTicketToUser(userId primitive.ObjectID, chatId string, ticketId, workspaceId, email string) error
 	ValidateUserInWorkspace(userId primitive.ObjectID, workspace *entity.Workspace) error
 	UpdateTicketStatus(userId primitive.ObjectID, ticketId, workspaceId, status string) error
 	ValidateUserInWorkspaceById(userId primitive.ObjectID, workspaceId string) error
-	UpdateChatInfo(userId primitive.ObjectID, tgClientId int, tags []string, workspaceId string) error
+	UpdateChatInfo(userId primitive.ObjectID, chatId string, tags []string, workspaceId string) error
+	HandleMessage(userId primitive.ObjectID, workspaceId, ticketId, chatId, messageType, message string) error
 }
 
 type WebsocketService interface {

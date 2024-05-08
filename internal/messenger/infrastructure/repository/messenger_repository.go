@@ -61,9 +61,18 @@ func (mr *MessengerRepositoryImpl) FindWorkspaceByTelegramBotToken(botToken stri
 	return &workspace, nil
 }
 
-func (mr *MessengerRepositoryImpl) FindChatByWorkspaceIdAndTgClientId(workspaceId primitive.ObjectID, tgClientId int) (*entity.Chat, error) {
+func (mr *MessengerRepositoryImpl) FindChatByWorkspaceIdAndChatId(workspaceId primitive.ObjectID, chatId string) (*entity.Chat, error) {
 	var chat entity.Chat
-	err := mr.database.Collection(mr.config.MongoDB.ChatCollection).FindOne(context.Background(), bson.M{"workspace_id": workspaceId, "tg_user_id": tgClientId}).Decode(&chat)
+	err := mr.database.Collection(mr.config.MongoDB.ChatCollection).FindOne(context.Background(), bson.M{"workspace_id": workspaceId, "chat_id": chatId}).Decode(&chat)
+	if err != nil {
+		return nil, err
+	}
+	return &chat, nil
+}
+
+func (mr *MessengerRepositoryImpl) FindChatByChatId(chatId string) (*entity.Chat, error) {
+	var chat entity.Chat
+	err := mr.database.Collection(mr.config.MongoDB.ChatCollection).FindOne(context.Background(), bson.M{"chat_id": chatId}).Decode(&chat)
 	if err != nil {
 		return nil, err
 	}

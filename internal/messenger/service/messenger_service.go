@@ -8,6 +8,7 @@ import (
 	"github.com/Point-AI/backend/internal/messenger/domain/entity"
 	_interface "github.com/Point-AI/backend/internal/messenger/domain/interface"
 	infrastructureInterface "github.com/Point-AI/backend/internal/messenger/service/interface"
+	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"time"
@@ -66,7 +67,7 @@ func (ms *MessengerServiceImpl) RegisterBotIntegration(userId primitive.ObjectID
 	return errors.New("user does not have the permissions")
 }
 
-func (ms *MessengerServiceImpl) ReassignTicketToTeam(userId primitive.ObjectID, tgClientId int, ticketId, workspaceId, teamName string) error {
+func (ms *MessengerServiceImpl) ReassignTicketToTeam(userId primitive.ObjectID, chatId string, ticketId, workspaceId, teamName string) error {
 	session, err := ms.messengerRepo.StartSession()
 	if err != nil {
 		return err
@@ -122,7 +123,7 @@ func (ms *MessengerServiceImpl) ReassignTicketToTeam(userId primitive.ObjectID, 
 			return err
 		}
 
-		chat, err := ms.messengerRepo.FindChatByUserId(sc, tgClientId, workspace.Id, assigneeId)
+		chat, err := ms.messengerRepo.FindChatByUserId(sc, originalChat.TgClientId, workspace.Id, assigneeId)
 		if err != nil {
 			return err
 		} else if chat == nil {
@@ -143,7 +144,7 @@ func (ms *MessengerServiceImpl) ReassignTicketToTeam(userId primitive.ObjectID, 
 	return session.CommitTransaction(context.Background())
 }
 
-func (ms *MessengerServiceImpl) ReassignTicketToUser(userId primitive.ObjectID, tgClientId int, ticketId, workspaceId, email string) error {
+func (ms *MessengerServiceImpl) ReassignTicketToUser(userId primitive.ObjectID, chatId string, ticketId, workspaceId, email string) error {
 	session, err := ms.messengerRepo.StartSession()
 	if err != nil {
 		return err
@@ -199,7 +200,7 @@ func (ms *MessengerServiceImpl) ReassignTicketToUser(userId primitive.ObjectID, 
 			return err
 		}
 
-		chat, err := ms.messengerRepo.FindChatByUserId(sc, tgClientId, workspace.Id, reassignUserId)
+		chat, err := ms.messengerRepo.FindChatByUserId(sc, originalChat.TgClientId, workspace.Id, reassignUserId)
 		if err != nil {
 			return err
 		} else if chat == nil && err == nil {
@@ -276,7 +277,24 @@ func (ms *MessengerServiceImpl) ValidateUserInWorkspaceById(userId primitive.Obj
 	return errors.New("user does not have the permissions")
 }
 
-func (ms *MessengerServiceImpl) UpdateChatInfo(userId primitive.ObjectID, tgClientId int, tags []string, workspaceId string) error {
+func (ms *MessengerServiceImpl) HandleMessage(userId primitive.ObjectID, workspaceId, ticketId, chatId, messageType, message string) error {
+	if messageType == "chat_note" {
+		chat, err := ms.messengerRepo.FindChatByChatId(chatId)
+		if err != nil {
+			return err
+		}
+
+		chat.Notes = append(chat.Notes, *ms.createNote(userId, message))
+		if err = ms.messengerRepo.UpdateChat(nil, chat); err != nil {
+			return err
+		}
+
+		ms.websocketService.SendToAll()
+
+	}
+}
+
+func (ms *MessengerServiceImpl) UpdateChatInfo(userId primitive.ObjectID, chatId string, tags []string, workspaceId string) error {
 	workspace, err := ms.messengerRepo.FindWorkspaceByWorkspaceId(nil, workspaceId)
 	if err != nil {
 		return err
@@ -286,7 +304,7 @@ func (ms *MessengerServiceImpl) UpdateChatInfo(userId primitive.ObjectID, tgClie
 		return err
 	}
 
-	chat, err := ms.messengerRepo.FindChatByWorkspaceIdAndTgClientId(workspace.Id, tgClientId)
+	chat, err := ms.messengerRepo.FindChatByWorkspaceIdAndChatId(workspace.Id, chatId)
 	if err != nil {
 		return err
 	}
@@ -344,11 +362,22 @@ func (ms *MessengerServiceImpl) createChat(currentChat *entity.Chat, ticket enti
 	return &entity.Chat{
 		UserId:      assigneeId,
 		WorkspaceId: workspaceId,
-		CreatedAt:   time.Now(),
+		ChatId:      uuid.New().String(),
+		TgClientId:  currentChat.TgClientId,
 		Tickets:     []entity.Ticket{ticket},
-		Comments:    []entity.Comment{},
+		Notes:       []entity.Note{},
 		Tags:        []string{},
 		Source:      currentChat.Source,
+		CreatedAt:   time.Now(),
+	}
+}
+
+func (ms *MessengerServiceImpl) createNote(userId primitive.ObjectID, message string) *entity.Note {
+	return &entity.Note{
+		UserId:    userId,
+		Text:      message,
+		NoteId:    uuid.New().String(),
+		CreatedAt: time.Now(),
 	}
 }
 
