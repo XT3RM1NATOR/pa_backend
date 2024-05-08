@@ -29,7 +29,12 @@ type UpdateWorkspaceMemberRequest struct {
 type UpdateWorkspaceRequest struct {
 	Name        string `json:"name"`
 	Logo        []byte `json:"logo"`
-	WorkspaceID string `json:"workspace_id"`
+	WorkspaceId string `json:"workspace_id"`
+}
+
+type EditFoldersRequest struct {
+	WorkspaceId string              `json:"workspace_id"`
+	Folders     map[string][]string `json:"folders"`
 }
 
 // Responses

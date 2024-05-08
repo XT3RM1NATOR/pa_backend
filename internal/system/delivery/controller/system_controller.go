@@ -210,7 +210,7 @@ func (sc *SystemController) UpdateWorkspace(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, model.ErrorResponse{Error: err.Error()})
 	}
 
-	if err := sc.systemService.UpdateWorkspace(userId, request.Logo, workspaceId, request.WorkspaceID, request.Name); err != nil {
+	if err := sc.systemService.UpdateWorkspace(userId, request.Logo, workspaceId, request.WorkspaceId, request.Name); err != nil {
 		return c.JSON(http.StatusInternalServerError, model.ErrorResponse{Error: err.Error()})
 	}
 
@@ -364,4 +364,27 @@ func (sc *SystemController) UpdateWorkspacePendingStatus(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, model.ErrorResponse{Error: err.Error()})
 	}
 	return c.JSON(http.StatusOK, model.SuccessResponse{Message: "status updated successfully"})
+}
+
+// AddFolders Returns users in the Workspace.
+// @Summary Returns users in the Workspace.
+// @Tags System
+// @Accept json
+// @Produce json
+// @Param request body model.EditFoldersRequest true "folders"
+// @Success 200 {object} model.SuccessResponse "folders updated successfully"
+// @Failure 400 {object} model.ErrorResponse "Bad request"
+// @Failure 500 {object} model.ErrorResponse "Internal server error"
+// @Router /system/workspace/folders [post]
+func (sc *SystemController) AddFolders(c echo.Context) error {
+	userId := c.Request().Context().Value("userId").(primitive.ObjectID)
+	var request model.EditFoldersRequest
+	if err := c.Bind(&request); err != nil {
+		return c.JSON(http.StatusBadRequest, model.ErrorResponse{Error: err.Error()})
+	}
+
+	if err := sc.systemService.EditFolders(userId, request.WorkspaceId, request.Folders); err != nil {
+		return c.JSON(http.StatusInternalServerError, model.ErrorResponse{Error: err.Error()})
+	}
+	return c.JSON(http.StatusOK, model.SuccessResponse{Message: "folders updated successfully"})
 }

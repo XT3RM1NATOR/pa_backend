@@ -20,6 +20,7 @@ type SystemService interface {
 	AddTeamsMember(userId primitive.ObjectID, memberEmail, teamName, workspaceId string) error
 	UpdateMemberStatus(userId primitive.ObjectID, status string, workspaceId string) error
 	SetFirstTeam(userId primitive.ObjectID, teamName, workspaceId string) error
+	EditFolders(userId primitive.ObjectID, workspaceId string, folders map[string][]string) error
 }
 
 type EmailService interface {

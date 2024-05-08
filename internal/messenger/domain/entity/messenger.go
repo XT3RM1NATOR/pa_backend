@@ -33,6 +33,7 @@ type Workspace struct {
 	InternalTeams map[string]map[primitive.ObjectID]UserStatus `bson:"teams"`
 	FirstTeam     string                                       `bson:"first_team"`
 	Integrations  Integrations                                 `bson:"integrations"`
+	Folders       map[string][]string                          `bson:"folders"`
 	CreatedAt     primitive.DateTime                           `bson:"created_at"`
 }
 

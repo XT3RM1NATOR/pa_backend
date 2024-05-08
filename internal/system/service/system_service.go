@@ -348,6 +348,19 @@ func (ss *SystemServiceImpl) formatWorkspaces(workspaces []entity.Workspace) ([]
 	return formattedWorkspaces, nil
 }
 
+func (ss *SystemServiceImpl) EditFolders(userId primitive.ObjectID, workspaceId string, folders map[string][]string) error {
+	workspace, err := ss.systemRepo.FindWorkspaceByWorkspaceId(workspaceId)
+	if err != nil {
+		return err
+	}
+
+	if _, exists := workspace.Team[userId]; exists {
+		workspace.Folders = folders
+		return ss.systemRepo.UpdateWorkspace(workspace)
+	}
+	return errors.New("unauthorized")
+}
+
 func (ss *SystemServiceImpl) UpdateWorkspacePendingStatus(userId primitive.ObjectID, workspaceId string, status bool) error {
 	if err := ss.systemRepo.ClearPendingStatus(userId, workspaceId); err != nil {
 		return err

@@ -33,14 +33,15 @@ type Workspace struct {
 	InternalTeams map[string]map[primitive.ObjectID]UserStatus `bson:"teams"`
 	FirstTeam     string                                       `bson:"first_team"`
 	Integrations  Integrations                                 `bson:"integrations"`
+	Folders       map[string][]string                          `bson:"folders"`
 	CreatedAt     primitive.DateTime                           `bson:"created_at"`
 }
 
 type Chat struct {
+	Id          primitive.ObjectID `bson:"_id,omitempty"`
 	UserId      primitive.ObjectID `bson:"user_id"`
 	WorkspaceId primitive.ObjectID `bson:"workspace_id"`
 	TgClientId  int                `bson:"tg_user_id"`
-	Language    LanguageType       `bson:"language"`
 	Tags        []string           `bson:"tags"`
 	Comments    []Comment          `bson:"comments"`
 	Tickets     []Ticket           `bson:"tickets"`
@@ -57,14 +58,14 @@ type Comment struct {
 
 type Ticket struct {
 	Id                  primitive.ObjectID    `bson:"_id,omitempty"`
-	TicketId            string                `bson:"ticket_id,omitempty"`
+	TicketId            string                `bson:"ticket_id"`
 	Subject             string                `bson:"subject"`
 	Comments            []Comment             `bson:"comments"`
 	IntegrationMessages []IntegrationsMessage `bson:"integration_messages"`
 	ResponseMessages    []ResponseMessage     `bson:"response_messages"`
 	Status              TicketStatus          `bson:"status"`
 	CreatedAt           primitive.DateTime    `bson:"created_at"`
-	ResolvedAt          *primitive.DateTime   `bson:"resolved_at,omitempty"`
+	ResolvedAt          primitive.DateTime    `bson:"resolved_at,omitempty"`
 }
 
 type ResponseMessage struct {
@@ -127,7 +128,6 @@ type WhatsAppIntegration struct {
 }
 
 type MessageType string
-type LanguageType string
 type WorkspaceRole string
 type ChatSource string
 type TicketStatus string
@@ -189,10 +189,4 @@ const (
 	StatusAvailable UserStatus = "available"
 	StatusBusy      UserStatus = "busy"
 	StatusOffline   UserStatus = "offline"
-)
-
-const (
-	English LanguageType = "english"
-	Russian LanguageType = "russian"
-	Uzbek   LanguageType = "uzbek"
 )
