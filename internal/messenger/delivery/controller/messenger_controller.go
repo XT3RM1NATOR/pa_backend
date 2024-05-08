@@ -80,6 +80,7 @@ func (mc *MessengerController) WSHandler(c echo.Context) error {
 // @Param name path string true "Team name"
 // @Param userId path string true "User ID"
 // @Success 200 {object} model.SuccessResponse "Ticket successfully reassigned to team"
+// @Failure 400 {object} model.ErrorResponse "Invalid request parameters"
 // @Failure 500 {object} model.ErrorResponse "Internal server error, failed to reassign ticket"
 // @Router /messenger/ticket/reassign/team [post]
 func (mc *MessengerController) ReassignTicketToTeam(c echo.Context) error {
@@ -96,7 +97,20 @@ func (mc *MessengerController) ReassignTicketToTeam(c echo.Context) error {
 	return c.JSON(http.StatusOK, model.SuccessResponse{Message: "ticket reassigned successfully"})
 }
 
-func (mc *MessengerController) ReassignTicketToUser(c echo.Context) error {
+// ReassignTicketToMember reassigns a support ticket to a different team member.
+// @Summary Reassigns a support ticket to a team member.
+// @Tags Messenger
+// @Accept json
+// @Produce json
+// @Param ticket_id path string true "Ticket ID"
+// @Param id path string true "Workspace ID"
+// @Param email path string true "Email of the member"
+// @Param userId path string true "User ID"
+// @Success 200 {object} model.SuccessResponse "Ticket successfully reassigned to member"
+// @Failure 400 {object} model.ErrorResponse "Invalid request parameters"
+// @Failure 500 {object} model.ErrorResponse "Internal server error, failed to reassign ticket"
+// @Router /messenger/ticket/reassign/member [post]
+func (mc *MessengerController) ReassignTicketToMember(c echo.Context) error {
 	var request model.ReassignTicketToUserRequest
 	if err := c.Bind(&request); err != nil {
 		return c.JSON(http.StatusBadRequest, model.ErrorResponse{Error: "invalid request parameters"})
@@ -110,6 +124,46 @@ func (mc *MessengerController) ReassignTicketToUser(c echo.Context) error {
 	return c.JSON(http.StatusOK, model.SuccessResponse{Message: "ticket reassigned successfully"})
 }
 
+// UpdateChatInfo updates the information of a chat in the messenger.
+// @Summary Updates chat information.
+// @Tags Messenger
+// @Accept json
+// @Produce json
+// @Param id path string true "Workspace ID"
+// @Param tg_client_id path string true "Telegram client ID"
+// @Param tags path string true "Tags of the chat"
+// @Param userId path string true "User ID"
+// @Success 200 {object} model.SuccessResponse "Chat information updated successfully"
+// @Failure 400 {object} model.ErrorResponse "Invalid request parameters"
+// @Failure 500 {object} model.ErrorResponse "Internal server error, failed to update chat information"
+// @Router /messenger/chat [put]
+func (mc *MessengerController) UpdateChatInfo(c echo.Context) error {
+	var request model.UpdateChatInfoRequest
+	if err := c.Bind(&request); err != nil {
+		return c.JSON(http.StatusBadRequest, model.ErrorResponse{Error: "invalid request parameters"})
+	}
+
+	userId := c.Request().Context().Value("userId").(primitive.ObjectID)
+	if err := mc.messengerService.UpdateChatInfo(userId, request.TgClientId, request.Tags, request.WorkspaceId); err != nil {
+		return c.JSON(http.StatusInternalServerError, model.ErrorResponse{Error: err.Error()})
+	}
+
+	return c.JSON(http.StatusOK, model.SuccessResponse{Message: "ticket reassigned successfully"})
+}
+
+// ChangeTicketStatus changes the status of a support ticket.
+// @Summary Changes the status of a support ticket.
+// @Tags Messenger
+// @Accept json
+// @Produce json
+// @Param ticket_id path string true "Ticket ID"
+// @Param id path string true "Workspace ID"
+// @Param status path string true "New status of the ticket"
+// @Param userId path string true "User ID"
+// @Success 200 {object} model.SuccessResponse "Ticket status updated successfully"
+// @Failure 400 {object} model.ErrorResponse "Invalid request parameters"
+// @Failure 500 {object} model.ErrorResponse "Internal server error, failed to update ticket status"
+// @Router /messenger/ticket [put]
 func (mc *MessengerController) ChangeTicketStatus(c echo.Context) error {
 	var request model.ChangeTicketStatusRequest
 	if err := c.Bind(&request); err != nil {

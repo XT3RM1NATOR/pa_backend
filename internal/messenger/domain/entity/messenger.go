@@ -41,7 +41,6 @@ type Chat struct {
 	UserId      primitive.ObjectID `bson:"user_id"`
 	WorkspaceId primitive.ObjectID `bson:"workspace_id"`
 	TgClientId  int                `bson:"tg_user_id"`
-	Language    LanguageType       `bson:"language"`
 	Tags        []string           `bson:"tags"`
 	Comments    []Comment          `bson:"comments"`
 	Tickets     []Ticket           `bson:"tickets"`
@@ -128,7 +127,6 @@ type WhatsAppIntegration struct {
 }
 
 type MessageType string
-type LanguageType string
 type WorkspaceRole string
 type ChatSource string
 type TicketStatus string
@@ -190,10 +188,4 @@ const (
 	StatusAvailable UserStatus = "available"
 	StatusBusy      UserStatus = "busy"
 	StatusOffline   UserStatus = "offline"
-)
-
-const (
-	English LanguageType = "english"
-	Russian LanguageType = "russian"
-	Uzbek   LanguageType = "uzbek"
 )

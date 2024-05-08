@@ -13,6 +13,7 @@ type MessengerService interface {
 	ValidateUserInWorkspace(userId primitive.ObjectID, workspace *entity.Workspace) error
 	UpdateTicketStatus(userId primitive.ObjectID, ticketId, workspaceId, status string) error
 	ValidateUserInWorkspaceById(userId primitive.ObjectID, workspaceId string) error
+	UpdateChatInfo(userId primitive.ObjectID, tgClientId int, tags []string, workspaceId string) error
 }
 
 type WebsocketService interface {

@@ -46,6 +46,12 @@ type ChangeTicketStatusRequest struct {
 	Status      string `json:"status"`
 }
 
+type UpdateChatInfoRequest struct {
+	TgClientId  int      `json:"tg_client_id"`
+	WorkspaceId string   `json:"workspace_id"`
+	Tags        []string `json:"tags"`
+}
+
 // Responses
 
 type ErrorResponse struct {

@@ -19,17 +19,18 @@ func RegisterMessengerRoutes(e *echo.Echo, cfg *config.Config, db *mongo.Databas
 	is := service.NewMessengerServiceImpl(cfg, ir, wss, tbc, tc)
 	ic := controller.NewMessengerController(cfg, is, wss)
 
-	integrationGroup := e.Group("/integrations")
+	//integrationGroup := e.Group("/integrations")
 
-	telegramGroup := integrationGroup.Group("/telegram")
-	telegramGroup.POST("/bots", ic.RegisterBotIntegration, middleware.ValidateAccessTokenMiddleware(cfg.Auth.JWTSecretKey))
-	telegramGroup.POST("/bots/webhook/:token", ic.HandleBotMessage)
-	telegramGroup.POST("/setInfo/:id", ic.HandleTelegramClientAuth, middleware.ValidateAccessTokenMiddleware(cfg.Auth.JWTSecretKey))
+	//telegramGroup := integrationGroup.Group("/telegram")
+	//telegramGroup.POST("/bots", ic.RegisterBotIntegration, middleware.ValidateAccessTokenMiddleware(cfg.Auth.JWTSecretKey))
+	//telegramGroup.POST("/bots/webhook/:token", ic.HandleBotMessage)
+	//telegramGroup.POST("/setInfo/:id", ic.HandleTelegramClientAuth, middleware.ValidateAccessTokenMiddleware(cfg.Auth.JWTSecretKey))
 
 	messengerGroup := e.Group("/messenger")
 	messengerGroup.GET("/ws/:id", ic.WSHandler, middleware.ValidateAccessTokenMiddleware(cfg.Auth.JWTSecretKey))
 	messengerGroup.POST("/ticket/reassign/team", ic.ReassignTicketToTeam, middleware.ValidateAccessTokenMiddleware(cfg.Auth.JWTSecretKey))
-	messengerGroup.POST("/ticket/reassign/member/:ticket_id/:id/:email", ic.ReassignTicketToMember, middleware.ValidateAccessTokenMiddleware(cfg.Auth.JWTSecretKey))
-	messengerGroup.PUT("/ticket/:status/:id/:ticket_id", ic.CloseTicket, middleware.ValidateAccessTokenMiddleware(cfg.Auth.JWTSecretKey))
+	messengerGroup.POST("/ticket/reassign/member", ic.ReassignTicketToMember, middleware.ValidateAccessTokenMiddleware(cfg.Auth.JWTSecretKey))
+	messengerGroup.PUT("/ticket", ic.ChangeTicketStatus, middleware.ValidateAccessTokenMiddleware(cfg.Auth.JWTSecretKey))
+	messengerGroup.PUT("/chat", ic.UpdateChatInfo, middleware.ValidateAccessTokenMiddleware(cfg.Auth.JWTSecretKey))
 
 }

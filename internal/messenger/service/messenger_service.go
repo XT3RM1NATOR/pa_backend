@@ -276,6 +276,25 @@ func (ms *MessengerServiceImpl) ValidateUserInWorkspaceById(userId primitive.Obj
 	return errors.New("user does not have the permissions")
 }
 
+func (ms *MessengerServiceImpl) UpdateChatInfo(userId primitive.ObjectID, tgClientId int, tags []string, workspaceId string) error {
+	workspace, err := ms.messengerRepo.FindWorkspaceByWorkspaceId(nil, workspaceId)
+	if err != nil {
+		return err
+	}
+
+	if err = ms.ValidateUserInWorkspace(userId, workspace); err != nil {
+		return err
+	}
+
+	chat, err := ms.messengerRepo.FindChatByWorkspaceIdAndTgClientId(workspace.Id, tgClientId)
+	if err != nil {
+		return err
+	}
+	chat.Tags = tags
+
+	return ms.messengerRepo.UpdateChat(nil, chat)
+}
+
 func (ms *MessengerServiceImpl) getAssigneeIdByTeam(workspace *entity.Workspace, teamName string) (primitive.ObjectID, error) {
 	if team, exists := workspace.InternalTeams[teamName]; exists {
 		return ms.findLeastBusyMember(team)
@@ -329,7 +348,6 @@ func (ms *MessengerServiceImpl) createChat(currentChat *entity.Chat, ticket enti
 		Tickets:     []entity.Ticket{ticket},
 		Comments:    []entity.Comment{},
 		Tags:        []string{},
-		Language:    currentChat.Language,
 		Source:      currentChat.Source,
 	}
 }
