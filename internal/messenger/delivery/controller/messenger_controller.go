@@ -37,7 +37,7 @@ func (mc *MessengerController) WSHandler(c echo.Context) error {
 	userId := c.Request().Context().Value("userId").(primitive.ObjectID)
 	workspaceId := c.Param("id")
 
-	err := mc.messengerService.ValidateUserInWorkspace(userId, workspaceId)
+	err := mc.messengerService.ValidateUserInWorkspaceById(userId, workspaceId)
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, model.ErrorResponse{Error: err.Error()})
 	}

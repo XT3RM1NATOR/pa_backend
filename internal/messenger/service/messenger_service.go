@@ -32,7 +32,7 @@ func NewMessengerServiceImpl(cfg *config.Config, messengerRepo infrastructureInt
 }
 
 func (ms *MessengerServiceImpl) RegisterBotIntegration(userId primitive.ObjectID, botToken, workspaceId string) error {
-	workspace, err := ms.messengerRepo.FindWorkspaceByWorkspaceId(workspaceId)
+	workspace, err := ms.messengerRepo.FindWorkspaceByWorkspaceId(nil, workspaceId)
 	if err != nil {
 		return err
 	}
@@ -222,7 +222,7 @@ func (ms *MessengerServiceImpl) ReassignTicketToUser(userId primitive.ObjectID, 
 }
 
 func (ms *MessengerServiceImpl) UpdateTicketStatus(userId primitive.ObjectID, ticketId, workspaceId, status string) error {
-	workspace, err := ms.messengerRepo.FindWorkspaceByWorkspaceId(workspaceId)
+	workspace, err := ms.messengerRepo.FindWorkspaceByWorkspaceId(nil, workspaceId)
 	if err != nil {
 		return err
 	}
@@ -231,7 +231,7 @@ func (ms *MessengerServiceImpl) UpdateTicketStatus(userId primitive.ObjectID, ti
 		return err
 	}
 
-	chat, err := ms.messengerRepo.FindChatByTicketId(context.Background(), ticketId)
+	chat, err := ms.messengerRepo.FindChatByTicketId(nil, ticketId)
 	if err != nil {
 		return err
 	}
@@ -253,10 +253,22 @@ func (ms *MessengerServiceImpl) UpdateTicketStatus(userId primitive.ObjectID, ti
 		return errors.New("ticket not found")
 	}
 
-	return ms.messengerRepo.UpdateChat(chat)
+	return ms.messengerRepo.UpdateChat(nil, chat)
 }
 
 func (ms *MessengerServiceImpl) ValidateUserInWorkspace(userId primitive.ObjectID, workspace *entity.Workspace) error {
+	if _, exists := workspace.Team[userId]; exists {
+		return nil
+	}
+
+	return errors.New("user does not have the permissions")
+}
+
+func (ms *MessengerServiceImpl) ValidateUserInWorkspaceById(userId primitive.ObjectID, workspaceId string) error {
+	workspace, err := ms.messengerRepo.FindWorkspaceByWorkspaceId(nil, workspaceId)
+	if err != nil {
+		return err
+	}
 	if _, exists := workspace.Team[userId]; exists {
 		return nil
 	}
