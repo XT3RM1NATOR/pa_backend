@@ -2,9 +2,11 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/Point-AI/backend/config"
+	"github.com/Point-AI/backend/internal/messenger/delivery/model"
 	"github.com/Point-AI/backend/internal/messenger/domain/entity"
 	_interface "github.com/Point-AI/backend/internal/messenger/domain/interface"
 	infrastructureInterface "github.com/Point-AI/backend/internal/messenger/service/interface"
@@ -15,56 +17,17 @@ import (
 )
 
 type MessengerServiceImpl struct {
-	messengerRepo            infrastructureInterface.MessengerRepository
-	telegramBotClientManager infrastructureInterface.TelegramBotClientManager
-	telegramClientManager    infrastructureInterface.TelegramClientManager
-	websocketService         _interface.WebsocketService
-	config                   *config.Config
+	messengerRepo    infrastructureInterface.MessengerRepository
+	websocketService _interface.WebsocketService
+	config           *config.Config
 }
 
-func NewMessengerServiceImpl(cfg *config.Config, messengerRepo infrastructureInterface.MessengerRepository, websocketService _interface.WebsocketService, telegramBotClientManager infrastructureInterface.TelegramBotClientManager, telegramClientManager infrastructureInterface.TelegramClientManager) _interface.MessengerService {
+func NewMessengerServiceImpl(cfg *config.Config, messengerRepo infrastructureInterface.MessengerRepository, websocketService _interface.WebsocketService) _interface.MessengerService {
 	return &MessengerServiceImpl{
-		messengerRepo:            messengerRepo,
-		telegramBotClientManager: telegramBotClientManager,
-		telegramClientManager:    telegramClientManager,
-		websocketService:         websocketService,
-		config:                   cfg,
+		messengerRepo:    messengerRepo,
+		websocketService: websocketService,
+		config:           cfg,
 	}
-}
-
-func (ms *MessengerServiceImpl) RegisterBotIntegration(userId primitive.ObjectID, botToken, workspaceId string) error {
-	workspace, err := ms.messengerRepo.FindWorkspaceByWorkspaceId(nil, workspaceId)
-	if err != nil {
-		return err
-	}
-
-	if ms.isAdmin(workspace.Team[userId]) || ms.isOwner(workspace.Team[userId]) {
-		exists, err := ms.messengerRepo.CheckBotExists(botToken)
-		if err != nil {
-			return err
-		}
-		if exists {
-			return errors.New("bot token already used")
-		}
-
-		if err := ms.telegramBotClientManager.RegisterNewBot(botToken); err != nil {
-			return err
-		}
-
-		telegramBotIntegration := &entity.TelegramBotIntegration{
-			BotToken: botToken,
-			IsActive: true,
-		}
-		workspace.Integrations.TelegramBot = telegramBotIntegration
-
-		if err = ms.messengerRepo.UpdateWorkspace(workspace); err != nil {
-			return err
-		}
-
-		return nil
-	}
-
-	return errors.New("user does not have the permissions")
 }
 
 func (ms *MessengerServiceImpl) ReassignTicketToTeam(userId primitive.ObjectID, chatId string, ticketId, workspaceId, teamName string) error {
@@ -85,18 +48,9 @@ func (ms *MessengerServiceImpl) ReassignTicketToTeam(userId primitive.ObjectID, 
 			return err
 		}
 
-		var ticketToMove entity.Ticket
-		found := false
-		for i, ticket := range originalChat.Tickets {
-			if ticket.TicketId == ticketId {
-				ticketToMove = ticket
-				originalChat.Tickets = append(originalChat.Tickets[:i], originalChat.Tickets[i+1:]...)
-				found = true
-				break
-			}
-		}
-		if !found {
-			return errors.New("ticket not found")
+		ticketToMove, err := ms.findTicketInChat(originalChat, ticketId)
+		if err != nil {
+			return err
 		}
 
 		if len(originalChat.Tickets) == 0 {
@@ -127,10 +81,10 @@ func (ms *MessengerServiceImpl) ReassignTicketToTeam(userId primitive.ObjectID, 
 		if err != nil {
 			return err
 		} else if chat == nil {
-			newChat := ms.createChat(originalChat, ticketToMove, workspace.Id, assigneeId)
+			newChat := ms.createChat(originalChat, *ticketToMove, workspace.Id, assigneeId)
 			return ms.messengerRepo.InsertNewChat(sc, newChat)
 		} else if chat != nil {
-			chat.Tickets = append(chat.Tickets, ticketToMove)
+			chat.Tickets = append(chat.Tickets, *ticketToMove)
 			return ms.messengerRepo.UpdateChat(sc, chat)
 		}
 
@@ -162,18 +116,9 @@ func (ms *MessengerServiceImpl) ReassignTicketToUser(userId primitive.ObjectID, 
 			return err
 		}
 
-		var ticketToMove entity.Ticket
-		found := false
-		for i, ticket := range originalChat.Tickets {
-			if ticket.TicketId == ticketId {
-				ticketToMove = ticket
-				originalChat.Tickets = append(originalChat.Tickets[:i], originalChat.Tickets[i+1:]...)
-				found = true
-				break
-			}
-		}
-		if !found {
-			return errors.New("ticket not found")
+		ticketToMove, err := ms.findTicketInChat(originalChat, ticketId)
+		if err != nil {
+			return err
 		}
 
 		if len(originalChat.Tickets) == 0 {
@@ -204,10 +149,10 @@ func (ms *MessengerServiceImpl) ReassignTicketToUser(userId primitive.ObjectID, 
 		if err != nil {
 			return err
 		} else if chat == nil && err == nil {
-			newChat := ms.createChat(originalChat, ticketToMove, workspace.Id, reassignUserId)
+			newChat := ms.createChat(originalChat, *ticketToMove, workspace.Id, reassignUserId)
 			return ms.messengerRepo.InsertNewChat(sc, newChat)
 		} else if chat != nil {
-			chat.Tickets = append(chat.Tickets, ticketToMove)
+			chat.Tickets = append(chat.Tickets, *ticketToMove)
 			return ms.messengerRepo.UpdateChat(sc, chat)
 		}
 
@@ -284,14 +229,46 @@ func (ms *MessengerServiceImpl) HandleMessage(userId primitive.ObjectID, workspa
 			return err
 		}
 
-		chat.Notes = append(chat.Notes, *ms.createNote(userId, message))
+		note := ms.createNote(userId, message)
+		chat.Notes = append(chat.Notes, *note)
+
 		if err = ms.messengerRepo.UpdateChat(nil, chat); err != nil {
 			return err
 		}
 
-		ms.websocketService.SendToAll()
+		res, err := json.Marshal(ms.createMessageResponse(nil, note.CreatedAt, ticketId, chatId, message, messageType))
+		if err != nil {
+			return err
+		}
 
+		ms.websocketService.SendToAll(workspaceId, res)
+		return nil
+	} else if messageType == "ticket_note" {
+		chat, err := ms.messengerRepo.FindChatByChatId(chatId)
+		if err != nil {
+			return err
+		}
+		ticket, err := ms.findTicketInChat(chat, ticketId)
+		if err != nil {
+			return err
+		}
+
+		note := ms.createNote(userId, message)
+		ticket.Notes = append(ticket.Notes, *note)
+		if err = ms.messengerRepo.UpdateChat(nil, chat); err != nil {
+			return err
+		}
+
+		res, err := json.Marshal(ms.createMessageResponse(nil, note.CreatedAt, ticketId, chatId, message, messageType))
+		if err != nil {
+			return err
+		}
+
+		ms.websocketService.SendToAll(workspaceId, res)
+		return nil
 	}
+
+	return errors.New("unknown message type")
 }
 
 func (ms *MessengerServiceImpl) UpdateChatInfo(userId primitive.ObjectID, chatId string, tags []string, workspaceId string) error {
@@ -358,6 +335,15 @@ func (ms *MessengerServiceImpl) findLeastBusyMember(team map[primitive.ObjectID]
 	return primitive.NilObjectID, errors.New("no suitable team member found")
 }
 
+func (ms *MessengerServiceImpl) findTicketInChat(chat *entity.Chat, ticketId string) (*entity.Ticket, error) {
+	for _, ticket := range chat.Tickets {
+		if ticket.TicketId == ticketId {
+			return &ticket, nil
+		}
+	}
+	return nil, errors.New("ticket not found")
+}
+
 func (ms *MessengerServiceImpl) createChat(currentChat *entity.Chat, ticket entity.Ticket, workspaceId, assigneeId primitive.ObjectID) *entity.Chat {
 	return &entity.Chat{
 		UserId:      assigneeId,
@@ -378,6 +364,17 @@ func (ms *MessengerServiceImpl) createNote(userId primitive.ObjectID, message st
 		Text:      message,
 		NoteId:    uuid.New().String(),
 		CreatedAt: time.Now(),
+	}
+}
+
+func (ms *MessengerServiceImpl) createMessageResponse(content []byte, createdAt time.Time, ticketId, chatId, message, messageType string) *model.MessageResponse {
+	return &model.MessageResponse{
+		TicketId:  ticketId,
+		ChatId:    chatId,
+		Message:   message,
+		Content:   content,
+		Type:      messageType,
+		CreatedAt: createdAt,
 	}
 }
 

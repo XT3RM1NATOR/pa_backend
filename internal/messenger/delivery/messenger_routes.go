@@ -3,7 +3,6 @@ package messengerDelivery
 import (
 	"github.com/Point-AI/backend/config"
 	"github.com/Point-AI/backend/internal/messenger/delivery/controller"
-	"github.com/Point-AI/backend/internal/messenger/infrastructure/client"
 	"github.com/Point-AI/backend/internal/messenger/infrastructure/repository"
 	"github.com/Point-AI/backend/internal/messenger/service"
 	"github.com/Point-AI/backend/middleware"
@@ -12,11 +11,9 @@ import (
 )
 
 func RegisterMessengerRoutes(e *echo.Echo, cfg *config.Config, db *mongo.Database) {
-	tbc := client.NewTelegramBotClientManagerImpl(cfg)
-	tc := client.NewTelegramClientManagerImpl(cfg)
 	ir := repository.NewMessengerRepositoryImpl(cfg, db)
 	wss := service.NewWebSocketServiceImpl(ir)
-	is := service.NewMessengerServiceImpl(cfg, ir, wss, tbc, tc)
+	is := service.NewMessengerServiceImpl(cfg, ir, wss)
 	ic := controller.NewMessengerController(cfg, is, wss)
 
 	//integrationGroup := e.Group("/integrations")
