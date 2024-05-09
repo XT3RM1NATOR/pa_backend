@@ -21,9 +21,19 @@ func ValidateAccessTokenMiddleware(secretKey string) echo.MiddlewareFunc {
 				return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid authorization header format"})
 			}
 
-			accessToken := parts[1]
+			token := parts[1]
 
-			userId, err := utils.ValidateJWTToken("access_token", accessToken, secretKey)
+			userId, err := utils.ValidateJWTToken(utils.RefreshToken, token, secretKey)
+			if err == nil {
+				token, err := utils.GenerateJWTToken(utils.RefreshToken, userId, secretKey)
+				if err != nil {
+					return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+				}
+
+				return c.JSON(http.StatusOK, map[string]string{"access_token": token})
+			}
+
+			userId, err = utils.ValidateJWTToken(utils.AccessToken, token, secretKey)
 			if err != nil {
 				return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
 			}

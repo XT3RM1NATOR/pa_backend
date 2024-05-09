@@ -229,6 +229,11 @@ func (ms *MessengerServiceImpl) HandleMessage(userId primitive.ObjectID, workspa
 			return err
 		}
 
+		user, err := ms.messengerRepo.GetUserById(userId)
+		if err != nil {
+			return err
+		}
+
 		note := ms.createNote(userId, message)
 		chat.Notes = append(chat.Notes, *note)
 
@@ -236,12 +241,18 @@ func (ms *MessengerServiceImpl) HandleMessage(userId primitive.ObjectID, workspa
 			return err
 		}
 
-		res, err := json.Marshal(ms.createMessageResponse(nil, note.CreatedAt, "", workspaceId, ticketId, chatId, note.NoteId, message, messageType))
+		res, err := json.Marshal(ms.createMessageResponse(nil, note.CreatedAt, true, user.FullName, "", workspaceId, ticketId, chatId, note.NoteId, message, messageType))
 		if err != nil {
 			return err
 		}
+		ms.websocketService.SendToOne(res, workspaceId, userId)
 
-		ms.websocketService.SendToAll(workspaceId, res)
+		res, err = json.Marshal(ms.createMessageResponse(nil, note.CreatedAt, false, user.FullName, "", workspaceId, ticketId, chatId, note.NoteId, message, messageType))
+		if err != nil {
+			return err
+		}
+		ms.websocketService.SendToAllButOne(workspaceId, res, userId)
+
 		return nil
 	} else if messageType == "ticket_note" {
 		chat, err := ms.messengerRepo.FindChatByChatId(chatId)
@@ -252,6 +263,10 @@ func (ms *MessengerServiceImpl) HandleMessage(userId primitive.ObjectID, workspa
 		if err != nil {
 			return err
 		}
+		user, err := ms.messengerRepo.GetUserById(userId)
+		if err != nil {
+			return err
+		}
 
 		note := ms.createNote(userId, message)
 		ticket.Notes = append(ticket.Notes, *note)
@@ -259,12 +274,18 @@ func (ms *MessengerServiceImpl) HandleMessage(userId primitive.ObjectID, workspa
 			return err
 		}
 
-		res, err := json.Marshal(ms.createMessageResponse(nil, note.CreatedAt, "", workspaceId, ticketId, chatId, note.NoteId, message, messageType))
+		res, err := json.Marshal(ms.createMessageResponse(nil, note.CreatedAt, true, user.FullName, "", workspaceId, ticketId, chatId, note.NoteId, message, messageType))
 		if err != nil {
 			return err
 		}
+		ms.websocketService.SendToOne(res, workspaceId, userId)
 
-		ms.websocketService.SendToAll(workspaceId, res)
+		res, err = json.Marshal(ms.createMessageResponse(nil, note.CreatedAt, false, user.FullName, "", workspaceId, ticketId, chatId, note.NoteId, message, messageType))
+		if err != nil {
+			return err
+		}
+		ms.websocketService.SendToAllButOne(workspaceId, res, userId)
+
 		return nil
 	}
 
@@ -318,7 +339,7 @@ func (ms *MessengerServiceImpl) DeleteMessage(userId primitive.ObjectID, message
 			return err
 		}
 
-		res, err := json.Marshal(ms.createMessageResponse(nil, time.Time{}, "delete", workspaceId, "", chatId, messageId, "", messageType))
+		res, err := json.Marshal(ms.createMessageResponse(nil, time.Time{}, false, "", "delete", workspaceId, "", chatId, messageId, "", messageType))
 		if err != nil {
 			return err
 		}
@@ -352,7 +373,7 @@ func (ms *MessengerServiceImpl) DeleteMessage(userId primitive.ObjectID, message
 			return err
 		}
 
-		res, err := json.Marshal(ms.createMessageResponse(nil, time.Time{}, "delete", workspaceId, ticketId, chatId, messageId, "", messageType))
+		res, err := json.Marshal(ms.createMessageResponse(nil, time.Time{}, false, "", "delete", workspaceId, ticketId, chatId, messageId, "", messageType))
 		if err != nil {
 			return err
 		}
@@ -463,7 +484,7 @@ func (ms *MessengerServiceImpl) createNote(userId primitive.ObjectID, message st
 	}
 }
 
-func (ms *MessengerServiceImpl) createMessageResponse(content []byte, createdAt time.Time, action, workspaceId, ticketId, chatId, messageId, message, messageType string) *model.MessageResponse {
+func (ms *MessengerServiceImpl) createMessageResponse(content []byte, createdAt time.Time, isOwner bool, name, action, workspaceId, ticketId, chatId, messageId, message, messageType string) *model.MessageResponse {
 	return &model.MessageResponse{
 		WorkspaceId: workspaceId,
 		TicketId:    ticketId,
@@ -473,6 +494,8 @@ func (ms *MessengerServiceImpl) createMessageResponse(content []byte, createdAt 
 		Content:     content,
 		Type:        messageType,
 		Action:      action,
+		Name:        name,
+		IsOwner:     isOwner,
 		CreatedAt:   createdAt,
 	}
 }

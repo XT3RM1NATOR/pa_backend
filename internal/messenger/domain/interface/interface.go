@@ -19,7 +19,11 @@ type MessengerService interface {
 }
 
 type WebsocketService interface {
-	UpgradeConnection(w http.ResponseWriter, r *http.Request, workspaceId string) (*websocket.Conn, error)
-	RemoveConnection(workspaceId string, conn *websocket.Conn)
+	UpgradeConnection(w http.ResponseWriter, r *http.Request, workspaceId string, userId primitive.ObjectID) (*websocket.Conn, error)
+	RemoveConnection(workspaceId string, userId primitive.ObjectID)
+	AddConnection(workspaceId string, conn *websocket.Conn, userId primitive.ObjectID)
+	SendToOne(message []byte, workspaceId string, userId primitive.ObjectID)
 	SendToAll(workspaceId string, message []byte)
+	GetConnections(workspaceId string) map[primitive.ObjectID]*websocket.Conn
+	SendToAllButOne(workspaceId string, message []byte, userId primitive.ObjectID)
 }

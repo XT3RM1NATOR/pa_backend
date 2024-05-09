@@ -341,7 +341,6 @@ func (ss *SystemServiceImpl) RegisterTelegramIntegration(userId primitive.Object
 	}
 
 	client := resty.New()
-
 	var resp *resty.Response
 
 	switch stage {

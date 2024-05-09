@@ -71,6 +71,8 @@ type MessageResponse struct {
 	Message     string    `json:"message"`
 	Content     []byte    `json:"content"`
 	Type        string    `json:"type"`
+	Name        string    `json:"name"`
+	IsOwner     bool      `json:"is_owner"`
 	Action      string    `json:"action"`
 	CreatedAt   time.Time `json:"created_at"`
 }

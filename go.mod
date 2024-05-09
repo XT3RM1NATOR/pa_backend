@@ -5,9 +5,12 @@ go 1.22.1
 require (
 	github.com/caarlos0/env/v6 v6.10.1
 	github.com/celestix/gotgproto v1.0.0-beta17
+	github.com/go-resty/resty/v2 v2.13.0
 	github.com/go-telegram-bot-api/telegram-bot-api v4.6.4+incompatible
 	github.com/golang-jwt/jwt/v4 v4.5.0
+	github.com/google/uuid v1.6.0
 	github.com/gorilla/websocket v1.5.1
+	github.com/gotd/td v0.99.2
 	github.com/joho/godotenv v1.5.1
 	github.com/labstack/echo/v4 v4.11.4
 	github.com/minio/minio-go/v7 v7.0.69
@@ -38,14 +41,11 @@ require (
 	github.com/go-openapi/jsonreference v0.19.6 // indirect
 	github.com/go-openapi/spec v0.20.4 // indirect
 	github.com/go-openapi/swag v0.19.15 // indirect
-	github.com/go-resty/resty/v2 v2.13.0 // indirect
 	github.com/golang-jwt/jwt v3.2.2+incompatible // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/golang/snappy v0.0.1 // indirect
-	github.com/google/uuid v1.6.0 // indirect
 	github.com/gotd/ige v0.2.2 // indirect
 	github.com/gotd/neo v0.1.5 // indirect
-	github.com/gotd/td v0.99.2 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jinzhu/now v1.1.5 // indirect
 	github.com/josharian/intern v1.0.0 // indirect

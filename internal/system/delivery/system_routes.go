@@ -24,14 +24,14 @@ func RegisterSystemRoutes(e *echo.Echo, cfg *config.Config, db *mongo.Database, 
 	sc := controller.NewSystemController(cfg, ss)
 
 	workspaceGroup := systemGroup.Group("/workspace")
-	workspaceGroup.POST("/", sc.CreateWorkspace, middleware.ValidateAccessTokenMiddleware(cfg.Auth.JWTSecretKey))
+	workspaceGroup.POST("", sc.CreateWorkspace, middleware.ValidateAccessTokenMiddleware(cfg.Auth.JWTSecretKey))
 	workspaceGroup.POST("/member", sc.AddWorkspaceMembers, middleware.ValidateAccessTokenMiddleware(cfg.Auth.JWTSecretKey))
 	workspaceGroup.POST("/teams", sc.AddTeamsMembers, middleware.ValidateAccessTokenMiddleware(cfg.Auth.JWTSecretKey))
 	workspaceGroup.POST("/folders", sc.AddFolders, middleware.ValidateAccessTokenMiddleware(cfg.Auth.JWTSecretKey))
 	workspaceGroup.POST("/teams/:id/:name", sc.SetFirstTeam, middleware.ValidateAccessTokenMiddleware(cfg.Auth.JWTSecretKey))
 	workspaceGroup.GET("/:id", sc.GetWorkspaceById, middleware.ValidateAccessTokenMiddleware(cfg.Auth.JWTSecretKey))
 	workspaceGroup.GET("/members/:id", sc.GetUserProfiles, middleware.ValidateAccessTokenMiddleware(cfg.Auth.JWTSecretKey))
-	workspaceGroup.GET("/", sc.GetAllWorkspaces, middleware.ValidateAccessTokenMiddleware(cfg.Auth.JWTSecretKey))
+	workspaceGroup.GET("", sc.GetAllWorkspaces, middleware.ValidateAccessTokenMiddleware(cfg.Auth.JWTSecretKey))
 	workspaceGroup.PUT("/update", sc.UpdateWorkspaceMember, middleware.ValidateAccessTokenMiddleware(cfg.Auth.JWTSecretKey))
 	workspaceGroup.PUT("/update/:status/:id", sc.UpdateMemberStatus, middleware.ValidateAccessTokenMiddleware(cfg.Auth.JWTSecretKey))
 	workspaceGroup.PUT("/status/:id/:status", sc.UpdateWorkspacePendingStatus, middleware.ValidateAccessTokenMiddleware(cfg.Auth.JWTSecretKey))
@@ -42,5 +42,4 @@ func RegisterSystemRoutes(e *echo.Echo, cfg *config.Config, db *mongo.Database, 
 
 	integrationsAuthGroup := systemGroup.Group("/integrations")
 	integrationsAuthGroup.GET("/telegram/:id", sc.RegisterTelegramIntegration, middleware.ValidateAccessTokenMiddleware(cfg.Auth.JWTSecretKey))
-
 }
