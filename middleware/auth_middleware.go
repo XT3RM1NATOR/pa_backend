@@ -35,3 +35,27 @@ func ValidateAccessTokenMiddleware(secretKey string) echo.MiddlewareFunc {
 		}
 	}
 }
+
+func ValidateServerMiddleware(secretKey string) echo.MiddlewareFunc {
+	return func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			authHeader := c.Request().Header.Get("Authorization")
+			if authHeader == "" {
+				return c.JSON(http.StatusBadRequest, map[string]string{"error": "Authorization header required"})
+			}
+
+			parts := strings.Split(authHeader, " ")
+			if len(parts) != 2 || parts[0] != "Bearer" {
+				return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid authorization header format"})
+			}
+
+			key := parts[1]
+
+			if key != secretKey {
+				return c.JSON(http.StatusUnauthorized, map[string]string{"error": "Invalid authorization token"})
+			}
+
+			return next(c)
+		}
+	}
+}

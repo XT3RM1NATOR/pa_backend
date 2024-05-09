@@ -217,6 +217,31 @@ func (sc *SystemController) UpdateWorkspace(c echo.Context) error {
 	return c.JSON(http.StatusOK, model.SuccessResponse{Message: "Workspace updated successfully"})
 }
 
+// RegisterTelegramIntegration handles the registration of Telegram integration for authentication.
+// @Summary Registers or progresses Telegram integration for authentication.
+// @Description This endpoint handles the various stages of Telegram authentication, including phone number submission, verification code checking, and two-factor authentication password verification.
+// @Tags System
+// @Accept json
+// @Produce json
+// @Param id path string true "Workspace ID"
+// @Param set query string true "Stage of the Telegram authentication process ('phone', 'code', or 'password')"
+// @Param value query string true "Value required for the current stage (phone number, verification code, or password)"
+// @Success 200 {object} model.SuccessResponse "Telegram authentication processed successfully; stage complete."
+// @Success 202 {object} model.SuccessResponse "Verification code accepted but password is required for two-factor authentication."
+// @Failure 500 {object} model.ErrorResponse "Internal server error occurred while processing the Telegram integration."
+// @Router /system/integrations/telegram/{id} [get]
+func (sc *SystemController) RegisterTelegramIntegration(c echo.Context) error {
+	workspaceId, stage, value := c.Param("id"), c.QueryParam("set"), c.QueryParam("value")
+	userId := c.Request().Context().Value("userId").(primitive.ObjectID)
+
+	statusCode, err := sc.systemService.RegisterTelegramIntegration(userId, workspaceId, stage, value)
+	if err != nil {
+		return c.JSON(statusCode, model.ErrorResponse{Error: err.Error()})
+	}
+
+	return c.JSON(statusCode, model.SuccessResponse{Message: "telegram auth status updated successfully"})
+}
+
 // AddWorkspaceMembers adds members to a Workspace.
 // @Summary Adds members to a Workspace.
 // @Tags System

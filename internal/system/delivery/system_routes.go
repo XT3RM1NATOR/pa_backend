@@ -39,4 +39,8 @@ func RegisterSystemRoutes(e *echo.Echo, cfg *config.Config, db *mongo.Database, 
 	workspaceGroup.DELETE("/leave/:id", sc.LeaveWorkspace, middleware.ValidateAccessTokenMiddleware(cfg.Auth.JWTSecretKey))
 	workspaceGroup.DELETE("/member/:id/:email", sc.DeleteWorkspaceMember, middleware.ValidateAccessTokenMiddleware(cfg.Auth.JWTSecretKey))
 	workspaceGroup.DELETE("/workspace/:id", sc.DeleteWorkspaceById, middleware.ValidateAccessTokenMiddleware(cfg.Auth.JWTSecretKey))
+
+	integrationsAuthGroup := systemGroup.Group("/integrations")
+	integrationsAuthGroup.GET("/telegram/:id", sc.RegisterTelegramIntegration, middleware.ValidateAccessTokenMiddleware(cfg.Auth.JWTSecretKey))
+
 }

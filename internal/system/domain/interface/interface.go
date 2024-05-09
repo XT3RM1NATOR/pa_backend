@@ -21,6 +21,7 @@ type SystemService interface {
 	UpdateMemberStatus(userId primitive.ObjectID, status string, workspaceId string) error
 	SetFirstTeam(userId primitive.ObjectID, teamName, workspaceId string) error
 	EditFolders(userId primitive.ObjectID, workspaceId string, folders map[string][]string) error
+	RegisterTelegramIntegration(userId primitive.ObjectID, workspaceId, stage, value string) (int, error)
 }
 
 type EmailService interface {

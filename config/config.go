@@ -37,7 +37,8 @@ type (
 	}
 
 	Auth struct {
-		JWTSecretKey string `env:"JWT_SECRET_KEY"`
+		JWTSecretKey                string `env:"JWT_SECRET_KEY"`
+		IntegrationsServerSecretKey string `env:"INTEGRATIONS_SERVER_SECRET_KEY"`
 	}
 
 	Email struct {
@@ -63,8 +64,9 @@ type (
 	}
 
 	Website struct {
-		WebURL  string `env:"WEB_URL"`
-		BaseURL string `env:"BASE_URL"`
+		WebURL                string `env:"WEB_URL"`
+		BaseURL               string `env:"BASE_URL"`
+		IntegrationsServerURL string `env:"INTEGRATIONS_SERVER_URL"`
 	}
 
 	MinIo struct {
