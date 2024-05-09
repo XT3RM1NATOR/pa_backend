@@ -75,9 +75,7 @@ func (mc *MessengerController) WSHandler(c echo.Context) error {
 // @Accept json
 // @Produce json
 // @Param ticket_id path string true "Ticket ID"
-// @Param id path string true "Workspace ID"
-// @Param name path string true "Team name"
-// @Param userId path string true "User ID"
+// @Param request body model.ReassignTicketToTeamRequest true "details"
 // @Success 200 {object} model.SuccessResponse "Ticket successfully reassigned to team"
 // @Failure 400 {object} model.ErrorResponse "Invalid request parameters"
 // @Failure 500 {object} model.ErrorResponse "Internal server error, failed to reassign ticket"
@@ -101,10 +99,7 @@ func (mc *MessengerController) ReassignTicketToTeam(c echo.Context) error {
 // @Tags Messenger
 // @Accept json
 // @Produce json
-// @Param ticket_id path string true "Ticket ID"
-// @Param id path string true "Workspace ID"
-// @Param email path string true "Email of the member"
-// @Param userId path string true "User ID"
+// @Param request body model.ReassignTicketToUserRequest true "details"
 // @Success 200 {object} model.SuccessResponse "Ticket successfully reassigned to member"
 // @Failure 400 {object} model.ErrorResponse "Invalid request parameters"
 // @Failure 500 {object} model.ErrorResponse "Internal server error, failed to reassign ticket"
@@ -128,10 +123,7 @@ func (mc *MessengerController) ReassignTicketToMember(c echo.Context) error {
 // @Tags Messenger
 // @Accept json
 // @Produce json
-// @Param id path string true "Workspace ID"
-// @Param tg_client_id path string true "Telegram client ID"
-// @Param tags path string true "Tags of the chat"
-// @Param userId path string true "User ID"
+// @Param request body model.UpdateChatInfoRequest true "details"
 // @Success 200 {object} model.SuccessResponse "Chat information updated successfully"
 // @Failure 400 {object} model.ErrorResponse "Invalid request parameters"
 // @Failure 500 {object} model.ErrorResponse "Internal server error, failed to update chat information"
@@ -155,10 +147,7 @@ func (mc *MessengerController) UpdateChatInfo(c echo.Context) error {
 // @Tags Messenger
 // @Accept json
 // @Produce json
-// @Param ticket_id path string true "Ticket ID"
-// @Param id path string true "Workspace ID"
-// @Param status path string true "New status of the ticket"
-// @Param userId path string true "User ID"
+// @Param request body model.ChangeTicketStatusRequest true "details"
 // @Success 200 {object} model.SuccessResponse "Ticket status updated successfully"
 // @Failure 400 {object} model.ErrorResponse "Invalid request parameters"
 // @Failure 500 {object} model.ErrorResponse "Internal server error, failed to update ticket status"
@@ -177,6 +166,16 @@ func (mc *MessengerController) ChangeTicketStatus(c echo.Context) error {
 	return c.JSON(http.StatusOK, model.SuccessResponse{Message: "ticket status updated successfully"})
 }
 
+// DeleteMessage removes a message from a chat in a workspace.
+// @Summary Removes a message from a chat
+// @Tags Messenger
+// @Accept json
+// @Produce json
+// @Param request body model.MessageRequest true "details"
+// @Success 200 {object} model.SuccessResponse "Message deleted successfully"
+// @Failure 400 {object} model.ErrorResponse "Invalid request parameters"
+// @Failure 500 {object} model.ErrorResponse "Internal server error, failed to delete the message"
+// @Router /messenger/message [delete]
 func (mc *MessengerController) DeleteMessage(c echo.Context) error {
 	var request model.MessageRequest
 	if err := c.Bind(&request); err != nil {
@@ -188,5 +187,5 @@ func (mc *MessengerController) DeleteMessage(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, model.ErrorResponse{Error: err.Error()})
 	}
 
-	return c.JSON(http.StatusOK, model.SuccessResponse{Message: "ticket status updated successfully"})
+	return c.JSON(http.StatusOK, model.SuccessResponse{Message: "message deleted successfully"})
 }

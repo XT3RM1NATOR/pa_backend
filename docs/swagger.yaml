@@ -17,14 +17,71 @@ definitions:
       message:
         type: string
     type: object
+  github_com_Point-AI_backend_internal_messenger_delivery_model.ChangeTicketStatusRequest:
+    properties:
+      status:
+        type: string
+      ticket_id:
+        type: string
+      workspace_id:
+        type: string
+    type: object
   github_com_Point-AI_backend_internal_messenger_delivery_model.ErrorResponse:
     properties:
       error:
         type: string
     type: object
+  github_com_Point-AI_backend_internal_messenger_delivery_model.MessageRequest:
+    properties:
+      chat_id:
+        type: string
+      message:
+        type: string
+      message_id:
+        type: string
+      ticket_id:
+        type: string
+      type:
+        type: string
+      workspace_id:
+        type: string
+    type: object
+  github_com_Point-AI_backend_internal_messenger_delivery_model.ReassignTicketToTeamRequest:
+    properties:
+      team_name:
+        type: string
+      tg_client_id:
+        type: string
+      ticket_id:
+        type: string
+      workspace_id:
+        type: string
+    type: object
+  github_com_Point-AI_backend_internal_messenger_delivery_model.ReassignTicketToUserRequest:
+    properties:
+      email:
+        type: string
+      tg_client_id:
+        type: string
+      ticket_id:
+        type: string
+      workspace_id:
+        type: string
+    type: object
   github_com_Point-AI_backend_internal_messenger_delivery_model.SuccessResponse:
     properties:
       message:
+        type: string
+    type: object
+  github_com_Point-AI_backend_internal_messenger_delivery_model.UpdateChatInfoRequest:
+    properties:
+      tags:
+        items:
+          type: string
+        type: array
+      tg_client_id:
+        type: string
+      workspace_id:
         type: string
     type: object
   github_com_Point-AI_backend_internal_system_delivery_model.AddTeamMembersRequest:
@@ -255,26 +312,12 @@ paths:
       consumes:
       - application/json
       parameters:
-      - description: Workspace ID
-        in: path
-        name: id
+      - description: details
+        in: body
+        name: request
         required: true
-        type: string
-      - description: Telegram client ID
-        in: path
-        name: tg_client_id
-        required: true
-        type: string
-      - description: Tags of the chat
-        in: path
-        name: tags
-        required: true
-        type: string
-      - description: User ID
-        in: path
-        name: userId
-        required: true
-        type: string
+        schema:
+          $ref: '#/definitions/github_com_Point-AI_backend_internal_messenger_delivery_model.UpdateChatInfoRequest'
       produces:
       - application/json
       responses:
@@ -293,31 +336,46 @@ paths:
       summary: Updates chat information.
       tags:
       - Messenger
+  /messenger/message:
+    delete:
+      consumes:
+      - application/json
+      parameters:
+      - description: details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_Point-AI_backend_internal_messenger_delivery_model.MessageRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Message deleted successfully
+          schema:
+            $ref: '#/definitions/github_com_Point-AI_backend_internal_messenger_delivery_model.SuccessResponse'
+        "400":
+          description: Invalid request parameters
+          schema:
+            $ref: '#/definitions/github_com_Point-AI_backend_internal_messenger_delivery_model.ErrorResponse'
+        "500":
+          description: Internal server error, failed to delete the message
+          schema:
+            $ref: '#/definitions/github_com_Point-AI_backend_internal_messenger_delivery_model.ErrorResponse'
+      summary: Removes a message from a chat
+      tags:
+      - Messenger
   /messenger/ticket:
     put:
       consumes:
       - application/json
       parameters:
-      - description: Ticket ID
-        in: path
-        name: ticket_id
+      - description: details
+        in: body
+        name: request
         required: true
-        type: string
-      - description: Workspace ID
-        in: path
-        name: id
-        required: true
-        type: string
-      - description: New status of the ticket
-        in: path
-        name: status
-        required: true
-        type: string
-      - description: User ID
-        in: path
-        name: userId
-        required: true
-        type: string
+        schema:
+          $ref: '#/definitions/github_com_Point-AI_backend_internal_messenger_delivery_model.ChangeTicketStatusRequest'
       produces:
       - application/json
       responses:
@@ -341,26 +399,12 @@ paths:
       consumes:
       - application/json
       parameters:
-      - description: Ticket ID
-        in: path
-        name: ticket_id
+      - description: details
+        in: body
+        name: request
         required: true
-        type: string
-      - description: Workspace ID
-        in: path
-        name: id
-        required: true
-        type: string
-      - description: Email of the member
-        in: path
-        name: email
-        required: true
-        type: string
-      - description: User ID
-        in: path
-        name: userId
-        required: true
-        type: string
+        schema:
+          $ref: '#/definitions/github_com_Point-AI_backend_internal_messenger_delivery_model.ReassignTicketToUserRequest'
       produces:
       - application/json
       responses:
@@ -389,21 +433,12 @@ paths:
         name: ticket_id
         required: true
         type: string
-      - description: Workspace ID
-        in: path
-        name: id
+      - description: details
+        in: body
+        name: request
         required: true
-        type: string
-      - description: Team name
-        in: path
-        name: name
-        required: true
-        type: string
-      - description: User ID
-        in: path
-        name: userId
-        required: true
-        type: string
+        schema:
+          $ref: '#/definitions/github_com_Point-AI_backend_internal_messenger_delivery_model.ReassignTicketToTeamRequest'
       produces:
       - application/json
       responses:
