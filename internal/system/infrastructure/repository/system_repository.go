@@ -10,22 +10,28 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
+	"sync"
 	"time"
 )
 
 type SystemRepositoryImpl struct {
 	database *mongo.Database
 	config   *config.Config
+	mu       *sync.RWMutex
 }
 
-func NewSystemRepositoryImpl(cfg *config.Config, db *mongo.Database) infrastructureInterface.SystemRepository {
+func NewSystemRepositoryImpl(cfg *config.Config, db *mongo.Database, mu *sync.RWMutex) infrastructureInterface.SystemRepository {
 	return &SystemRepositoryImpl{
 		database: db,
 		config:   cfg,
+		mu:       mu,
 	}
 }
 
 func (sr *SystemRepositoryImpl) CreateWorkspace(ownerId primitive.ObjectID, pendingTeam map[string]entity.WorkspaceRole, workspaceId, name string, teams []string) error {
+	sr.mu.Lock()
+	defer sr.mu.Unlock()
+
 	team := make(map[primitive.ObjectID]entity.WorkspaceRole)
 	team[ownerId] = entity.RoleAdmin
 
@@ -40,22 +46,29 @@ func (sr *SystemRepositoryImpl) CreateWorkspace(ownerId primitive.ObjectID, pend
 		InternalTeams: teamsMap,
 		PendingTeam:   pendingTeam,
 		WorkspaceId:   workspaceId,
-		CreatedAt:     primitive.NewDateTimeFromTime(time.Now()),
+		CreatedAt:     time.Now(),
 	}
 
-	if _, err := sr.database.Collection(sr.config.MongoDB.WorkspaceCollection).InsertOne(context.Background(), workspace); err != nil {
-		return err
-	}
-	return nil
+	_, err := sr.database.Collection(sr.config.MongoDB.WorkspaceCollection).InsertOne(
+		context.Background(),
+		workspace,
+	)
+	return err
 }
 
 func (sr *SystemRepositoryImpl) ValidateTeam(team map[string]string, ownerId primitive.ObjectID) (map[primitive.ObjectID]entity.WorkspaceRole, error) {
+	sr.mu.RLock()
+	defer sr.mu.RUnlock()
+
 	userRoles := make(map[primitive.ObjectID]entity.WorkspaceRole)
 	userRoles[ownerId] = entity.RoleAdmin
 
 	for email, role := range team {
 		var user entity.User
-		err := sr.database.Collection(sr.config.MongoDB.UserCollection).FindOne(context.Background(), bson.M{"email": email}).Decode(&user)
+		err := sr.database.Collection(sr.config.MongoDB.UserCollection).FindOne(
+			context.Background(),
+			bson.M{"email": email},
+		).Decode(&user)
 		if err != nil {
 			if errors.Is(err, mongo.ErrNoDocuments) {
 				continue
@@ -78,11 +91,17 @@ func (sr *SystemRepositoryImpl) ValidateTeam(team map[string]string, ownerId pri
 }
 
 func (sr *SystemRepositoryImpl) FormatTeam(team map[primitive.ObjectID]entity.WorkspaceRole) (map[string]string, error) {
+	sr.mu.RLock()
+	defer sr.mu.RUnlock()
+
 	userRoles := make(map[string]string)
 
 	for id, role := range team {
 		var user entity.User
-		err := sr.database.Collection(sr.config.MongoDB.UserCollection).FindOne(context.Background(), bson.M{"_id": id}).Decode(&user)
+		err := sr.database.Collection(sr.config.MongoDB.UserCollection).FindOne(
+			context.Background(),
+			bson.M{"_id": id},
+		).Decode(&user)
 		if err != nil {
 			if errors.Is(err, mongo.ErrNoDocuments) {
 				continue
@@ -97,8 +116,14 @@ func (sr *SystemRepositoryImpl) FormatTeam(team map[primitive.ObjectID]entity.Wo
 }
 
 func (sr *SystemRepositoryImpl) FindWorkspaceByWorkspaceId(workspaceId string) (*entity.Workspace, error) {
+	sr.mu.RLock()
+	defer sr.mu.RUnlock()
+
 	var workspace entity.Workspace
-	err := sr.database.Collection(sr.config.MongoDB.WorkspaceCollection).FindOne(context.Background(), bson.M{"workspace_id": workspaceId}).Decode(&workspace)
+	err := sr.database.Collection(sr.config.MongoDB.WorkspaceCollection).FindOne(
+		context.Background(),
+		bson.M{"workspace_id": workspaceId},
+	).Decode(&workspace)
 	if err != nil {
 		return &workspace, err
 	}
@@ -107,9 +132,14 @@ func (sr *SystemRepositoryImpl) FindWorkspaceByWorkspaceId(workspaceId string) (
 }
 
 func (sr *SystemRepositoryImpl) RemoveUserFromWorkspace(workspace *entity.Workspace, userId primitive.ObjectID) error {
-	filter, update := bson.M{"_id": workspace.Id}, bson.M{"$unset": bson.M{"team." + userId.Hex(): ""}}
+	sr.mu.Lock()
+	defer sr.mu.Unlock()
 
-	res, err := sr.database.Collection(sr.config.MongoDB.WorkspaceCollection).UpdateOne(context.Background(), filter, update)
+	res, err := sr.database.Collection(sr.config.MongoDB.WorkspaceCollection).UpdateOne(
+		context.Background(),
+		bson.M{"_id": workspace.Id},
+		bson.M{"$unset": bson.M{"team." + userId.Hex(): ""}},
+	)
 	if err != nil {
 		return err
 	}
@@ -121,14 +151,20 @@ func (sr *SystemRepositoryImpl) RemoveUserFromWorkspace(workspace *entity.Worksp
 }
 
 func (sr *SystemRepositoryImpl) AddUsersToWorkspace(workspace *entity.Workspace, teamRoles map[primitive.ObjectID]entity.WorkspaceRole) error {
+	sr.mu.Lock()
+	defer sr.mu.Unlock()
+
 	for userId, role := range teamRoles {
 		if _, exists := workspace.Team[userId]; !exists {
 			workspace.Team[userId] = role
 		}
 	}
-	filter, update := bson.M{"_id": workspace.Id}, bson.M{"$set": bson.M{"team": workspace.Team}}
 
-	res, err := sr.database.Collection(sr.config.MongoDB.WorkspaceCollection).UpdateOne(context.Background(), filter, update)
+	res, err := sr.database.Collection(sr.config.MongoDB.WorkspaceCollection).UpdateOne(
+		context.Background(),
+		bson.M{"_id": workspace.Id},
+		bson.M{"$set": bson.M{"team": workspace.Team}},
+	)
 	if err != nil {
 		return err
 	}
@@ -140,14 +176,20 @@ func (sr *SystemRepositoryImpl) AddUsersToWorkspace(workspace *entity.Workspace,
 }
 
 func (sr *SystemRepositoryImpl) UpdateUsersInWorkspace(workspace *entity.Workspace, teamRoles map[primitive.ObjectID]entity.WorkspaceRole) error {
+	sr.mu.Lock()
+	defer sr.mu.Unlock()
+
 	for userId, role := range teamRoles {
 		if _, exists := workspace.Team[userId]; exists {
 			workspace.Team[userId] = role
 		}
 	}
-	filter, update := bson.M{"_id": workspace.Id}, bson.M{"$set": bson.M{"team": workspace.Team}}
 
-	res, err := sr.database.Collection(sr.config.MongoDB.WorkspaceCollection).UpdateOne(context.Background(), filter, update)
+	res, err := sr.database.Collection(sr.config.MongoDB.WorkspaceCollection).UpdateOne(
+		context.Background(),
+		bson.M{"_id": workspace.Id},
+		bson.M{"$set": bson.M{"team": workspace.Team}},
+	)
 	if err != nil {
 		return err
 	}
@@ -159,6 +201,9 @@ func (sr *SystemRepositoryImpl) UpdateUsersInWorkspace(workspace *entity.Workspa
 }
 
 func (sr *SystemRepositoryImpl) GetUserProfiles(Workspace entity.Workspace) (*[]model.User, error) {
+	sr.mu.RLock()
+	defer sr.mu.RUnlock()
+
 	var users []model.User
 
 	for userId, role := range Workspace.Team {
@@ -178,7 +223,10 @@ func (sr *SystemRepositoryImpl) GetUserProfiles(Workspace entity.Workspace) (*[]
 func (sr *SystemRepositoryImpl) findUserById(userId primitive.ObjectID) (*entity.User, error) {
 	var user entity.User
 
-	err := sr.database.Collection(sr.config.MongoDB.UserCollection).FindOne(context.Background(), bson.M{"_id": userId}).Decode(&user)
+	err := sr.database.Collection(sr.config.MongoDB.UserCollection).FindOne(
+		context.Background(),
+		bson.M{"_id": userId},
+	).Decode(&user)
 	if errors.Is(err, mongo.ErrNoDocuments) {
 		return &user, errors.New("user not found")
 	}
@@ -187,7 +235,13 @@ func (sr *SystemRepositoryImpl) findUserById(userId primitive.ObjectID) (*entity
 }
 
 func (sr *SystemRepositoryImpl) DeleteWorkspace(id primitive.ObjectID) error {
-	res, err := sr.database.Collection(sr.config.MongoDB.WorkspaceCollection).DeleteOne(context.Background(), bson.M{"_id": id})
+	sr.mu.Lock()
+	defer sr.mu.Unlock()
+
+	res, err := sr.database.Collection(sr.config.MongoDB.WorkspaceCollection).DeleteOne(
+		context.Background(),
+		bson.M{"_id": id},
+	)
 	if err != nil {
 		return err
 	}
@@ -200,9 +254,14 @@ func (sr *SystemRepositoryImpl) DeleteWorkspace(id primitive.ObjectID) error {
 }
 
 func (sr *SystemRepositoryImpl) ClearPendingStatus(userId primitive.ObjectID, workspaceId string) error {
-	filter := bson.M{"_id": userId}
-	update := bson.M{"$pull": bson.M{"pending_invites": workspaceId}}
-	_, err := sr.database.Collection(sr.config.MongoDB.UserCollection).UpdateOne(context.Background(), filter, update)
+	sr.mu.Lock()
+	defer sr.mu.Unlock()
+
+	_, err := sr.database.Collection(sr.config.MongoDB.UserCollection).UpdateOne(
+		context.Background(),
+		bson.M{"_id": userId},
+		bson.M{"$pull": bson.M{"pending_invites": workspaceId}},
+	)
 	if err != nil {
 		return err
 	}
@@ -210,6 +269,9 @@ func (sr *SystemRepositoryImpl) ClearPendingStatus(userId primitive.ObjectID, wo
 }
 
 func (sr *SystemRepositoryImpl) UpdateWorkspaceUserStatus(userId primitive.ObjectID, workspaceId string, status bool) error {
+	sr.mu.Lock()
+	defer sr.mu.Unlock()
+
 	email, err := sr.FindUserEmailById(userId)
 	if err != nil {
 		return err
@@ -233,11 +295,13 @@ func (sr *SystemRepositoryImpl) UpdateWorkspaceUserStatus(userId primitive.Objec
 }
 
 func (sr *SystemRepositoryImpl) FindWorkspacesByUser(userID primitive.ObjectID) (*[]entity.Workspace, error) {
-	filter := bson.M{
-		"team." + userID.Hex(): bson.M{"$exists": true},
-	}
+	sr.mu.RLock()
+	defer sr.mu.RUnlock()
 
-	cursor, err := sr.database.Collection(sr.config.MongoDB.WorkspaceCollection).Find(context.Background(), filter)
+	cursor, err := sr.database.Collection(sr.config.MongoDB.WorkspaceCollection).Find(
+		context.Background(),
+		bson.M{"team." + userID.Hex(): bson.M{"$exists": true}},
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -252,8 +316,14 @@ func (sr *SystemRepositoryImpl) FindWorkspacesByUser(userID primitive.ObjectID) 
 }
 
 func (sr *SystemRepositoryImpl) FindUserEmailById(userId primitive.ObjectID) (string, error) {
+	sr.mu.RLock()
+	defer sr.mu.RUnlock()
+
 	var user entity.User
-	err := sr.database.Collection(sr.config.MongoDB.UserCollection).FindOne(context.Background(), bson.M{"_id": userId}).Decode(&user)
+	err := sr.database.Collection(sr.config.MongoDB.UserCollection).FindOne(
+		context.Background(),
+		bson.M{"_id": userId},
+	).Decode(&user)
 	if err != nil {
 		return "", err
 	}
@@ -262,8 +332,14 @@ func (sr *SystemRepositoryImpl) FindUserEmailById(userId primitive.ObjectID) (st
 }
 
 func (sr *SystemRepositoryImpl) FindUserByEmail(email string) (primitive.ObjectID, error) {
+	sr.mu.RLock()
+	defer sr.mu.RUnlock()
+
 	var user entity.User
-	err := sr.database.Collection(sr.config.MongoDB.UserCollection).FindOne(context.Background(), bson.M{"email": email}).Decode(&user)
+	err := sr.database.Collection(sr.config.MongoDB.UserCollection).FindOne(
+		context.Background(),
+		bson.M{"email": email},
+	).Decode(&user)
 	if err != nil {
 		return primitive.ObjectID{}, err
 	}
@@ -272,19 +348,26 @@ func (sr *SystemRepositoryImpl) FindUserByEmail(email string) (primitive.ObjectI
 }
 
 func (sr *SystemRepositoryImpl) AddPendingInviteToUser(userId primitive.ObjectID, projectId string) error {
-	filter := bson.M{"_id": userId}
-	update := bson.M{"$addToSet": bson.M{"pending_invites": projectId}}
-	_, err := sr.database.Collection(sr.config.MongoDB.UserCollection).UpdateOne(context.Background(), filter, update)
-	if err != nil {
-		return err
-	}
-	return nil
+	sr.mu.Lock()
+	defer sr.mu.Unlock()
+
+	_, err := sr.database.Collection(sr.config.MongoDB.UserCollection).UpdateOne(
+		context.Background(),
+		bson.M{"_id": userId},
+		bson.M{"$addToSet": bson.M{"pending_invites": projectId}},
+	)
+	return err
 }
 
 func (sr *SystemRepositoryImpl) UpdateWorkspace(workspace *entity.Workspace) error {
-	filter, update := bson.M{"_id": workspace.Id}, bson.M{"$set": workspace}
+	sr.mu.Lock()
+	defer sr.mu.Unlock()
 
-	res, err := sr.database.Collection(sr.config.MongoDB.WorkspaceCollection).ReplaceOne(context.Background(), filter, update)
+	res, err := sr.database.Collection(sr.config.MongoDB.WorkspaceCollection).ReplaceOne(
+		context.Background(),
+		bson.M{"_id": workspace.Id},
+		bson.M{"$set": workspace},
+	)
 	if err != nil {
 		return err
 	}

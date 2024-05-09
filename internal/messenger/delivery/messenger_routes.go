@@ -8,10 +8,11 @@ import (
 	"github.com/Point-AI/backend/middleware"
 	"github.com/labstack/echo/v4"
 	"go.mongodb.org/mongo-driver/mongo"
+	"sync"
 )
 
-func RegisterMessengerRoutes(e *echo.Echo, cfg *config.Config, db *mongo.Database) {
-	ir := repository.NewMessengerRepositoryImpl(cfg, db)
+func RegisterMessengerRoutes(e *echo.Echo, cfg *config.Config, db *mongo.Database, mu *sync.RWMutex) {
+	ir := repository.NewMessengerRepositoryImpl(cfg, db, mu)
 	wss := service.NewWebSocketServiceImpl(ir)
 	is := service.NewMessengerServiceImpl(cfg, ir, wss)
 	ic := controller.NewMessengerController(cfg, is, wss)

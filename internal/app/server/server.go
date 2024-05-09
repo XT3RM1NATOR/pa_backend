@@ -14,6 +14,7 @@ import (
 	echoSwagger "github.com/swaggo/echo-swagger"
 	"go.mongodb.org/mongo-driver/mongo"
 	"os"
+	"sync"
 )
 
 // RunHTTPServer
@@ -41,12 +42,13 @@ func RunHTTPServer(cfg *config.Config, db *mongo.Database, str *minio.Client) {
 	}))
 
 	e.Use(middleware.CORS())
-	e.GET("/swagger/*", echoSwagger.WrapHandler)
 
-	authDelivery.RegisterAuthRoutes(e, cfg, db, str)
-	systemDelivery.RegisterSystemRoutes(e, cfg, db, str)
+	mu := new(sync.RWMutex)
+	authDelivery.RegisterAuthRoutes(e, cfg, db, str, mu)
+	systemDelivery.RegisterSystemRoutes(e, cfg, db, str, mu)
 	apiDelivery.RegisterAPIRoutes(e, cfg, db)
-	messengerDelivery.RegisterMessengerRoutes(e, cfg, db)
+	messengerDelivery.RegisterMessengerRoutes(e, cfg, db, mu)
+	e.GET("/swagger/*", echoSwagger.WrapHandler)
 
 	if err := e.Start(cfg.Server.Port); err != nil {
 		panic(err)

@@ -10,27 +10,27 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
-	"net/mail"
+	"sync"
 	"time"
 )
 
 type UserRepositoryImpl struct {
 	database *mongo.Database
 	config   *config.Config
+	mu       *sync.RWMutex
 }
 
-func NewUserRepositoryImpl(db *mongo.Database, config *config.Config) infrastructureInterface.UserRepository {
+func NewUserRepositoryImpl(db *mongo.Database, config *config.Config, mu *sync.RWMutex) infrastructureInterface.UserRepository {
 	return &UserRepositoryImpl{
 		database: db,
 		config:   config,
+		mu:       mu,
 	}
 }
 
 func (ur *UserRepositoryImpl) CreateUser(pendingInvites []string, email, passwordHash, confirmToken string) error {
-	_, err := mail.ParseAddress(email)
-	if err != nil {
-		return err
-	}
+	ur.mu.Lock()
+	defer ur.mu.Unlock()
 
 	user := &entity.User{
 		Email:        email,
@@ -40,14 +40,17 @@ func (ur *UserRepositoryImpl) CreateUser(pendingInvites []string, email, passwor
 			ConfirmToken: confirmToken,
 		},
 		PendingInvites: pendingInvites,
-		CreatedAt:      primitive.NewDateTimeFromTime(time.Now()),
+		CreatedAt:      time.Now(),
 	}
 
-	_, err = ur.database.Collection(ur.config.MongoDB.UserCollection).InsertOne(context.Background(), user)
+	_, err := ur.database.Collection(ur.config.MongoDB.UserCollection).InsertOne(context.Background(), user)
 	return err
 }
 
 func (ur *UserRepositoryImpl) CreateOauth2User(pendingInvites []string, email, authSource string) (string, error) {
+	ur.mu.Lock()
+	defer ur.mu.Unlock()
+
 	existingUser, err := ur.GetUserByEmail(email)
 	if err != nil {
 		return "", err
@@ -74,7 +77,7 @@ func (ur *UserRepositoryImpl) CreateOauth2User(pendingInvites []string, email, a
 		Tokens:         entity.Tokens{OAuth2Token: oAuth2Token},
 		IsConfirmed:    true,
 		PendingInvites: pendingInvites,
-		CreatedAt:      primitive.NewDateTimeFromTime(time.Now()),
+		CreatedAt:      time.Now(),
 	}
 
 	if _, err := ur.database.Collection(ur.config.MongoDB.UserCollection).InsertOne(context.Background(), user); err != nil {
@@ -85,6 +88,9 @@ func (ur *UserRepositoryImpl) CreateOauth2User(pendingInvites []string, email, a
 }
 
 func (ur *UserRepositoryImpl) GetAllPendingInvites(email string) ([]string, error) {
+	ur.mu.RLock()
+	defer ur.mu.RUnlock()
+
 	var workspaceIds []string
 
 	cursor, err := ur.database.Collection(ur.config.MongoDB.WorkspaceCollection).Find(context.Background(), bson.M{"pending." + email: bson.M{"$exists": true}})
@@ -109,6 +115,9 @@ func (ur *UserRepositoryImpl) GetAllPendingInvites(email string) ([]string, erro
 }
 
 func (ur *UserRepositoryImpl) GetUserByEmail(email string) (*entity.User, error) {
+	ur.mu.RLock()
+	defer ur.mu.RUnlock()
+
 	var user entity.User
 	err := ur.database.Collection(ur.config.MongoDB.UserCollection).FindOne(context.Background(), bson.M{"email": email}).Decode(&user)
 	if err != nil {
@@ -121,6 +130,9 @@ func (ur *UserRepositoryImpl) GetUserByEmail(email string) (*entity.User, error)
 }
 
 func (ur *UserRepositoryImpl) GetUserById(id primitive.ObjectID) (*entity.User, error) {
+	ur.mu.RLock()
+	defer ur.mu.RUnlock()
+
 	var user entity.User
 	err := ur.database.Collection(ur.config.MongoDB.UserCollection).FindOne(context.Background(), bson.M{"_id": id}).Decode(&user)
 	if err != nil {
@@ -133,6 +145,9 @@ func (ur *UserRepositoryImpl) GetUserById(id primitive.ObjectID) (*entity.User, 
 }
 
 func (ur *UserRepositoryImpl) GetUserByOAuth2Token(token string) (*entity.User, error) {
+	ur.mu.RLock()
+	defer ur.mu.RUnlock()
+
 	var user entity.User
 	err := ur.database.Collection(ur.config.MongoDB.UserCollection).FindOne(
 		context.Background(),
@@ -145,6 +160,9 @@ func (ur *UserRepositoryImpl) GetUserByOAuth2Token(token string) (*entity.User, 
 }
 
 func (ur *UserRepositoryImpl) GetUserByConfirmToken(token string) (*entity.User, error) {
+	ur.mu.RLock()
+	defer ur.mu.RUnlock()
+
 	var user entity.User
 	err := ur.database.Collection(ur.config.MongoDB.UserCollection).FindOne(
 		context.Background(),
@@ -168,36 +186,48 @@ func (ur *UserRepositoryImpl) SetRefreshToken(user *entity.User, token string) e
 }
 
 func (ur *UserRepositoryImpl) ClearResetToken(id primitive.ObjectID, password string) error {
-	update := bson.M{"$set": bson.M{
+	ur.mu.Lock()
+	defer ur.mu.Unlock()
+
+	_, err := ur.database.Collection(ur.config.MongoDB.UserCollection).UpdateOne(context.Background(), bson.M{"_id": id}, bson.M{"$set": bson.M{
 		"password":           password,
 		"tokens.reset_token": "",
 	},
-	}
-	_, err := ur.database.Collection(ur.config.MongoDB.UserCollection).UpdateOne(context.Background(), bson.M{"_id": id}, update)
+	})
 	return err
 }
 
 func (ur *UserRepositoryImpl) ClearRefreshToken(id primitive.ObjectID) error {
-	update := bson.M{"$set": bson.M{"tokens.refresh_token": ""}}
-	_, err := ur.database.Collection(ur.config.MongoDB.UserCollection).UpdateOne(context.Background(), bson.M{"_id": id}, update)
+	ur.mu.Lock()
+	defer ur.mu.Unlock()
+
+	_, err := ur.database.Collection(ur.config.MongoDB.UserCollection).UpdateOne(context.Background(), bson.M{"_id": id}, bson.M{"$set": bson.M{"tokens.refresh_token": ""}})
 	return err
 }
 
 func (ur *UserRepositoryImpl) ConfirmUser(userId primitive.ObjectID) error {
-	update := bson.M{"$set": bson.M{
+	ur.mu.Lock()
+	defer ur.mu.Unlock()
+
+	_, err := ur.database.Collection(ur.config.MongoDB.UserCollection).UpdateOne(context.Background(), bson.M{"_id": userId}, bson.M{"$set": bson.M{
 		"is_confirmed":         true,
 		"tokens.confirm_token": "",
-	}}
-	_, err := ur.database.Collection(ur.config.MongoDB.UserCollection).UpdateOne(context.Background(), bson.M{"_id": userId}, update)
+	}})
 	return err
 }
 
 func (ur *UserRepositoryImpl) UpdateUser(user *entity.User) error {
+	ur.mu.Lock()
+	defer ur.mu.Unlock()
+
 	_, err := ur.database.Collection(ur.config.MongoDB.UserCollection).ReplaceOne(context.Background(), bson.M{"_id": user.Id}, user)
 	return err
 }
 
 func (ur *UserRepositoryImpl) FindWorkspaceByWorkspaceId(workspaceId string) (*entity.Workspace, error) {
+	ur.mu.RLock()
+	defer ur.mu.RUnlock()
+
 	var workspace entity.Workspace
 	err := ur.database.Collection(ur.config.MongoDB.WorkspaceCollection).FindOne(context.Background(), bson.M{"workspace_id": workspaceId}).Decode(&workspace)
 	if err != nil {
@@ -208,9 +238,10 @@ func (ur *UserRepositoryImpl) FindWorkspaceByWorkspaceId(workspaceId string) (*e
 }
 
 func (ur *UserRepositoryImpl) UpdateWorkspace(workspace *entity.Workspace) error {
-	filter, update := bson.M{"_id": workspace.Id}, bson.M{"$set": workspace}
+	ur.mu.Lock()
+	defer ur.mu.Unlock()
 
-	res, err := ur.database.Collection(ur.config.MongoDB.WorkspaceCollection).ReplaceOne(context.Background(), filter, update)
+	res, err := ur.database.Collection(ur.config.MongoDB.WorkspaceCollection).ReplaceOne(context.Background(), bson.M{"_id": workspace.Id}, bson.M{"$set": workspace})
 	if err != nil {
 		return err
 	}

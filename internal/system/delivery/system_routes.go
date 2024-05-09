@@ -10,14 +10,15 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/minio/minio-go/v7"
 	"go.mongodb.org/mongo-driver/mongo"
+	"sync"
 )
 
-func RegisterSystemRoutes(e *echo.Echo, cfg *config.Config, db *mongo.Database, str *minio.Client) {
+func RegisterSystemRoutes(e *echo.Echo, cfg *config.Config, db *mongo.Database, str *minio.Client, mu *sync.RWMutex) {
 	systemGroup := e.Group("/system")
 
 	ec := client.NewEmailClientImpl(cfg.Email.SMTPUsername, cfg.Email.SMTPPassword, cfg.Email.SMTPHost, cfg.Email.SMTPPort)
 	src := client.NewStorageClientImpl(str)
-	sr := repository.NewSystemRepositoryImpl(cfg, db)
+	sr := repository.NewSystemRepositoryImpl(cfg, db, mu)
 	es := service.NewEmailServiceImpl(ec)
 	ss := service.NewSystemServiceImpl(cfg, src, sr, es)
 	sc := controller.NewSystemController(cfg, ss)

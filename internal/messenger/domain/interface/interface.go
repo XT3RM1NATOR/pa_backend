@@ -15,6 +15,7 @@ type MessengerService interface {
 	ValidateUserInWorkspaceById(userId primitive.ObjectID, workspaceId string) error
 	UpdateChatInfo(userId primitive.ObjectID, chatId string, tags []string, workspaceId string) error
 	HandleMessage(userId primitive.ObjectID, workspaceId, ticketId, chatId, messageType, message string) error
+	DeleteMessage(userId primitive.ObjectID, messageType, workspaceId, ticketId, messageId, chatId string) error
 }
 
 type WebsocketService interface {
