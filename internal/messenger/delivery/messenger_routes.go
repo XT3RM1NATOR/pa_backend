@@ -29,5 +29,6 @@ func RegisterMessengerRoutes(e *echo.Echo, cfg *config.Config, db *mongo.Databas
 	messengerGroup.POST("/ticket/reassign/member", ic.ReassignTicketToMember, middleware.ValidateAccessTokenMiddleware(cfg.Auth.JWTSecretKey))
 	messengerGroup.PUT("/ticket", ic.ChangeTicketStatus, middleware.ValidateAccessTokenMiddleware(cfg.Auth.JWTSecretKey))
 	messengerGroup.PUT("/chat", ic.UpdateChatInfo, middleware.ValidateAccessTokenMiddleware(cfg.Auth.JWTSecretKey))
+	messengerGroup.DELETE("/message", ic.DeleteMessage, middleware.ValidateAccessTokenMiddleware(cfg.Auth.JWTSecretKey))
 
 }

@@ -236,7 +236,7 @@ func (ms *MessengerServiceImpl) HandleMessage(userId primitive.ObjectID, workspa
 			return err
 		}
 
-		res, err := json.Marshal(ms.createMessageResponse(nil, note.CreatedAt, ticketId, chatId, message, messageType))
+		res, err := json.Marshal(ms.createMessageResponse(nil, note.CreatedAt, "", workspaceId, ticketId, chatId, note.NoteId, message, messageType))
 		if err != nil {
 			return err
 		}
@@ -259,7 +259,7 @@ func (ms *MessengerServiceImpl) HandleMessage(userId primitive.ObjectID, workspa
 			return err
 		}
 
-		res, err := json.Marshal(ms.createMessageResponse(nil, note.CreatedAt, ticketId, chatId, message, messageType))
+		res, err := json.Marshal(ms.createMessageResponse(nil, note.CreatedAt, "", workspaceId, ticketId, chatId, note.NoteId, message, messageType))
 		if err != nil {
 			return err
 		}
@@ -288,6 +288,80 @@ func (ms *MessengerServiceImpl) UpdateChatInfo(userId primitive.ObjectID, chatId
 	chat.Tags = tags
 
 	return ms.messengerRepo.UpdateChat(nil, chat)
+}
+
+func (ms *MessengerServiceImpl) DeleteMessage(userId primitive.ObjectID, messageType, workspaceId, ticketId, messageId, chatId string) error {
+	if messageType == "chat_note" {
+		workspace, err := ms.messengerRepo.FindWorkspaceByWorkspaceId(nil, workspaceId)
+		if err != nil {
+			return err
+		}
+		if _, exists := workspace.Team[userId]; !exists {
+			return errors.New("unauthorized")
+		}
+
+		chat, err := ms.messengerRepo.FindChatByChatId(chatId)
+		if err != nil {
+			return err
+		}
+		if chat.WorkspaceId != workspace.Id {
+			return errors.New("wrong chatId or workspaceId")
+		}
+
+		index, err := ms.findNoteIndexInChat(chat, messageId)
+		if err != nil {
+			return err
+		}
+
+		chat.Notes = append(chat.Notes[:index], chat.Notes[index+1:]...)
+		if err = ms.messengerRepo.UpdateChat(nil, chat); err != nil {
+			return err
+		}
+
+		res, err := json.Marshal(ms.createMessageResponse(nil, time.Time{}, "delete", workspaceId, "", chatId, messageId, "", messageType))
+		if err != nil {
+			return err
+		}
+
+		ms.websocketService.SendToAll(workspaceId, res)
+		return nil
+	} else if messageType == "ticket_note" {
+		workspace, err := ms.messengerRepo.FindWorkspaceByWorkspaceId(nil, workspaceId)
+		if err != nil {
+			return err
+		}
+		if _, exists := workspace.Team[userId]; !exists {
+			return errors.New("unauthorized")
+		}
+
+		chat, err := ms.messengerRepo.FindChatByChatId(chatId)
+		if err != nil {
+			return err
+		}
+		if chat.WorkspaceId != workspace.Id {
+			return errors.New("wrong chatId or workspaceId")
+		}
+
+		ticketIndex, noteIndex, err := ms.findTicketIdAndNoteIdByNoteId(chat, messageId)
+		if err != nil {
+			return err
+		}
+
+		chat.Tickets[ticketIndex].Notes = append(chat.Tickets[ticketIndex].Notes[:noteIndex], chat.Tickets[ticketIndex].Notes[noteIndex+1:]...)
+		if err = ms.messengerRepo.UpdateChat(nil, chat); err != nil {
+			return err
+		}
+
+		res, err := json.Marshal(ms.createMessageResponse(nil, time.Time{}, "delete", workspaceId, ticketId, chatId, messageId, "", messageType))
+		if err != nil {
+			return err
+		}
+
+		ms.websocketService.SendToAll(workspaceId, res)
+		return nil
+	}
+
+	return errors.New("invalid message type")
 }
 
 func (ms *MessengerServiceImpl) getAssigneeIdByTeam(workspace *entity.Workspace, teamName string) (primitive.ObjectID, error) {
@@ -344,6 +418,28 @@ func (ms *MessengerServiceImpl) findTicketInChat(chat *entity.Chat, ticketId str
 	return nil, errors.New("ticket not found")
 }
 
+func (ms *MessengerServiceImpl) findNoteIndexInChat(chat *entity.Chat, noteId string) (int, error) {
+	for i, note := range chat.Notes {
+		if note.NoteId == noteId {
+			return i, nil
+		}
+	}
+
+	return -1, errors.New("invalid noteId")
+}
+
+func (ms *MessengerServiceImpl) findTicketIdAndNoteIdByNoteId(chat *entity.Chat, noteId string) (int, int, error) {
+	for i, ticket := range chat.Tickets {
+		for j, note := range ticket.Notes {
+			if note.NoteId == noteId {
+				return i, j, nil
+			}
+		}
+	}
+
+	return -1, -1, errors.New("invalid noteId")
+}
+
 func (ms *MessengerServiceImpl) createChat(currentChat *entity.Chat, ticket entity.Ticket, workspaceId, assigneeId primitive.ObjectID) *entity.Chat {
 	return &entity.Chat{
 		UserId:      assigneeId,
@@ -367,14 +463,17 @@ func (ms *MessengerServiceImpl) createNote(userId primitive.ObjectID, message st
 	}
 }
 
-func (ms *MessengerServiceImpl) createMessageResponse(content []byte, createdAt time.Time, ticketId, chatId, message, messageType string) *model.MessageResponse {
+func (ms *MessengerServiceImpl) createMessageResponse(content []byte, createdAt time.Time, action, workspaceId, ticketId, chatId, messageId, message, messageType string) *model.MessageResponse {
 	return &model.MessageResponse{
-		TicketId:  ticketId,
-		ChatId:    chatId,
-		Message:   message,
-		Content:   content,
-		Type:      messageType,
-		CreatedAt: createdAt,
+		WorkspaceId: workspaceId,
+		TicketId:    ticketId,
+		ChatId:      chatId,
+		MessageId:   messageId,
+		Message:     message,
+		Content:     content,
+		Type:        messageType,
+		Action:      action,
+		CreatedAt:   createdAt,
 	}
 }
 

@@ -176,3 +176,17 @@ func (mc *MessengerController) ChangeTicketStatus(c echo.Context) error {
 
 	return c.JSON(http.StatusOK, model.SuccessResponse{Message: "ticket status updated successfully"})
 }
+
+func (mc *MessengerController) DeleteMessage(c echo.Context) error {
+	var request model.MessageRequest
+	if err := c.Bind(&request); err != nil {
+		return c.JSON(http.StatusBadRequest, model.ErrorResponse{Error: "invalid request parameters"})
+	}
+
+	userId := c.Request().Context().Value("userId").(primitive.ObjectID)
+	if err := mc.messengerService.DeleteMessage(userId, request.Type, request.WorkspaceId, request.TicketId, request.MessageId, request.ChatId); err != nil {
+		return c.JSON(http.StatusInternalServerError, model.ErrorResponse{Error: err.Error()})
+	}
+
+	return c.JSON(http.StatusOK, model.SuccessResponse{Message: "ticket status updated successfully"})
+}

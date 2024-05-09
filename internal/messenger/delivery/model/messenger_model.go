@@ -12,10 +12,12 @@ type RegisterBotRequest struct {
 }
 
 type MessageRequest struct {
-	TicketId string `json:"ticket_id"`
-	ChatId   string `json:"chat_id"`
-	Message  string `json:"message"`
-	Type     string `json:"type"`
+	TicketId    string `json:"ticket_id"`
+	ChatId      string `json:"chat_id"`
+	WorkspaceId string `json:"workspace_id"`
+	MessageId   string `json:"message_id"`
+	Message     string `json:"message"`
+	Type        string `json:"type"`
 }
 
 type TelegramAuthRequest struct {
@@ -62,12 +64,22 @@ type SuccessResponse struct {
 }
 
 type MessageResponse struct {
-	TicketId  string    `json:"ticket_id"`
-	ChatId    string    `json:"chat_id"`
-	Message   string    `json:"message"`
-	Content   []byte    `json:"content"`
-	Type      string    `json:"type"`
-	CreatedAt time.Time `json:"created_at"`
+	TicketId    string    `json:"ticket_id"`
+	ChatId      string    `json:"chat_id"`
+	WorkspaceId string    `json:"workspace_id"`
+	MessageId   string    `json:"message_id"`
+	Message     string    `json:"message"`
+	Content     []byte    `json:"content"`
+	Type        string    `json:"type"`
+	Action      string    `json:"action"`
+	CreatedAt   time.Time `json:"created_at"`
+}
+
+type DeleteMessageResponse struct {
+	Type        string `json:"type"`
+	WorkspaceId string `json:"workspace_id"`
+	ChatId      string `json:"chat_id"`
+	MessageId   string `json:"message_id"`
 }
 
 type TelegramStatusResponse struct {
