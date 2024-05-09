@@ -25,7 +25,7 @@ func ValidateAccessTokenMiddleware(secretKey string) echo.MiddlewareFunc {
 
 			userId, err := utils.ValidateJWTToken(utils.RefreshToken, token, secretKey)
 			if err == nil {
-				token, err := utils.GenerateJWTToken(utils.RefreshToken, userId, secretKey)
+				token, err := utils.GenerateJWTToken(utils.AccessToken, userId, secretKey)
 				if err != nil {
 					return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
 				}

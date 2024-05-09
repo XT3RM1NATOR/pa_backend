@@ -42,13 +42,13 @@ func (mc *MessengerController) WSHandler(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, model.ErrorResponse{Error: err.Error()})
 	}
 
-	ws, err := mc.websocketService.UpgradeConnection(c.Response(), c.Request(), workspaceId)
+	ws, err := mc.websocketService.UpgradeConnection(c.Response(), c.Request(), workspaceId, userId)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, model.ErrorResponse{Error: err.Error()})
 	}
 
 	go func() {
-		defer mc.websocketService.RemoveConnection(workspaceId, ws)
+		defer mc.websocketService.RemoveConnection(workspaceId, userId)
 		for {
 			_, message, err := ws.ReadMessage()
 			if err != nil {
