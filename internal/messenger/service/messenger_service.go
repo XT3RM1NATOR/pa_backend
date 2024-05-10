@@ -243,6 +243,7 @@ func (ms *MessengerServiceImpl) ImportTelegramChats(workspaceId string, chats []
 	if err != nil {
 		return err
 	}
+	log.Println(chats)
 
 	for _, chat := range chats {
 		message := ms.createMessage(primitive.ObjectID{}, chat.LastMessage.Id, chat.LastMessage.Text, chat.Title, entity.TypeText, time.Now())
