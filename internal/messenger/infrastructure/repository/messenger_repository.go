@@ -282,7 +282,7 @@ func (mr *MessengerRepositoryImpl) InsertNewChat(ctx mongo.SessionContext, chat 
 	}
 
 	_, err := mr.database.Collection(mr.config.MongoDB.ChatCollection).InsertOne(
-		c,
+		context.Background(),
 		chat,
 	)
 
