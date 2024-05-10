@@ -43,10 +43,12 @@ type Chat struct {
 	WorkspaceId primitive.ObjectID `bson:"workspace_id"`
 	ChatId      string             `bson:"chat_id"`
 	TgClientId  int                `bson:"tg_user_id"`
+	TgChatId    int                `bson:"tg_chat_id"`
 	Tags        []string           `bson:"tags"`
 	Notes       []Note             `bson:"notes"`
 	Tickets     []Ticket           `bson:"tickets"`
 	Source      ChatSource         `bson:"source"`
+	IsImported  bool               `json:"is_imported"`
 	CreatedAt   time.Time          `bson:"created_at"`
 }
 
@@ -66,15 +68,15 @@ type Ticket struct {
 	ResponseMessages    []ResponseMessage     `bson:"response_messages"`
 	Status              TicketStatus          `bson:"status"`
 	CreatedAt           time.Time             `bson:"created_at"`
-	ResolvedAt          time.Time             `bson:"resolved_at,omitempty"`
+	ResolvedAt          time.Time             `bson:"resolved_at"`
 }
 
 type ResponseMessage struct {
 	Id        primitive.ObjectID `bson:"_id,omitempty"`
-	SenderId  primitive.ObjectID `bson:"sender_id,omitempty"`
+	SenderId  primitive.ObjectID `bson:"sender_id"`
 	Message   string             `bson:"message"`
 	Type      MessageType        `bson:"type"`
-	CreatedAt *time.Time         `bson:"created_at,omitempty"`
+	CreatedAt *time.Time         `bson:"created_at`
 }
 
 type IntegrationsMessage struct {
@@ -83,7 +85,7 @@ type IntegrationsMessage struct {
 	Message   string             `bson:"message"`
 	From      string             `bson:"from"`
 	Type      MessageType        `bson:"type"`
-	CreatedAt time.Time          `bson:"created_at,omitempty"`
+	CreatedAt time.Time          `bson:"created_at"`
 }
 
 type Integrations struct {
