@@ -55,7 +55,7 @@ type UpdateChatInfoRequest struct {
 
 type TelegramChat struct {
 	EntityType  string          `json:"entity_type"`
-	ID          int64           `json:"id"`
+	Id          int64           `json:"id"`
 	Title       string          `json:"title"`
 	UnreadCount int             `json:"unread_count"`
 	LastMessage TelegramMessage `json:"last_message"`
@@ -63,8 +63,8 @@ type TelegramChat struct {
 
 type TelegramMessage struct {
 	Date     string `json:"date"`
-	ID       int    `json:"id"`
-	SenderID int64  `json:"sender_id"`
+	Id       int    `json:"id"`
+	SenderId int64  `json:"sender_id"`
 	Text     string `json:"text"`
 }
 
@@ -105,4 +105,16 @@ type DeleteMessageResponse struct {
 
 type TelegramStatusResponse struct {
 	Status string `json:"status"`
+}
+
+type ChatResponse struct {
+	WorkspaceId string          `bson:"workspace_id"`
+	ChatId      string          `bson:"chat_id"`
+	TgClientId  int             `bson:"tg_user_id"`
+	TgChatId    int             `bson:"tg_chat_id"`
+	Tags        []string        `bson:"tags"`
+	LastMessage MessageResponse `bson:"last_message"`
+	Source      string          `bson:"source"`
+	IsImported  bool            `json:"is_imported"`
+	CreatedAt   time.Time       `bson:"created_at"`
 }

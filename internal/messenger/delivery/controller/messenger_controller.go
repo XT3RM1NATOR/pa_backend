@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"github.com/Point-AI/backend/config"
 	"github.com/Point-AI/backend/internal/messenger/delivery/model"
-	"github.com/Point-AI/backend/internal/messenger/domain/entity"
 	_interface "github.com/Point-AI/backend/internal/messenger/domain/interface"
 	"github.com/labstack/echo/v4"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -202,12 +201,12 @@ func (mc *MessengerController) ImportTelegramChats(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, model.ErrorResponse{Error: "invalid request parameters"})
 	}
 
-	chats, err := mc.messengerService.GetAllChats(userId, workspaceId)
+	err := mc.messengerService.ImportTelegramChats(workspaceId, request.Chats)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, model.ErrorResponse{Error: err.Error()})
 	}
 
-	return c.JSON(http.StatusOK, map[string][]entity.Chat{"poop": chats})
+	return c.JSON(http.StatusOK, model.SuccessResponse{Message: "messages imported successfully"})
 }
 
 func (mc *MessengerController) GetAllChats(c echo.Context) error {
@@ -219,5 +218,5 @@ func (mc *MessengerController) GetAllChats(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, model.ErrorResponse{Error: err.Error()})
 	}
 
-	return c.JSON(http.StatusOK, map[string][]entity.Chat{"poop": chats})
+	return c.JSON(http.StatusOK, chats)
 }

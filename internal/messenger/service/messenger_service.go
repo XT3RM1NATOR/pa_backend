@@ -13,6 +13,8 @@ import (
 	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
+	"log"
+	"sort"
 	"time"
 )
 
@@ -168,7 +170,7 @@ func (ms *MessengerServiceImpl) ReassignTicketToUser(userId primitive.ObjectID, 
 }
 
 // GetAllChats TODO: change to response model
-func (ms *MessengerServiceImpl) GetAllChats(userId primitive.ObjectID, workspaceId string) ([]entity.Chat, error) {
+func (ms *MessengerServiceImpl) GetAllChats(userId primitive.ObjectID, workspaceId string) ([]model.ChatResponse, error) {
 	workspace, err := ms.messengerRepo.FindWorkspaceByWorkspaceId(nil, workspaceId)
 	if err != nil {
 		return nil, err
@@ -177,8 +179,20 @@ func (ms *MessengerServiceImpl) GetAllChats(userId primitive.ObjectID, workspace
 	if _, ok := workspace.Team[userId]; !ok {
 		return nil, errors.New("unauthorised")
 	}
+	chats, err := ms.messengerRepo.FindChatsWithLatestTicket(nil, workspace.Id)
+	if err != nil {
+		return nil, err
+	}
 
-	return ms.messengerRepo.FindChatsWithLatestTicket(nil, workspace.Id)
+	var responseChats []model.ChatResponse
+
+	for _, chat := range chats {
+		latestMessage := ms.GetLatestMessage(chat.Tickets[0])
+		messageResponse := ms.createMessageResponse(nil, latestMessage.CreatedAt, userId == latestMessage.SenderId, latestMessage.From, "", workspaceId, chat.Tickets[0].TicketId, chat.ChatId, latestMessage.MessageId, latestMessage.Message, string(entity.TypeText))
+		responseChats = append(responseChats, *ms.createChatResponse(workspace.WorkspaceId, chat.ChatId, chat.TgClientId, chat.TgChatId, chat.Tags, *messageResponse, string(entity.SourceTelegram), chat.IsImported, chat.CreatedAt))
+	}
+
+	return responseChats, nil
 }
 
 func (ms *MessengerServiceImpl) UpdateTicketStatus(userId primitive.ObjectID, ticketId, workspaceId, status string) error {
@@ -222,6 +236,23 @@ func (ms *MessengerServiceImpl) ValidateUserInWorkspace(userId primitive.ObjectI
 	}
 
 	return errors.New("user does not have the permissions")
+}
+
+func (ms *MessengerServiceImpl) ImportTelegramChats(workspaceId string, chats []model.TelegramChat) error {
+	workspace, err := ms.messengerRepo.FindWorkspaceByWorkspaceId(nil, workspaceId)
+	if err != nil {
+		return err
+	}
+
+	for _, chat := range chats {
+		message := ms.createMessage(primitive.ObjectID{}, chat.LastMessage.Id, chat.LastMessage.Text, chat.Title, entity.TypeText, time.Now())
+		ticket := ms.createTicket([]entity.Note{}, []entity.Message{*message}, time.Now())
+		newChat := ms.createNewChat(int(chat.Id), int(chat.LastMessage.SenderId), entity.SourceTelegram, *ticket, workspace.Id, primitive.ObjectID{}, true)
+
+		err := ms.messengerRepo.InsertNewChat(nil, newChat)
+		log.Println(err)
+	}
+	return nil
 }
 
 func (ms *MessengerServiceImpl) ValidateUserInWorkspaceById(userId primitive.ObjectID, workspaceId string) error {
@@ -475,11 +506,28 @@ func (ms *MessengerServiceImpl) findTicketIdAndNoteIdByNoteId(chat *entity.Chat,
 	return -1, -1, errors.New("invalid noteId")
 }
 
+func (ms *MessengerServiceImpl) createNewChat(tgChatId int, tgClientId int, source entity.ChatSource, ticket entity.Ticket, workspaceId, assigneeId primitive.ObjectID, isImported bool) *entity.Chat {
+	return &entity.Chat{
+		UserId:      assigneeId,
+		WorkspaceId: workspaceId,
+		ChatId:      uuid.New().String(),
+		TgChatId:    tgChatId,
+		TgClientId:  tgClientId,
+		Tickets:     []entity.Ticket{ticket},
+		Notes:       []entity.Note{},
+		Tags:        []string{},
+		Source:      source,
+		IsImported:  isImported,
+		CreatedAt:   time.Now(),
+	}
+}
+
 func (ms *MessengerServiceImpl) createChat(currentChat *entity.Chat, ticket entity.Ticket, workspaceId, assigneeId primitive.ObjectID) *entity.Chat {
 	return &entity.Chat{
 		UserId:      assigneeId,
 		WorkspaceId: workspaceId,
 		ChatId:      uuid.New().String(),
+		TgChatId:    currentChat.TgChatId,
 		TgClientId:  currentChat.TgClientId,
 		Tickets:     []entity.Ticket{ticket},
 		Notes:       []entity.Note{},
@@ -489,35 +537,27 @@ func (ms *MessengerServiceImpl) createChat(currentChat *entity.Chat, ticket enti
 	}
 }
 
-func (ms *MessengerServiceImpl) createTicket(notes []entity.Note, integrationsMessages []entity.IntegrationsMessage, responseMessages []entity.ResponseMessage, createdAt time.Time) *entity.Ticket {
+func (ms *MessengerServiceImpl) createTicket(notes []entity.Note, messages []entity.Message, createdAt time.Time) *entity.Ticket {
 	return &entity.Ticket{
-		TicketId:            uuid.New().String(),
-		Subject:             "",
-		Notes:               notes,
-		IntegrationMessages: integrationsMessages,
-		ResponseMessages:    responseMessages,
-		Status:              entity.StatusClosed,
-		CreatedAt:           createdAt,
-	}
-}
-
-func (ms *MessengerServiceImpl) createIntegrationsMessages(messageId int, message, from string, messageType entity.MessageType, createdAt time.Time) *entity.IntegrationsMessage {
-	return &entity.IntegrationsMessage{
-		MessageId: messageId,
-		Message:   message,
-		From:      from,
-		Type:      messageType,
+		TicketId:  uuid.New().String(),
+		Subject:   "",
+		Notes:     notes,
+		Messages:  messages,
+		Status:    entity.StatusClosed,
 		CreatedAt: createdAt,
 	}
 }
 
-func (ms *MessengerServiceImpl) createResponseMessages(messageId int, message, from string, messageType entity.MessageType, createdAt time.Time) *entity.ResponseMessage {
-	return &entity.ResponseMessage{
-		Id:        primitive.ObjectID{},
-		SenderId:  primitive.ObjectID{},
-		Message:   "",
-		Type:      "",
-		CreatedAt: nil,
+// Messages This one is the one that goes to the database
+func (ms *MessengerServiceImpl) createMessage(senderId primitive.ObjectID, messageId int, message, from string, messageType entity.MessageType, createdAt time.Time) *entity.Message {
+	return &entity.Message{
+		SenderId:        senderId,
+		MessageId:       uuid.New().String(),
+		MessageIdClient: messageId,
+		Message:         message,
+		From:            from,
+		Type:            messageType,
+		CreatedAt:       createdAt,
 	}
 }
 
@@ -530,6 +570,7 @@ func (ms *MessengerServiceImpl) createNote(userId primitive.ObjectID, message st
 	}
 }
 
+// This one is the one that goes to the client
 func (ms *MessengerServiceImpl) createMessageResponse(content []byte, createdAt time.Time, isOwner bool, name, action, workspaceId, ticketId, chatId, messageId, message, messageType string) *model.MessageResponse {
 	return &model.MessageResponse{
 		WorkspaceId: workspaceId,
@@ -544,6 +585,32 @@ func (ms *MessengerServiceImpl) createMessageResponse(content []byte, createdAt 
 		IsOwner:     isOwner,
 		CreatedAt:   createdAt,
 	}
+}
+
+func (ms *MessengerServiceImpl) createChatResponse(workspaceId, chatId string, tgClientId, tgChatId int, tags []string, lastMessage model.MessageResponse, source string, isImported bool, createdAt time.Time) *model.ChatResponse {
+	return &model.ChatResponse{
+		WorkspaceId: workspaceId,
+		ChatId:      chatId,
+		TgClientId:  tgClientId,
+		TgChatId:    tgChatId,
+		Tags:        tags,
+		LastMessage: lastMessage,
+		Source:      source,
+		IsImported:  isImported,
+		CreatedAt:   createdAt,
+	}
+}
+
+func (ms *MessengerServiceImpl) GetLatestMessage(ticket entity.Ticket) *entity.Message {
+	if len(ticket.Messages) == 0 {
+		return nil
+	}
+
+	sort.Slice(ticket.Messages, func(i, j int) bool {
+		return ticket.Messages[i].CreatedAt.After(ticket.Messages[j].CreatedAt)
+	})
+
+	return &ticket.Messages[0]
 }
 
 func (ms *MessengerServiceImpl) isAdmin(userRole entity.WorkspaceRole) bool {
