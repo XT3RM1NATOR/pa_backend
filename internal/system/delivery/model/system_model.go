@@ -50,7 +50,7 @@ type SuccessResponse struct {
 type WorkspaceResponse struct {
 	Name        string `json:"name"`
 	Logo        []byte `json:"logo"`
-	WorkspaceID string `json:"workspace_id"`
+	WorkspaceId string `json:"workspace_id"`
 }
 
 type UserResponse struct {

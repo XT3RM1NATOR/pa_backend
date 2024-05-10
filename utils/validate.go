@@ -65,3 +65,16 @@ func ValidateTeamRoles(team map[string]string) (map[string]entity.WorkspaceRole,
 
 	return userRoles, nil
 }
+
+func ValidateTeamNames(teams []string) error {
+	teamMap := make(map[string]bool)
+
+	for _, t := range teams {
+		if _, exists := teamMap[t]; exists {
+			return errors.New("duplicate team found: %s")
+		}
+		teamMap[t] = true
+	}
+
+	return nil
+}

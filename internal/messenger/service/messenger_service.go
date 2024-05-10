@@ -167,14 +167,28 @@ func (ms *MessengerServiceImpl) ReassignTicketToUser(userId primitive.ObjectID, 
 	return err
 }
 
+// GetAllChats TODO: change to response model
+func (ms *MessengerServiceImpl) GetAllChats(userId primitive.ObjectID, workspaceId string) ([]entity.Chat, error) {
+	workspace, err := ms.messengerRepo.FindWorkspaceByWorkspaceId(nil, workspaceId)
+	if err != nil {
+		return nil, err
+	}
+
+	if _, ok := workspace.Team[userId]; !ok {
+		return nil, errors.New("unauthorised")
+	}
+
+	return ms.messengerRepo.FindChatsWithLatestTicket(nil, workspace.Id)
+}
+
 func (ms *MessengerServiceImpl) UpdateTicketStatus(userId primitive.ObjectID, ticketId, workspaceId, status string) error {
 	workspace, err := ms.messengerRepo.FindWorkspaceByWorkspaceId(nil, workspaceId)
 	if err != nil {
 		return err
 	}
 
-	if err = ms.ValidateUserInWorkspace(userId, workspace); err != nil {
-		return err
+	if _, ok := workspace.Team[userId]; !ok {
+		return errors.New("unauthorised")
 	}
 
 	chat, err := ms.messengerRepo.FindChatByTicketId(nil, ticketId)
@@ -472,6 +486,38 @@ func (ms *MessengerServiceImpl) createChat(currentChat *entity.Chat, ticket enti
 		Tags:        []string{},
 		Source:      currentChat.Source,
 		CreatedAt:   time.Now(),
+	}
+}
+
+func (ms *MessengerServiceImpl) createTicket(notes []entity.Note, integrationsMessages []entity.IntegrationsMessage, responseMessages []entity.ResponseMessage, createdAt time.Time) *entity.Ticket {
+	return &entity.Ticket{
+		TicketId:            uuid.New().String(),
+		Subject:             "",
+		Notes:               notes,
+		IntegrationMessages: integrationsMessages,
+		ResponseMessages:    responseMessages,
+		Status:              entity.StatusClosed,
+		CreatedAt:           createdAt,
+	}
+}
+
+func (ms *MessengerServiceImpl) createIntegrationsMessages(messageId int, message, from string, messageType entity.MessageType, createdAt time.Time) *entity.IntegrationsMessage {
+	return &entity.IntegrationsMessage{
+		MessageId: messageId,
+		Message:   message,
+		From:      from,
+		Type:      messageType,
+		CreatedAt: createdAt,
+	}
+}
+
+func (ms *MessengerServiceImpl) createResponseMessages(messageId int, message, from string, messageType entity.MessageType, createdAt time.Time) *entity.ResponseMessage {
+	return &entity.ResponseMessage{
+		Id:        primitive.ObjectID{},
+		SenderId:  primitive.ObjectID{},
+		Message:   "",
+		Type:      "",
+		CreatedAt: nil,
 	}
 }
 

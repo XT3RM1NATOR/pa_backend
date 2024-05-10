@@ -45,6 +45,10 @@ func (ss *SystemServiceImpl) CreateWorkspace(logo []byte, team map[string]string
 		return err
 	}
 
+	if err = utils.ValidateTeamNames(teams); err != nil {
+		return err
+	}
+
 	_, err = ss.systemRepo.FindWorkspaceByWorkspaceId(workspaceId)
 	if errors.Is(err, mongo.ErrNoDocuments) {
 		if err := ss.systemRepo.CreateWorkspace(ownerId, teamRoles, workspaceId, name, teams); err != nil {
@@ -192,6 +196,7 @@ func (ss *SystemServiceImpl) GetAllWorkspaces(userId primitive.ObjectID) ([]mode
 	if err != nil {
 		return []model.Workspace{}, err
 	}
+
 	return fmtWorkspaces, err
 }
 

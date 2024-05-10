@@ -240,6 +240,37 @@ func (mr *MessengerRepositoryImpl) FindChatByUserId(ctx mongo.SessionContext, tg
 	return &chat, nil
 }
 
+func (mr *MessengerRepositoryImpl) FindChatsWithLatestTicket(ctx mongo.SessionContext, workspaceId primitive.ObjectID) ([]entity.Chat, error) {
+	mr.mu.RLock()
+	defer mr.mu.RUnlock()
+
+	pipeline := mongo.Pipeline{
+		{{"$match", bson.M{"workspace_id": workspaceId}}},
+		{{"$addFields", bson.M{
+			"tickets": bson.M{"$slice": []interface{}{
+				bson.M{"$sortArray": bson.M{
+					"input":  "$tickets",
+					"sortBy": bson.M{"created_at": -1},
+				}},
+				1,
+			}},
+		}}},
+	}
+
+	cursor, err := mr.database.Collection(mr.config.MongoDB.ChatCollection).Aggregate(ctx, pipeline)
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+
+	var chats []entity.Chat
+	if err = cursor.All(ctx, &chats); err != nil {
+		return nil, err
+	}
+
+	return chats, nil
+}
+
 func (mr *MessengerRepositoryImpl) InsertNewChat(ctx mongo.SessionContext, chat *entity.Chat) error {
 	mr.mu.Lock()
 	defer mr.mu.Unlock()

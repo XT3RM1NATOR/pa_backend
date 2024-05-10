@@ -156,7 +156,7 @@ func (sc *SystemController) GetWorkspaceById(c echo.Context) error {
 	return c.JSON(http.StatusOK, model.WorkspaceResponse{
 		Name:        workspace.Name,
 		Logo:        workspace.Logo,
-		WorkspaceID: workspace.WorkspaceId,
+		WorkspaceId: workspace.WorkspaceId,
 	})
 }
 
@@ -167,10 +167,9 @@ func (sc *SystemController) GetWorkspaceById(c echo.Context) error {
 // @Produce json
 // @Success 200 {array} model.WorkspaceResponse "List of Workspaces"
 // @Failure 500 {object} model.ErrorResponse "Internal server error"
-// @Router /system/workspace [get]
+// @Router /system/workspace [put]
 func (sc *SystemController) GetAllWorkspaces(c echo.Context) error {
 	userId := c.Request().Context().Value("userId").(primitive.ObjectID)
-
 	workspaces, err := sc.systemService.GetAllWorkspaces(userId)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, model.ErrorResponse{Error: err.Error()})
@@ -182,7 +181,7 @@ func (sc *SystemController) GetAllWorkspaces(c echo.Context) error {
 			Name: workspace.Name,
 			Logo: workspace.Logo,
 			//Team:      workspace.Team,
-			WorkspaceID: workspace.WorkspaceId,
+			WorkspaceId: workspace.WorkspaceId,
 		}
 		responseWorkspaces = append(responseWorkspaces, responseWorkspace)
 	}

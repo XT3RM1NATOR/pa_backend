@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"github.com/Point-AI/backend/config"
 	"github.com/Point-AI/backend/internal/messenger/delivery/model"
+	"github.com/Point-AI/backend/internal/messenger/domain/entity"
 	_interface "github.com/Point-AI/backend/internal/messenger/domain/interface"
 	"github.com/labstack/echo/v4"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -166,6 +167,10 @@ func (mc *MessengerController) ChangeTicketStatus(c echo.Context) error {
 	return c.JSON(http.StatusOK, model.SuccessResponse{Message: "ticket status updated successfully"})
 }
 
+func (mc *MessengerController) SendOk(c echo.Context) error {
+	return c.JSON(http.StatusOK, model.SuccessResponse{Message: "okay"})
+}
+
 // DeleteMessage removes a message from a chat in a workspace.
 // @Summary Removes a message from a chat
 // @Tags Messenger
@@ -188,4 +193,31 @@ func (mc *MessengerController) DeleteMessage(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, model.SuccessResponse{Message: "message deleted successfully"})
+}
+
+func (mc *MessengerController) ImportTelegramChats(c echo.Context) error {
+	workspaceId := c.Param("id")
+	var request model.TelegramChatsRequest
+	if err := c.Bind(&request); err != nil {
+		return c.JSON(http.StatusBadRequest, model.ErrorResponse{Error: "invalid request parameters"})
+	}
+
+	chats, err := mc.messengerService.GetAllChats(userId, workspaceId)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, model.ErrorResponse{Error: err.Error()})
+	}
+
+	return c.JSON(http.StatusOK, map[string][]entity.Chat{"poop": chats})
+}
+
+func (mc *MessengerController) GetAllChats(c echo.Context) error {
+	workspaceId := c.Param("id")
+	userId := c.Request().Context().Value("userId").(primitive.ObjectID)
+
+	chats, err := mc.messengerService.GetAllChats(userId, workspaceId)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, model.ErrorResponse{Error: err.Error()})
+	}
+
+	return c.JSON(http.StatusOK, map[string][]entity.Chat{"poop": chats})
 }

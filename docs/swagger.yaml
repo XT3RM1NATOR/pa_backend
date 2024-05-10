@@ -216,7 +216,7 @@ definitions:
   github_com_Point-AI_backend_internal_user_delivery_model.UserProfileResponse:
     properties:
       created_at:
-        type: integer
+        type: string
       email:
         type: string
       logo:
@@ -488,6 +488,51 @@ paths:
       summary: Handles WebSocket connections.
       tags:
       - Messenger
+  /system/integrations/telegram/{id}:
+    get:
+      consumes:
+      - application/json
+      description: This endpoint handles the various stages of Telegram authentication,
+        including phone number submission, verification code checking, and two-factor
+        authentication password verification.
+      parameters:
+      - description: Workspace ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Stage of the Telegram authentication process ('phone', 'code',
+          or 'password')
+        in: query
+        name: set
+        required: true
+        type: string
+      - description: Value required for the current stage (phone number, verification
+          code, or password)
+        in: query
+        name: value
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Telegram authentication processed successfully; stage complete.
+          schema:
+            $ref: '#/definitions/github_com_Point-AI_backend_internal_system_delivery_model.SuccessResponse'
+        "202":
+          description: Verification code accepted but password is required for two-factor
+            authentication.
+          schema:
+            $ref: '#/definitions/github_com_Point-AI_backend_internal_system_delivery_model.SuccessResponse'
+        "500":
+          description: Internal server error occurred while processing the Telegram
+            integration.
+          schema:
+            $ref: '#/definitions/github_com_Point-AI_backend_internal_system_delivery_model.ErrorResponse'
+      summary: Registers or progresses Telegram integration for authentication.
+      tags:
+      - System
   /system/teams:
     post:
       consumes:

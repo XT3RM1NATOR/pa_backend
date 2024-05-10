@@ -78,14 +78,12 @@ type ResponseMessage struct {
 }
 
 type IntegrationsMessage struct {
-	Id          primitive.ObjectID `bson:"_id,omitempty"`
-	MessageId   int                `bson:"message_id"`
-	FileIdStr   string             `bson:"file_id_str"`
-	FileIdInt64 int64              `bson:"file_id_int64"`
-	Message     string             `bson:"message"`
-	From        string             `bson:"from"`
-	Type        MessageType        `bson:"type"`
-	CreatedAt   time.Time          `bson:"created_at,omitempty"`
+	Id        primitive.ObjectID `bson:"_id,omitempty"`
+	MessageId int                `bson:"message_id"`
+	Message   string             `bson:"message"`
+	From      string             `bson:"from"`
+	Type      MessageType        `bson:"type"`
+	CreatedAt time.Time          `bson:"created_at,omitempty"`
 }
 
 type Integrations struct {

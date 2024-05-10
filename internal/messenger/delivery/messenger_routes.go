@@ -25,11 +25,16 @@ func RegisterMessengerRoutes(e *echo.Echo, cfg *config.Config, db *mongo.Databas
 	//telegramGroup.POST("/setInfo/:id", ic.HandleTelegramClientAuth, middleware.ValidateAccessTokenMiddleware(cfg.Auth.JWTSecretKey))
 
 	messengerGroup := e.Group("/messenger")
+	messengerGroup.GET("/poop", ic.SendOk)
 	messengerGroup.GET("/ws/:id", ic.WSHandler, middleware.ValidateAccessTokenMiddleware(cfg.Auth.JWTSecretKey))
 	messengerGroup.POST("/ticket/reassign/team", ic.ReassignTicketToTeam, middleware.ValidateAccessTokenMiddleware(cfg.Auth.JWTSecretKey))
 	messengerGroup.POST("/ticket/reassign/member", ic.ReassignTicketToMember, middleware.ValidateAccessTokenMiddleware(cfg.Auth.JWTSecretKey))
 	messengerGroup.PUT("/ticket", ic.ChangeTicketStatus, middleware.ValidateAccessTokenMiddleware(cfg.Auth.JWTSecretKey))
 	messengerGroup.PUT("/chat", ic.UpdateChatInfo, middleware.ValidateAccessTokenMiddleware(cfg.Auth.JWTSecretKey))
+	messengerGroup.GET("/chats/:id", ic.GetAllChats, middleware.ValidateAccessTokenMiddleware(cfg.Auth.JWTSecretKey))
 	messengerGroup.DELETE("/message", ic.DeleteMessage, middleware.ValidateAccessTokenMiddleware(cfg.Auth.JWTSecretKey))
+
+	telegramGroup := e.Group("/telegram")
+	telegramGroup.POST("/import", ic.ImportTelegramChats, middleware.ValidateServerMiddleware(cfg.Auth.IntegrationsServerSecretKey))
 
 }
