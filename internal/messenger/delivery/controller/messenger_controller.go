@@ -7,6 +7,7 @@ import (
 	_interface "github.com/Point-AI/backend/internal/messenger/domain/interface"
 	"github.com/labstack/echo/v4"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"log"
 	"net/http"
 )
 
@@ -200,6 +201,7 @@ func (mc *MessengerController) ImportTelegramChats(c echo.Context) error {
 	if err := c.Bind(&request); err != nil {
 		return c.JSON(http.StatusBadRequest, model.ErrorResponse{Error: "invalid request parameters"})
 	}
+	log.Println(request)
 
 	err := mc.messengerService.ImportTelegramChats(workspaceId, request.Chats)
 	if err != nil {
