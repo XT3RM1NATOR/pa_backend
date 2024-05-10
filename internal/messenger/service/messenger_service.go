@@ -251,7 +251,9 @@ func (ms *MessengerServiceImpl) ImportTelegramChats(workspaceId string, chats []
 
 		err := ms.messengerRepo.InsertNewChat(nil, newChat)
 		log.Println(err)
-		break
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }
