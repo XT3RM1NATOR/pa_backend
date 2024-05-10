@@ -34,22 +34,26 @@ func (ss *SystemServiceImpl) CreateWorkspace(logo []byte, team map[string]string
 		return err
 	}
 
+	var teamRoles map[string]entity.WorkspaceRole
 	if logo != nil {
 		if err := utils.ValidatePhoto(logo); err != nil {
 			return err
 		}
 	}
-
-	teamRoles, err := utils.ValidateTeamRoles(team)
-	if err != nil {
-		return err
+	if team != nil {
+		roles, err := utils.ValidateTeamRoles(team)
+		if err != nil {
+			return err
+		}
+		teamRoles = roles
+	}
+	if teams != nil {
+		if err := utils.ValidateTeamNames(teams); err != nil {
+			return err
+		}
 	}
 
-	if err = utils.ValidateTeamNames(teams); err != nil {
-		return err
-	}
-
-	_, err = ss.systemRepo.FindWorkspaceByWorkspaceId(workspaceId)
+	_, err := ss.systemRepo.FindWorkspaceByWorkspaceId(workspaceId)
 	if errors.Is(err, mongo.ErrNoDocuments) {
 		if err := ss.systemRepo.CreateWorkspace(ownerId, teamRoles, workspaceId, name, teams); err != nil {
 			return err

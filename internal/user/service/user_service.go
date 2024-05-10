@@ -255,6 +255,7 @@ func (us *UserServiceImpl) setRefreshToken(user *entity.User) (string, string, e
 		if refreshToken, err = utils.GenerateJWTToken("refresh_token", user.Id, us.config.Auth.JWTSecretKey); err != nil {
 			return "", "", err
 		}
+		log.Println(refreshToken)
 
 		if err := us.userRepo.SetRefreshToken(user, refreshToken); err != nil {
 			return "", "", err
