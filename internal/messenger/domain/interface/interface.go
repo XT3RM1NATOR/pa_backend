@@ -17,7 +17,7 @@ type MessengerService interface {
 	UpdateChatInfo(userId primitive.ObjectID, chatId string, tags []string, workspaceId string) error
 	HandleMessage(userId primitive.ObjectID, workspaceId, ticketId, chatId, messageType, message string) error
 	DeleteMessage(userId primitive.ObjectID, messageType, workspaceId, ticketId, messageId, chatId string) error
-	GetAllChats(userId primitive.ObjectID, workspaceId string) ([]entity.Chat, error)
+	GetAllChats(userId primitive.ObjectID, workspaceId string) ([]model.ChatResponse, error)
 	ImportTelegramChats(workspaceId string, chats []model.TelegramChat) error
 }
 
