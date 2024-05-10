@@ -9,6 +9,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
+	"log"
 	"sync"
 )
 
@@ -275,11 +276,12 @@ func (mr *MessengerRepositoryImpl) InsertNewChat(ctx mongo.SessionContext, chat 
 	mr.mu.Lock()
 	defer mr.mu.Unlock()
 
-	c := context.Background()
-
-	if ctx != nil {
-		c = ctx
-	}
+	//c := context.Background()
+	//
+	//if ctx != nil {
+	//	c = ctx
+	//}
+	log.Println(mr.config.MongoDB.ChatCollection)
 
 	_, err := mr.database.Collection(mr.config.MongoDB.ChatCollection).InsertOne(
 		context.Background(),
