@@ -26,7 +26,7 @@ func NewAPIController(apiService _interface.APIService, cfg *config.Config) *API
 // @Tags HelpDesk
 // @Accept json
 // @Produce json
-// @Param param article id
+// @Param id path string true "Article ID"
 // @Success 201 {object} model.SuccessResponse "view count incremented successfully"
 // @Failure 400 {object} model.ErrorResponse "Bad request"
 // @Failure 500 {object} model.ErrorResponse "Internal server error"

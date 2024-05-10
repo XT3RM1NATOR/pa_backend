@@ -4,11 +4,10 @@ import (
 	"encoding/json"
 	"github.com/Point-AI/backend/config"
 	"github.com/Point-AI/backend/internal/messenger/delivery/model"
+	"github.com/Point-AI/backend/internal/messenger/domain/entity"
 	_interface "github.com/Point-AI/backend/internal/messenger/domain/interface"
-	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 	"github.com/labstack/echo/v4"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"log"
 	"net/http"
 )
 
@@ -25,63 +24,32 @@ func NewMessengerController(cfg *config.Config, messengerService _interface.Mess
 	}
 }
 
-func (mc *MessengerController) RegisterBotIntegration(c echo.Context) error {
-	userId := c.Request().Context().Value("userId").(primitive.ObjectID)
-	var request model.RegisterBotRequest
-	if err := c.Bind(&request); err != nil {
-		return c.JSON(http.StatusBadRequest, model.ErrorResponse{Error: err.Error()})
-	}
-
-	if err := mc.messengerService.RegisterBotIntegration(userId, request.BotToken, request.WorkspaceId); err != nil {
-		return c.JSON(http.StatusInternalServerError, model.ErrorResponse{Error: err.Error()})
-	}
-
-	return c.JSON(http.StatusCreated, model.SuccessResponse{Message: "bot added successfully"})
-}
-
-func (mc *MessengerController) HandleBotMessage(c echo.Context) error {
-	token := c.Param("token")
-	var update *tgbotapi.Update
-	if err := json.NewDecoder(c.Request().Body).Decode(&update); err != nil {
-		return c.JSON(http.StatusBadRequest, model.ErrorResponse{Error: err.Error()})
-	}
-
-	if err := mc.messengerService.HandleTelegramBotMessage(token, update); err != nil {
-		return c.JSON(http.StatusInternalServerError, model.ErrorResponse{Error: err.Error()})
-	}
-
-	return nil
-}
-
-func (mc *MessengerController) HandleTelegramClientAuth(c echo.Context) error {
-	workspaceId, action := c.Param("id"), c.QueryParam("set")
-	value, userId := c.QueryParam(action), c.Request().Context().Value("userId").(primitive.ObjectID)
-
-	status, err := mc.messengerService.HandleTelegramClientAuth(userId, workspaceId, action, value)
-	if err != nil {
-		return c.JSON(http.StatusInternalServerError, model.ErrorResponse{Error: err.Error()})
-	}
-
-	return c.JSON(http.StatusCreated, model.TelegramStatusResponse{Status: string(status)})
-}
-
+// WSHandler handles WebSocket connections for real-time messaging.
+// @Summary Handles WebSocket connections.
+// @Tags Messenger
+// @Produce json
+// @Param id path string true "Workspace ID"
+// @Param userId path string true "User ID"
+// @Success 200 {object} model.SuccessResponse "Connection upgraded successfully"
+// @Failure 400 {object} model.ErrorResponse "Bad request, user not valid in workspace"
+// @Failure 500 {object} model.ErrorResponse "Internal server error, failed to upgrade connection"
+// @Router /messenger/ws/{id} [get]
 func (mc *MessengerController) WSHandler(c echo.Context) error {
 	userId := c.Request().Context().Value("userId").(primitive.ObjectID)
 	workspaceId := c.Param("id")
 
-	err := mc.messengerService.ValidateUserInWorkspace(userId, workspaceId)
+	err := mc.messengerService.ValidateUserInWorkspaceById(userId, workspaceId)
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, model.ErrorResponse{Error: err.Error()})
 	}
 
-	ws, err := mc.websocketService.UpgradeConnection(c.Response(), c.Request(), workspaceId)
+	ws, err := mc.websocketService.UpgradeConnection(c.Response(), c.Request(), workspaceId, userId)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, model.ErrorResponse{Error: err.Error()})
 	}
-	//mc.websocketService.
 
 	go func() {
-		defer mc.websocketService.RemoveConnection(workspaceId, ws)
+		defer mc.websocketService.RemoveConnection(workspaceId, userId)
 		for {
 			_, message, err := ws.ReadMessage()
 			if err != nil {
@@ -93,11 +61,8 @@ func (mc *MessengerController) WSHandler(c echo.Context) error {
 				continue
 			}
 
-			if receivedMessage.Source == "telegramBot" {
-				err = mc.messengerService.HandleTelegramPlatformMessageToBot(receivedMessage, workspaceId, userId)
-				if err != nil {
-					log.Println(err)
-				}
+			if err = mc.messengerService.HandleMessage(userId, workspaceId, receivedMessage.TicketId, receivedMessage.ChatId, receivedMessage.Type, receivedMessage.Message); err != nil {
+
 			}
 		}
 	}()
@@ -105,42 +70,154 @@ func (mc *MessengerController) WSHandler(c echo.Context) error {
 	return c.JSON(http.StatusOK, model.SuccessResponse{Message: "connection upgraded successfully"})
 }
 
-func (mc *MessengerController) ReassignTicketToMember(c echo.Context) error {
-	ticketId, workspaceId, userEmail := c.Param("ticket_id"), c.Param("id"), c.Param("email")
-	userId := c.Request().Context().Value("userId").(primitive.ObjectID)
-
-	if err := mc.messengerService.ReassignTicketToMember(userId, ticketId, workspaceId, userEmail); err != nil {
-		return c.JSON(http.StatusInternalServerError, model.ErrorResponse{Error: err.Error()})
-	}
-
-	return c.JSON(http.StatusOK, model.SuccessResponse{Message: "ticket successfully reassigned to " + userEmail})
-}
-
+// ReassignTicketToTeam reassigns a support ticket to a different team.
+// @Summary Reassigns a support ticket to a team.
+// @Tags Messenger
+// @Accept json
+// @Produce json
+// @Param ticket_id path string true "Ticket ID"
+// @Param request body model.ReassignTicketToTeamRequest true "details"
+// @Success 200 {object} model.SuccessResponse "Ticket successfully reassigned to team"
+// @Failure 400 {object} model.ErrorResponse "Invalid request parameters"
+// @Failure 500 {object} model.ErrorResponse "Internal server error, failed to reassign ticket"
+// @Router /messenger/ticket/reassign/team [post]
 func (mc *MessengerController) ReassignTicketToTeam(c echo.Context) error {
-	ticketId, workspaceId, teamName := c.Param("ticket_id"), c.Param("id"), c.Param("name")
-	userId := c.Request().Context().Value("userId").(primitive.ObjectID)
+	var request model.ReassignTicketToTeamRequest
+	if err := c.Bind(&request); err != nil {
+		return c.JSON(http.StatusBadRequest, model.ErrorResponse{Error: "invalid request parameters"})
+	}
 
-	if err := mc.messengerService.ReassignTicketToMember(userId, ticketId, workspaceId, teamName); err != nil {
+	userId := c.Request().Context().Value("userId").(primitive.ObjectID)
+	if err := mc.messengerService.ReassignTicketToTeam(userId, request.ChatId, request.TicketId, request.WorkspaceId, request.TeamName); err != nil {
 		return c.JSON(http.StatusInternalServerError, model.ErrorResponse{Error: err.Error()})
 	}
 
-	return c.JSON(http.StatusOK, model.SuccessResponse{Message: "ticket successfully reassigned to " + teamName})
+	return c.JSON(http.StatusOK, model.SuccessResponse{Message: "ticket reassigned successfully"})
 }
 
-func (mc *MessengerController) CloseTicket(c echo.Context) error {
-	status, ticketId, workspaceId := c.Param("status"), c.Param("ticket_id"), c.Param("id")
-	userId := c.Request().Context().Value("userId").(primitive.ObjectID)
+// ReassignTicketToMember reassigns a support ticket to a different team member.
+// @Summary Reassigns a support ticket to a team member.
+// @Tags Messenger
+// @Accept json
+// @Produce json
+// @Param request body model.ReassignTicketToUserRequest true "details"
+// @Success 200 {object} model.SuccessResponse "Ticket successfully reassigned to member"
+// @Failure 400 {object} model.ErrorResponse "Invalid request parameters"
+// @Failure 500 {object} model.ErrorResponse "Internal server error, failed to reassign ticket"
+// @Router /messenger/ticket/reassign/member [post]
+func (mc *MessengerController) ReassignTicketToMember(c echo.Context) error {
+	var request model.ReassignTicketToUserRequest
+	if err := c.Bind(&request); err != nil {
+		return c.JSON(http.StatusBadRequest, model.ErrorResponse{Error: "invalid request parameters"})
+	}
 
-	if err := mc.messengerService.UpdateTicketStatus(userId, ticketId, workspaceId, status); err != nil {
+	userId := c.Request().Context().Value("userId").(primitive.ObjectID)
+	if err := mc.messengerService.ReassignTicketToUser(userId, request.ChatId, request.TicketId, request.WorkspaceId, request.Email); err != nil {
+		return c.JSON(http.StatusInternalServerError, model.ErrorResponse{Error: err.Error()})
+	}
+
+	return c.JSON(http.StatusOK, model.SuccessResponse{Message: "ticket reassigned successfully"})
+}
+
+// UpdateChatInfo updates the information of a chat in the messenger.
+// @Summary Updates chat information.
+// @Tags Messenger
+// @Accept json
+// @Produce json
+// @Param request body model.UpdateChatInfoRequest true "details"
+// @Success 200 {object} model.SuccessResponse "Chat information updated successfully"
+// @Failure 400 {object} model.ErrorResponse "Invalid request parameters"
+// @Failure 500 {object} model.ErrorResponse "Internal server error, failed to update chat information"
+// @Router /messenger/chat [put]
+func (mc *MessengerController) UpdateChatInfo(c echo.Context) error {
+	var request model.UpdateChatInfoRequest
+	if err := c.Bind(&request); err != nil {
+		return c.JSON(http.StatusBadRequest, model.ErrorResponse{Error: "invalid request parameters"})
+	}
+
+	userId := c.Request().Context().Value("userId").(primitive.ObjectID)
+	if err := mc.messengerService.UpdateChatInfo(userId, request.ChatId, request.Tags, request.WorkspaceId); err != nil {
+		return c.JSON(http.StatusInternalServerError, model.ErrorResponse{Error: err.Error()})
+	}
+
+	return c.JSON(http.StatusOK, model.SuccessResponse{Message: "ticket reassigned successfully"})
+}
+
+// ChangeTicketStatus changes the status of a support ticket.
+// @Summary Changes the status of a support ticket.
+// @Tags Messenger
+// @Accept json
+// @Produce json
+// @Param request body model.ChangeTicketStatusRequest true "details"
+// @Success 200 {object} model.SuccessResponse "Ticket status updated successfully"
+// @Failure 400 {object} model.ErrorResponse "Invalid request parameters"
+// @Failure 500 {object} model.ErrorResponse "Internal server error, failed to update ticket status"
+// @Router /messenger/ticket [put]
+func (mc *MessengerController) ChangeTicketStatus(c echo.Context) error {
+	var request model.ChangeTicketStatusRequest
+	if err := c.Bind(&request); err != nil {
+		return c.JSON(http.StatusBadRequest, model.ErrorResponse{Error: "invalid request parameters"})
+	}
+
+	userId := c.Request().Context().Value("userId").(primitive.ObjectID)
+	if err := mc.messengerService.UpdateTicketStatus(userId, request.TicketId, request.WorkspaceId, request.Status); err != nil {
 		return c.JSON(http.StatusInternalServerError, model.ErrorResponse{Error: err.Error()})
 	}
 
 	return c.JSON(http.StatusOK, model.SuccessResponse{Message: "ticket status updated successfully"})
 }
 
-func (mc *MessengerController) SetUpTelegramClients() error {
-	if err := mc.messengerService.SetUpTelegramClients(); err != nil {
-		return err
+func (mc *MessengerController) SendOk(c echo.Context) error {
+	return c.JSON(http.StatusOK, model.SuccessResponse{Message: "okay"})
+}
+
+// DeleteMessage removes a message from a chat in a workspace.
+// @Summary Removes a message from a chat
+// @Tags Messenger
+// @Accept json
+// @Produce json
+// @Param request body model.MessageRequest true "details"
+// @Success 200 {object} model.SuccessResponse "Message deleted successfully"
+// @Failure 400 {object} model.ErrorResponse "Invalid request parameters"
+// @Failure 500 {object} model.ErrorResponse "Internal server error, failed to delete the message"
+// @Router /messenger/message [delete]
+func (mc *MessengerController) DeleteMessage(c echo.Context) error {
+	var request model.MessageRequest
+	if err := c.Bind(&request); err != nil {
+		return c.JSON(http.StatusBadRequest, model.ErrorResponse{Error: "invalid request parameters"})
 	}
-	return nil
+
+	userId := c.Request().Context().Value("userId").(primitive.ObjectID)
+	if err := mc.messengerService.DeleteMessage(userId, request.Type, request.WorkspaceId, request.TicketId, request.MessageId, request.ChatId); err != nil {
+		return c.JSON(http.StatusInternalServerError, model.ErrorResponse{Error: err.Error()})
+	}
+
+	return c.JSON(http.StatusOK, model.SuccessResponse{Message: "message deleted successfully"})
+}
+
+func (mc *MessengerController) ImportTelegramChats(c echo.Context) error {
+	workspaceId := c.Param("id")
+	var request model.TelegramChatsRequest
+	if err := c.Bind(&request); err != nil {
+		return c.JSON(http.StatusBadRequest, model.ErrorResponse{Error: "invalid request parameters"})
+	}
+
+	chats, err := mc.messengerService.GetAllChats(userId, workspaceId)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, model.ErrorResponse{Error: err.Error()})
+	}
+
+	return c.JSON(http.StatusOK, map[string][]entity.Chat{"poop": chats})
+}
+
+func (mc *MessengerController) GetAllChats(c echo.Context) error {
+	workspaceId := c.Param("id")
+	userId := c.Request().Context().Value("userId").(primitive.ObjectID)
+
+	chats, err := mc.messengerService.GetAllChats(userId, workspaceId)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, model.ErrorResponse{Error: err.Error()})
+	}
+
+	return c.JSON(http.StatusOK, map[string][]entity.Chat{"poop": chats})
 }

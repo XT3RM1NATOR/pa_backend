@@ -28,6 +28,7 @@ type (
 		UserCollection      string `env:"DB_USER_COLLECTION"`
 		WorkspaceCollection string `env:"DB_WORKSPACE_COLLECTION"`
 		HelpDeskCollection  string `env:"DB_HELPDESK_COLLECTION"`
+		ChatCollection      string `env:"DB_HELPDESK_COLLECTION"`
 	}
 
 	Server struct {
@@ -36,7 +37,8 @@ type (
 	}
 
 	Auth struct {
-		JWTSecretKey string `env:"JWT_SECRET_KEY"`
+		JWTSecretKey                string `env:"JWT_SECRET_KEY"`
+		IntegrationsServerSecretKey string `env:"INTEGRATIONS_SERVER_SECRET_KEY"`
 	}
 
 	Email struct {
@@ -62,8 +64,9 @@ type (
 	}
 
 	Website struct {
-		WebURL  string `env:"WEB_URL"`
-		BaseURL string `env:"BASE_URL"`
+		WebURL                string `env:"WEB_URL"`
+		BaseURL               string `env:"BASE_URL"`
+		IntegrationsServerURL string `env:"INTEGRATIONS_SERVER_URL"`
 	}
 
 	MinIo struct {

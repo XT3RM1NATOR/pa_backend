@@ -27,7 +27,7 @@ func NewSystemController(cfg *config.Config, systemService _interface.SystemServ
 // @Tags System
 // @Accept json
 // @Produce json
-// @Param request body CreateWorkspaceRequest true "Workspace details"
+// @Param request body model.CreateWorkspaceRequest true "Workspace details"
 // @Success 201 {object} model.SuccessResponse "Workspace added successfully"
 // @Failure 400 {object} model.ErrorResponse "Bad request"
 // @Failure 500 {object} model.ErrorResponse "Internal server error"
@@ -46,6 +46,17 @@ func (sc *SystemController) CreateWorkspace(c echo.Context) error {
 	return c.JSON(http.StatusCreated, model.SuccessResponse{Message: "workspace added successfully"})
 }
 
+// AddTeamsMembers adds a new member to a team.
+// @Summary Adds a new member to a team.
+// @Tags System
+// @Accept json
+// @Produce json
+// @Param request body model.AddTeamMembersRequest true "Team member details"
+// @Param userId path string true "User ID"
+// @Success 201 {object} model.SuccessResponse "User added to the team successfully"
+// @Failure 400 {object} model.ErrorResponse "Bad request, unable to parse the request body"
+// @Failure 500 {object} model.ErrorResponse "Internal server error, failed to add the team member"
+// @Router /system/teams [post]
 func (sc *SystemController) AddTeamsMembers(c echo.Context) error {
 	var request model.AddTeamMembersRequest
 	if err := c.Bind(&request); err != nil {
@@ -60,6 +71,17 @@ func (sc *SystemController) AddTeamsMembers(c echo.Context) error {
 	return c.JSON(http.StatusCreated, model.SuccessResponse{Message: "user added to the team"})
 }
 
+// UpdateMemberStatus updates the status of a workspace member.
+// @Summary Updates the status of a member within a workspace.
+// @Tags System
+// @Accept json
+// @Produce json
+// @Param id path string true "Workspace ID"
+// @Param status path string true "New status"
+// @Param userId path string true "User ID"
+// @Success 201 {object} model.SuccessResponse "Status updated successfully"
+// @Failure 500 {object} model.ErrorResponse "Internal server error, failed to update member status"
+// @Router /system/workspace/{id}/status/{status} [put]
 func (sc *SystemController) UpdateMemberStatus(c echo.Context) error {
 	status, workspaceId := c.Param("status"), c.Param("id")
 	userId := c.Request().Context().Value("userId").(primitive.ObjectID)
@@ -71,6 +93,17 @@ func (sc *SystemController) UpdateMemberStatus(c echo.Context) error {
 	return c.JSON(http.StatusCreated, model.SuccessResponse{Message: "status updated"})
 }
 
+// SetFirstTeam sets the first team for a user in a workspace.
+// @Summary Sets the first team for a user in a specific workspace.
+// @Tags System
+// @Accept json
+// @Produce json
+// @Param name path string true "Team name"
+// @Param id path string true "Workspace ID"
+// @Param userId path string true "User ID"
+// @Success 201 {object} model.SuccessResponse "First team set successfully"
+// @Failure 500 {object} model.ErrorResponse "Internal server error, failed to set the first team"
+// @Router /system/teams/{id}/{name} [post]
 func (sc *SystemController) SetFirstTeam(c echo.Context) error {
 	teamName, workspaceId := c.Param("name"), c.Param("id")
 	userId := c.Request().Context().Value("userId").(primitive.ObjectID)
@@ -123,7 +156,7 @@ func (sc *SystemController) GetWorkspaceById(c echo.Context) error {
 	return c.JSON(http.StatusOK, model.WorkspaceResponse{
 		Name:        workspace.Name,
 		Logo:        workspace.Logo,
-		WorkspaceID: workspace.WorkspaceId,
+		WorkspaceId: workspace.WorkspaceId,
 	})
 }
 
@@ -134,10 +167,9 @@ func (sc *SystemController) GetWorkspaceById(c echo.Context) error {
 // @Produce json
 // @Success 200 {array} model.WorkspaceResponse "List of Workspaces"
 // @Failure 500 {object} model.ErrorResponse "Internal server error"
-// @Router /system/workspace [get]
+// @Router /system/workspace [put]
 func (sc *SystemController) GetAllWorkspaces(c echo.Context) error {
 	userId := c.Request().Context().Value("userId").(primitive.ObjectID)
-
 	workspaces, err := sc.systemService.GetAllWorkspaces(userId)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, model.ErrorResponse{Error: err.Error()})
@@ -149,7 +181,7 @@ func (sc *SystemController) GetAllWorkspaces(c echo.Context) error {
 			Name: workspace.Name,
 			Logo: workspace.Logo,
 			//Team:      workspace.Team,
-			WorkspaceID: workspace.WorkspaceId,
+			WorkspaceId: workspace.WorkspaceId,
 		}
 		responseWorkspaces = append(responseWorkspaces, responseWorkspace)
 	}
@@ -163,7 +195,7 @@ func (sc *SystemController) GetAllWorkspaces(c echo.Context) error {
 // @Accept json
 // @Produce json
 // @Param id path string true "Workspace id"
-// @Param request body UpdateWorkspaceRequest true "Updated Workspace details"
+// @Param request body model.UpdateWorkspaceRequest true "Updated Workspace details"
 // @Success 200 {object} model.SuccessResponse "Workspace updated successfully"
 // @Failure 400 {object} model.ErrorResponse "Bad request"
 // @Failure 500 {object} model.ErrorResponse "Internal server error"
@@ -177,11 +209,36 @@ func (sc *SystemController) UpdateWorkspace(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, model.ErrorResponse{Error: err.Error()})
 	}
 
-	if err := sc.systemService.UpdateWorkspace(userId, request.Logo, workspaceId, request.WorkspaceID, request.Name); err != nil {
+	if err := sc.systemService.UpdateWorkspace(userId, request.Logo, workspaceId, request.WorkspaceId, request.Name); err != nil {
 		return c.JSON(http.StatusInternalServerError, model.ErrorResponse{Error: err.Error()})
 	}
 
 	return c.JSON(http.StatusOK, model.SuccessResponse{Message: "Workspace updated successfully"})
+}
+
+// RegisterTelegramIntegration handles the registration of Telegram integration for authentication.
+// @Summary Registers or progresses Telegram integration for authentication.
+// @Description This endpoint handles the various stages of Telegram authentication, including phone number submission, verification code checking, and two-factor authentication password verification.
+// @Tags System
+// @Accept json
+// @Produce json
+// @Param id path string true "Workspace ID"
+// @Param set query string true "Stage of the Telegram authentication process ('phone', 'code', or 'password')"
+// @Param value query string true "Value required for the current stage (phone number, verification code, or password)"
+// @Success 200 {object} model.SuccessResponse "Telegram authentication processed successfully; stage complete."
+// @Success 202 {object} model.SuccessResponse "Verification code accepted but password is required for two-factor authentication."
+// @Failure 500 {object} model.ErrorResponse "Internal server error occurred while processing the Telegram integration."
+// @Router /system/integrations/telegram/{id} [get]
+func (sc *SystemController) RegisterTelegramIntegration(c echo.Context) error {
+	workspaceId, stage, value := c.Param("id"), c.QueryParam("set"), c.QueryParam("value")
+	userId := c.Request().Context().Value("userId").(primitive.ObjectID)
+
+	statusCode, err := sc.systemService.RegisterTelegramIntegration(userId, workspaceId, stage, value)
+	if err != nil {
+		return c.JSON(statusCode, model.ErrorResponse{Error: err.Error()})
+	}
+
+	return c.JSON(statusCode, model.SuccessResponse{Message: "telegram auth status updated successfully"})
 }
 
 // AddWorkspaceMembers adds members to a Workspace.
@@ -189,7 +246,7 @@ func (sc *SystemController) UpdateWorkspace(c echo.Context) error {
 // @Tags System
 // @Accept json
 // @Produce json
-// @Param request body AddWorkspaceMemberRequest true "Member details"
+// @Param request body model.AddWorkspaceMemberRequest true "Member details"
 // @Success 200 {object} model.SuccessResponse "Users added successfully"
 // @Failure 400 {object} model.ErrorResponse "Bad request"
 // @Failure 500 {object} model.ErrorResponse "Internal server error"
@@ -214,7 +271,7 @@ func (sc *SystemController) AddWorkspaceMembers(c echo.Context) error {
 // @Tags System
 // @Accept json
 // @Produce json
-// @Param request body UpdateWorkspaceMemberRequest true "Updated member details"
+// @Param request body model.UpdateWorkspaceMemberRequest true "Updated member details"
 // @Success 200 {object} model.SuccessResponse "Users updated successfully"
 // @Failure 400 {object} model.ErrorResponse "Bad request"
 // @Failure 500 {object} model.ErrorResponse "Internal server error"
@@ -331,4 +388,27 @@ func (sc *SystemController) UpdateWorkspacePendingStatus(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, model.ErrorResponse{Error: err.Error()})
 	}
 	return c.JSON(http.StatusOK, model.SuccessResponse{Message: "status updated successfully"})
+}
+
+// AddFolders Returns users in the Workspace.
+// @Summary Returns users in the Workspace.
+// @Tags System
+// @Accept json
+// @Produce json
+// @Param request body model.EditFoldersRequest true "folders"
+// @Success 200 {object} model.SuccessResponse "folders updated successfully"
+// @Failure 400 {object} model.ErrorResponse "Bad request"
+// @Failure 500 {object} model.ErrorResponse "Internal server error"
+// @Router /system/workspace/folders [post]
+func (sc *SystemController) AddFolders(c echo.Context) error {
+	userId := c.Request().Context().Value("userId").(primitive.ObjectID)
+	var request model.EditFoldersRequest
+	if err := c.Bind(&request); err != nil {
+		return c.JSON(http.StatusBadRequest, model.ErrorResponse{Error: err.Error()})
+	}
+
+	if err := sc.systemService.EditFolders(userId, request.WorkspaceId, request.Folders); err != nil {
+		return c.JSON(http.StatusInternalServerError, model.ErrorResponse{Error: err.Error()})
+	}
+	return c.JSON(http.StatusOK, model.SuccessResponse{Message: "folders updated successfully"})
 }

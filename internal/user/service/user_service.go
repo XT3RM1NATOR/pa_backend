@@ -10,6 +10,7 @@ import (
 	"github.com/Point-AI/backend/utils"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"log"
+	"net/mail"
 )
 
 type UserServiceImpl struct {
@@ -146,6 +147,12 @@ func (us *UserServiceImpl) RegisterUser(email string, password string) error {
 	}
 
 	invites, _ := us.userRepo.GetAllPendingInvites(email)
+
+	_, err = mail.ParseAddress(email)
+	if err != nil {
+		return err
+	}
+
 	if err := us.userRepo.CreateUser(invites, email, passwordHash, confirmToken); err != nil {
 		return err
 	}

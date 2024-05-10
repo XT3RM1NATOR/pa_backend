@@ -1,7 +1,7 @@
 package model
 
 import (
-	"go.mongodb.org/mongo-driver/bson/primitive"
+	"time"
 )
 
 // Requests
@@ -12,11 +12,12 @@ type RegisterBotRequest struct {
 }
 
 type MessageRequest struct {
-	TicketId  string              `json:"ticket_id"`
-	Message   string              `json:"message"`
-	Type      string              `json:"type"`
-	Source    string              `json:"source"`
-	CreatedAt *primitive.DateTime `json:"created_at,omitempty"`
+	TicketId    string `json:"ticket_id"`
+	ChatId      string `json:"chat_id"`
+	WorkspaceId string `json:"workspace_id"`
+	MessageId   string `json:"message_id"`
+	Message     string `json:"message"`
+	Type        string `json:"type"`
 }
 
 type TelegramAuthRequest struct {
@@ -24,6 +25,51 @@ type TelegramAuthRequest struct {
 	PhoneNumber   string `json:"phone_number"`
 	PhoneCodeHash string `json:"phone_code_hash"`
 	Code          string `json:"code"`
+}
+
+type ReassignTicketToTeamRequest struct {
+	WorkspaceId string `json:"workspace_id"`
+	TeamName    string `json:"team_name"`
+	TicketId    string `json:"ticket_id"`
+	ChatId      string `json:"tg_client_id"`
+}
+
+type ReassignTicketToUserRequest struct {
+	WorkspaceId string `json:"workspace_id"`
+	Email       string `json:"email"`
+	TicketId    string `json:"ticket_id"`
+	ChatId      string `json:"tg_client_id"`
+}
+
+type ChangeTicketStatusRequest struct {
+	TicketId    string `json:"ticket_id"`
+	WorkspaceId string `json:"workspace_id"`
+	Status      string `json:"status"`
+}
+
+type UpdateChatInfoRequest struct {
+	ChatId      string   `json:"tg_client_id"`
+	WorkspaceId string   `json:"workspace_id"`
+	Tags        []string `json:"tags"`
+}
+
+type TelegramChat struct {
+	EntityType  string          `json:"entity_type"`
+	ID          int64           `json:"id"`
+	Title       string          `json:"title"`
+	UnreadCount int             `json:"unread_count"`
+	LastMessage TelegramMessage `json:"last_message"`
+}
+
+type TelegramMessage struct {
+	Date     string `json:"date"`
+	ID       int    `json:"id"`
+	SenderID int64  `json:"sender_id"`
+	Text     string `json:"text"`
+}
+
+type TelegramChatsRequest struct {
+	Chats []TelegramChat `json:"chats"`
 }
 
 // Responses
@@ -37,13 +83,24 @@ type SuccessResponse struct {
 }
 
 type MessageResponse struct {
-	TicketId  string             `json:"ticket_id"`
-	Message   string             `json:"message"`
-	Content   []byte             `json:"content"`
-	Type      string             `json:"type"`
-	Source    string             `json:"source"`
-	Username  string             `json:"username"`
-	CreatedAt primitive.DateTime `json:"created_at"`
+	TicketId    string    `json:"ticket_id"`
+	ChatId      string    `json:"chat_id"`
+	WorkspaceId string    `json:"workspace_id"`
+	MessageId   string    `json:"message_id"`
+	Message     string    `json:"message"`
+	Content     []byte    `json:"content"`
+	Type        string    `json:"type"`
+	Name        string    `json:"name"`
+	IsOwner     bool      `json:"is_owner"`
+	Action      string    `json:"action"`
+	CreatedAt   time.Time `json:"created_at"`
+}
+
+type DeleteMessageResponse struct {
+	Type        string `json:"type"`
+	WorkspaceId string `json:"workspace_id"`
+	ChatId      string `json:"chat_id"`
+	MessageId   string `json:"message_id"`
 }
 
 type TelegramStatusResponse struct {

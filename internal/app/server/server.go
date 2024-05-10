@@ -13,8 +13,8 @@ import (
 	"github.com/sirupsen/logrus"
 	echoSwagger "github.com/swaggo/echo-swagger"
 	"go.mongodb.org/mongo-driver/mongo"
-	"net/http"
 	"os"
+	"sync"
 )
 
 // RunHTTPServer
@@ -40,19 +40,15 @@ func RunHTTPServer(cfg *config.Config, db *mongo.Database, str *minio.Client) {
 		Format: "${time_rfc3339_nano} [${status}] ${method} ${uri} (${latency_human})\n",
 		Output: logger.Out,
 	}))
-	corsConfig := middleware.CORSConfig{
-		AllowOrigins: []string{"*"},
-		AllowMethods: []string{http.MethodGet, http.MethodPost, http.MethodPut, http.MethodDelete, http.MethodOptions},
-		AllowHeaders: []string{echo.HeaderOrigin, echo.HeaderContentType, echo.HeaderAccept},
-	}
 
-	e.Use(middleware.CORSWithConfig(corsConfig))
-	e.GET("/swagger/*", echoSwagger.WrapHandler)
+	e.Use(middleware.CORS())
 
-	authDelivery.RegisterAuthRoutes(e, cfg, db, str)
-	systemDelivery.RegisterSystemRoutes(e, cfg, db, str)
+	mu := new(sync.RWMutex)
+	authDelivery.RegisterAuthRoutes(e, cfg, db, str, mu)
+	systemDelivery.RegisterSystemRoutes(e, cfg, db, str, mu)
 	apiDelivery.RegisterAPIRoutes(e, cfg, db)
-	messengerDelivery.RegisterMessengerRoutes(e, cfg, db)
+	messengerDelivery.RegisterMessengerRoutes(e, cfg, db, mu)
+	e.GET("/swagger/*", echoSwagger.WrapHandler)
 
 	if err := e.Start(cfg.Server.Port); err != nil {
 		panic(err)

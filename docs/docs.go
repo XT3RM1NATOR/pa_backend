@@ -24,6 +24,963 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/api/v1/article/{id}": {
+            "post": {
+                "description": "Creates a new instance of a helpdesk article or increments its view count.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "HelpDesk"
+                ],
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Article ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "view count incremented successfully",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Point-AI_backend_internal_api_delivery_model.SuccessResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Point-AI_backend_internal_api_delivery_model.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Point-AI_backend_internal_api_delivery_model.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/articles": {
+            "get": {
+                "description": "Returns all Articles and View Count.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "HelpDesk"
+                ],
+                "responses": {
+                    "201": {
+                        "description": "User registered successfully",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/github_com_Point-AI_backend_internal_api_delivery_model.HelpDeskArticleResponse"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Point-AI_backend_internal_api_delivery_model.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/integrations/telegram/bots": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Messenger"
+                ],
+                "summary": "Registers a new bot integration.",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "User ID",
+                        "name": "userId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Bot registration details",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Point-AI_backend_internal_messenger_delivery_model.RegisterBotRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Bot added successfully",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Point-AI_backend_internal_messenger_delivery_model.SuccessResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request, unable to parse the request body",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Point-AI_backend_internal_messenger_delivery_model.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error, failed to register the bot",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Point-AI_backend_internal_messenger_delivery_model.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/messenger/ticket/reassign/member/{ticket_id}/{id}/{email}": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Messenger"
+                ],
+                "summary": "Reassigns a support ticket to a member.",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Ticket ID",
+                        "name": "ticket_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Workspace ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Member email",
+                        "name": "email",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "User ID",
+                        "name": "userId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Ticket successfully reassigned to member",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Point-AI_backend_internal_messenger_delivery_model.SuccessResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error, failed to reassign ticket",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Point-AI_backend_internal_messenger_delivery_model.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/messenger/ticket/reassign/team/{ticket_id}/{id}/{name}": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Messenger"
+                ],
+                "summary": "Reassigns a support ticket to a team.",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Ticket ID",
+                        "name": "ticket_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Workspace ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Team name",
+                        "name": "name",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "User ID",
+                        "name": "userId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Ticket successfully reassigned to team",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Point-AI_backend_internal_messenger_delivery_model.SuccessResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error, failed to reassign ticket",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Point-AI_backend_internal_messenger_delivery_model.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/messenger/ticket/{status}/{id}/{ticket_id}": {
+            "put": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Messenger"
+                ],
+                "summary": "Updates the status of a support ticket.",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "New status of the ticket",
+                        "name": "status",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Workspace ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Ticket ID",
+                        "name": "ticket_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "User ID",
+                        "name": "userId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Ticket status updated successfully",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Point-AI_backend_internal_messenger_delivery_model.SuccessResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error, failed to update ticket status",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Point-AI_backend_internal_messenger_delivery_model.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/messenger/ws/{id}": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Messenger"
+                ],
+                "summary": "Handles WebSocket connections.",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Workspace ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "User ID",
+                        "name": "userId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Connection upgraded successfully",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Point-AI_backend_internal_messenger_delivery_model.SuccessResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request, user not valid in workspace",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Point-AI_backend_internal_messenger_delivery_model.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error, failed to upgrade connection",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Point-AI_backend_internal_messenger_delivery_model.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/system/teams": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "System"
+                ],
+                "summary": "Adds a new member to a team.",
+                "parameters": [
+                    {
+                        "description": "Team member details",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Point-AI_backend_internal_system_delivery_model.AddTeamMembersRequest"
+                        }
+                    },
+                    {
+                        "type": "string",
+                        "description": "User ID",
+                        "name": "userId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "User added to the team successfully",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Point-AI_backend_internal_system_delivery_model.SuccessResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request, unable to parse the request body",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Point-AI_backend_internal_system_delivery_model.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error, failed to add the team member",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Point-AI_backend_internal_system_delivery_model.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/system/teams/{id}/{name}": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "System"
+                ],
+                "summary": "Sets the first team for a user in a specific workspace.",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Team name",
+                        "name": "name",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Workspace ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "User ID",
+                        "name": "userId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "First team set successfully",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Point-AI_backend_internal_system_delivery_model.SuccessResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error, failed to set the first team",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Point-AI_backend_internal_system_delivery_model.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/system/workspace": {
+            "get": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "System"
+                ],
+                "summary": "Retrieves all Workspaces for a user.",
+                "responses": {
+                    "200": {
+                        "description": "List of Workspaces",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/github_com_Point-AI_backend_internal_system_delivery_model.WorkspaceResponse"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Point-AI_backend_internal_system_delivery_model.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "System"
+                ],
+                "summary": "Creates a new Workspace.",
+                "parameters": [
+                    {
+                        "description": "Workspace details",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Point-AI_backend_internal_system_delivery_model.CreateWorkspaceRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Workspace added successfully",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Point-AI_backend_internal_system_delivery_model.SuccessResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Point-AI_backend_internal_system_delivery_model.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Point-AI_backend_internal_system_delivery_model.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/system/workspace/leave/{id}": {
+            "delete": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "System"
+                ],
+                "summary": "Removes user from a Workspace.",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Workspace ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Workspace left successfully",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Point-AI_backend_internal_system_delivery_model.SuccessResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Point-AI_backend_internal_system_delivery_model.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/system/workspace/member": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "System"
+                ],
+                "summary": "Adds members to a Workspace.",
+                "parameters": [
+                    {
+                        "description": "Member details",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Point-AI_backend_internal_system_delivery_model.AddWorkspaceMemberRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Users added successfully",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Point-AI_backend_internal_system_delivery_model.SuccessResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Point-AI_backend_internal_system_delivery_model.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Point-AI_backend_internal_system_delivery_model.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/system/workspace/member/{id}/{email}": {
+            "delete": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "System"
+                ],
+                "summary": "Removes a member from a Workspace.",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Workspace ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Member email",
+                        "name": "email",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Member removed successfully",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Point-AI_backend_internal_system_delivery_model.SuccessResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Point-AI_backend_internal_system_delivery_model.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/system/workspace/members/{id}": {
+            "get": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "System"
+                ],
+                "summary": "Returns users in the Workspace.",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Workspace id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Workspace deleted successfully",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Point-AI_backend_internal_system_delivery_model.SuccessResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Point-AI_backend_internal_system_delivery_model.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/system/workspace/update": {
+            "put": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "System"
+                ],
+                "summary": "Updates Workspace members.",
+                "parameters": [
+                    {
+                        "description": "Updated member details",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Point-AI_backend_internal_system_delivery_model.UpdateWorkspaceMemberRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Users updated successfully",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Point-AI_backend_internal_system_delivery_model.SuccessResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Point-AI_backend_internal_system_delivery_model.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Point-AI_backend_internal_system_delivery_model.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/system/workspace/workspace/{id}": {
+            "delete": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "System"
+                ],
+                "summary": "Removes a Workspace by id.",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Workspace id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Workspace deleted successfully",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Point-AI_backend_internal_system_delivery_model.SuccessResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Point-AI_backend_internal_system_delivery_model.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/system/workspace/{id}": {
+            "get": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "System"
+                ],
+                "summary": "Retrieves Workspace details by ID.",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Workspace ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Workspace details",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Point-AI_backend_internal_system_delivery_model.WorkspaceResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Point-AI_backend_internal_system_delivery_model.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "System"
+                ],
+                "summary": "Updates Workspace details.",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Workspace id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Updated Workspace details",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Point-AI_backend_internal_system_delivery_model.UpdateWorkspaceRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Workspace updated successfully",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Point-AI_backend_internal_system_delivery_model.SuccessResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Point-AI_backend_internal_system_delivery_model.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Point-AI_backend_internal_system_delivery_model.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/system/workspace/{id}/status/{status}": {
+            "put": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "System"
+                ],
+                "summary": "Updates the status of a member within a workspace.",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Workspace ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "New status",
+                        "name": "status",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "User ID",
+                        "name": "userId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Status updated successfully",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Point-AI_backend_internal_system_delivery_model.SuccessResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error, failed to update member status",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Point-AI_backend_internal_system_delivery_model.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/system/workspace/{id}/{status}": {
+            "put": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "System"
+                ],
+                "summary": "Returns users in the Workspace.",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Workspace id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Status of invite",
+                        "name": "status",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Workspace deleted successfully",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Point-AI_backend_internal_system_delivery_model.SuccessResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Point-AI_backend_internal_system_delivery_model.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Point-AI_backend_internal_system_delivery_model.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/user/logout": {
             "post": {
                 "description": "Logs out a user by invalidating the access token.",
@@ -41,13 +998,13 @@ const docTemplate = `{
                     "200": {
                         "description": "Successfully logged out",
                         "schema": {
-                            "$ref": "#/definitions/model.SuccessResponse"
+                            "$ref": "#/definitions/github_com_Point-AI_backend_internal_user_delivery_model.SuccessResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/model.ErrorResponse"
+                            "$ref": "#/definitions/github_com_Point-AI_backend_internal_user_delivery_model.ErrorResponse"
                         }
                     }
                 }
@@ -79,19 +1036,19 @@ const docTemplate = `{
                     "302": {
                         "description": "Redirect to website URL with OAuth2 token",
                         "schema": {
-                            "$ref": "#/definitions/model.SuccessResponse"
+                            "$ref": "#/definitions/github_com_Point-AI_backend_internal_user_delivery_model.SuccessResponse"
                         }
                     },
                     "400": {
                         "description": "Bad request",
                         "schema": {
-                            "$ref": "#/definitions/model.ErrorResponse"
+                            "$ref": "#/definitions/github_com_Point-AI_backend_internal_user_delivery_model.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/model.ErrorResponse"
+                            "$ref": "#/definitions/github_com_Point-AI_backend_internal_user_delivery_model.ErrorResponse"
                         }
                     }
                 }
@@ -117,7 +1074,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/model.OAuth2TokenRequest"
+                            "$ref": "#/definitions/github_com_Point-AI_backend_internal_user_delivery_model.OAuth2TokenRequest"
                         }
                     }
                 ],
@@ -125,25 +1082,90 @@ const docTemplate = `{
                     "200": {
                         "description": "Tokens exchanged successfully",
                         "schema": {
-                            "$ref": "#/definitions/model.TokenResponse"
+                            "$ref": "#/definitions/github_com_Point-AI_backend_internal_user_delivery_model.TokenResponse"
                         }
                     },
                     "400": {
                         "description": "Bad request",
                         "schema": {
-                            "$ref": "#/definitions/model.ErrorResponse"
+                            "$ref": "#/definitions/github_com_Point-AI_backend_internal_user_delivery_model.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/model.ErrorResponse"
+                            "$ref": "#/definitions/github_com_Point-AI_backend_internal_user_delivery_model.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/model.ErrorResponse"
+                            "$ref": "#/definitions/github_com_Point-AI_backend_internal_user_delivery_model.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/user/profile": {
+            "get": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "returns the user profile.",
+                "responses": {
+                    "200": {
+                        "description": "user profile data",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Point-AI_backend_internal_user_delivery_model.UserProfileResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Point-AI_backend_internal_user_delivery_model.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "updates the user profile.",
+                "parameters": [
+                    {
+                        "description": "Access token renewal request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Point-AI_backend_internal_user_delivery_model.UserUpdateProfileRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "user profile data",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Point-AI_backend_internal_user_delivery_model.SuccessResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Point-AI_backend_internal_user_delivery_model.ErrorResponse"
                         }
                     }
                 }
@@ -169,7 +1191,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/model.ForgotPasswordRequest"
+                            "$ref": "#/definitions/github_com_Point-AI_backend_internal_user_delivery_model.ForgotPasswordRequest"
                         }
                     }
                 ],
@@ -177,19 +1199,19 @@ const docTemplate = `{
                     "200": {
                         "description": "Password reset email sent successfully",
                         "schema": {
-                            "$ref": "#/definitions/model.SuccessResponse"
+                            "$ref": "#/definitions/github_com_Point-AI_backend_internal_user_delivery_model.SuccessResponse"
                         }
                     },
                     "400": {
                         "description": "Bad request",
                         "schema": {
-                            "$ref": "#/definitions/model.ErrorResponse"
+                            "$ref": "#/definitions/github_com_Point-AI_backend_internal_user_delivery_model.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/model.ErrorResponse"
+                            "$ref": "#/definitions/github_com_Point-AI_backend_internal_user_delivery_model.ErrorResponse"
                         }
                     }
                 }
@@ -215,7 +1237,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/model.RenewAccessTokenRequest"
+                            "$ref": "#/definitions/github_com_Point-AI_backend_internal_user_delivery_model.RenewAccessTokenRequest"
                         }
                     }
                 ],
@@ -223,19 +1245,19 @@ const docTemplate = `{
                     "200": {
                         "description": "Access token renewed successfully",
                         "schema": {
-                            "$ref": "#/definitions/model.TokenResponse"
+                            "$ref": "#/definitions/github_com_Point-AI_backend_internal_user_delivery_model.TokenResponse"
                         }
                     },
                     "400": {
                         "description": "Bad request",
                         "schema": {
-                            "$ref": "#/definitions/model.ErrorResponse"
+                            "$ref": "#/definitions/github_com_Point-AI_backend_internal_user_delivery_model.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/model.ErrorResponse"
+                            "$ref": "#/definitions/github_com_Point-AI_backend_internal_user_delivery_model.ErrorResponse"
                         }
                     }
                 }
@@ -261,7 +1283,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/model.PasswordResetRequest"
+                            "$ref": "#/definitions/github_com_Point-AI_backend_internal_user_delivery_model.PasswordResetRequest"
                         }
                     }
                 ],
@@ -269,19 +1291,19 @@ const docTemplate = `{
                     "200": {
                         "description": "Password reset successfully",
                         "schema": {
-                            "$ref": "#/definitions/model.SuccessResponse"
+                            "$ref": "#/definitions/github_com_Point-AI_backend_internal_user_delivery_model.SuccessResponse"
                         }
                     },
                     "400": {
                         "description": "Bad request",
                         "schema": {
-                            "$ref": "#/definitions/model.ErrorResponse"
+                            "$ref": "#/definitions/github_com_Point-AI_backend_internal_user_delivery_model.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/model.ErrorResponse"
+                            "$ref": "#/definitions/github_com_Point-AI_backend_internal_user_delivery_model.ErrorResponse"
                         }
                     }
                 }
@@ -307,7 +1329,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/model.UserRequest"
+                            "$ref": "#/definitions/github_com_Point-AI_backend_internal_user_delivery_model.UserRequest"
                         }
                     }
                 ],
@@ -315,25 +1337,25 @@ const docTemplate = `{
                     "200": {
                         "description": "User logged in successfully",
                         "schema": {
-                            "$ref": "#/definitions/model.TokenResponse"
+                            "$ref": "#/definitions/github_com_Point-AI_backend_internal_user_delivery_model.TokenResponse"
                         }
                     },
                     "400": {
                         "description": "Bad request",
                         "schema": {
-                            "$ref": "#/definitions/model.ErrorResponse"
+                            "$ref": "#/definitions/github_com_Point-AI_backend_internal_user_delivery_model.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/model.ErrorResponse"
+                            "$ref": "#/definitions/github_com_Point-AI_backend_internal_user_delivery_model.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/model.ErrorResponse"
+                            "$ref": "#/definitions/github_com_Point-AI_backend_internal_user_delivery_model.ErrorResponse"
                         }
                     }
                 }
@@ -358,7 +1380,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/model.UserRequest"
+                            "$ref": "#/definitions/github_com_Point-AI_backend_internal_user_delivery_model.UserRequest"
                         }
                     }
                 ],
@@ -366,19 +1388,19 @@ const docTemplate = `{
                     "201": {
                         "description": "User registered successfully",
                         "schema": {
-                            "$ref": "#/definitions/model.SuccessResponse"
+                            "$ref": "#/definitions/github_com_Point-AI_backend_internal_user_delivery_model.SuccessResponse"
                         }
                     },
                     "400": {
                         "description": "Bad request",
                         "schema": {
-                            "$ref": "#/definitions/model.ErrorResponse"
+                            "$ref": "#/definitions/github_com_Point-AI_backend_internal_user_delivery_model.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/model.ErrorResponse"
+                            "$ref": "#/definitions/github_com_Point-AI_backend_internal_user_delivery_model.ErrorResponse"
                         }
                     }
                 }
@@ -409,19 +1431,19 @@ const docTemplate = `{
                     "200": {
                         "description": "User confirmed successfully",
                         "schema": {
-                            "$ref": "#/definitions/model.SuccessResponse"
+                            "$ref": "#/definitions/github_com_Point-AI_backend_internal_user_delivery_model.SuccessResponse"
                         }
                     },
                     "400": {
                         "description": "Bad request",
                         "schema": {
-                            "$ref": "#/definitions/model.ErrorResponse"
+                            "$ref": "#/definitions/github_com_Point-AI_backend_internal_user_delivery_model.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/model.ErrorResponse"
+                            "$ref": "#/definitions/github_com_Point-AI_backend_internal_user_delivery_model.ErrorResponse"
                         }
                     }
                 }
@@ -429,7 +1451,7 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "model.ErrorResponse": {
+        "github_com_Point-AI_backend_internal_api_delivery_model.ErrorResponse": {
             "type": "object",
             "properties": {
                 "error": {
@@ -437,7 +1459,182 @@ const docTemplate = `{
                 }
             }
         },
-        "model.ForgotPasswordRequest": {
+        "github_com_Point-AI_backend_internal_api_delivery_model.HelpDeskArticleResponse": {
+            "type": "object",
+            "properties": {
+                "article_id": {
+                    "type": "integer"
+                },
+                "view_count": {
+                    "type": "integer"
+                }
+            }
+        },
+        "github_com_Point-AI_backend_internal_api_delivery_model.SuccessResponse": {
+            "type": "object",
+            "properties": {
+                "message": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_Point-AI_backend_internal_messenger_delivery_model.ErrorResponse": {
+            "type": "object",
+            "properties": {
+                "error": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_Point-AI_backend_internal_messenger_delivery_model.RegisterBotRequest": {
+            "type": "object",
+            "properties": {
+                "bot_token": {
+                    "type": "string"
+                },
+                "workspace_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_Point-AI_backend_internal_messenger_delivery_model.SuccessResponse": {
+            "type": "object",
+            "properties": {
+                "message": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_Point-AI_backend_internal_system_delivery_model.AddTeamMembersRequest": {
+            "type": "object",
+            "properties": {
+                "member": {
+                    "type": "string"
+                },
+                "team_name": {
+                    "type": "string"
+                },
+                "workspace_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_Point-AI_backend_internal_system_delivery_model.AddWorkspaceMemberRequest": {
+            "type": "object",
+            "properties": {
+                "Workspace_id": {
+                    "type": "string"
+                },
+                "team": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "github_com_Point-AI_backend_internal_system_delivery_model.CreateWorkspaceRequest": {
+            "type": "object",
+            "properties": {
+                "logo": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "name": {
+                    "type": "string"
+                },
+                "team": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "teams": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "workspace_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_Point-AI_backend_internal_system_delivery_model.ErrorResponse": {
+            "type": "object",
+            "properties": {
+                "error": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_Point-AI_backend_internal_system_delivery_model.SuccessResponse": {
+            "type": "object",
+            "properties": {
+                "message": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_Point-AI_backend_internal_system_delivery_model.UpdateWorkspaceMemberRequest": {
+            "type": "object",
+            "properties": {
+                "team": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "workspace_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_Point-AI_backend_internal_system_delivery_model.UpdateWorkspaceRequest": {
+            "type": "object",
+            "properties": {
+                "logo": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "name": {
+                    "type": "string"
+                },
+                "workspace_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_Point-AI_backend_internal_system_delivery_model.WorkspaceResponse": {
+            "type": "object",
+            "properties": {
+                "logo": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "name": {
+                    "type": "string"
+                },
+                "workspace_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_Point-AI_backend_internal_user_delivery_model.ErrorResponse": {
+            "type": "object",
+            "properties": {
+                "error": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_Point-AI_backend_internal_user_delivery_model.ForgotPasswordRequest": {
             "type": "object",
             "properties": {
                 "email": {
@@ -445,7 +1642,7 @@ const docTemplate = `{
                 }
             }
         },
-        "model.OAuth2TokenRequest": {
+        "github_com_Point-AI_backend_internal_user_delivery_model.OAuth2TokenRequest": {
             "type": "object",
             "properties": {
                 "oAuth2Token": {
@@ -453,7 +1650,7 @@ const docTemplate = `{
                 }
             }
         },
-        "model.PasswordResetRequest": {
+        "github_com_Point-AI_backend_internal_user_delivery_model.PasswordResetRequest": {
             "type": "object",
             "properties": {
                 "new_password": {
@@ -464,7 +1661,7 @@ const docTemplate = `{
                 }
             }
         },
-        "model.RenewAccessTokenRequest": {
+        "github_com_Point-AI_backend_internal_user_delivery_model.RenewAccessTokenRequest": {
             "type": "object",
             "properties": {
                 "refresh_token": {
@@ -472,7 +1669,7 @@ const docTemplate = `{
                 }
             }
         },
-        "model.SuccessResponse": {
+        "github_com_Point-AI_backend_internal_user_delivery_model.SuccessResponse": {
             "type": "object",
             "properties": {
                 "message": {
@@ -480,7 +1677,7 @@ const docTemplate = `{
                 }
             }
         },
-        "model.TokenResponse": {
+        "github_com_Point-AI_backend_internal_user_delivery_model.TokenResponse": {
             "type": "object",
             "properties": {
                 "access_token": {
@@ -492,13 +1689,47 @@ const docTemplate = `{
                 }
             }
         },
-        "model.UserRequest": {
+        "github_com_Point-AI_backend_internal_user_delivery_model.UserProfileResponse": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "integer"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "logo": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_Point-AI_backend_internal_user_delivery_model.UserRequest": {
             "type": "object",
             "properties": {
                 "email": {
                     "type": "string"
                 },
                 "password": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_Point-AI_backend_internal_user_delivery_model.UserUpdateProfileRequest": {
+            "type": "object",
+            "properties": {
+                "logo": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "name": {
                     "type": "string"
                 }
             }

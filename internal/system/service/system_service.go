@@ -8,6 +8,7 @@ import (
 	"github.com/Point-AI/backend/internal/system/infrastructure/model"
 	infrastructureInterface "github.com/Point-AI/backend/internal/system/service/interface"
 	"github.com/Point-AI/backend/utils"
+	"github.com/go-resty/resty/v2"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 )
@@ -41,6 +42,10 @@ func (ss *SystemServiceImpl) CreateWorkspace(logo []byte, team map[string]string
 
 	teamRoles, err := utils.ValidateTeamRoles(team)
 	if err != nil {
+		return err
+	}
+
+	if err = utils.ValidateTeamNames(teams); err != nil {
 		return err
 	}
 
@@ -191,6 +196,7 @@ func (ss *SystemServiceImpl) GetAllWorkspaces(userId primitive.ObjectID) ([]mode
 	if err != nil {
 		return []model.Workspace{}, err
 	}
+
 	return fmtWorkspaces, err
 }
 
@@ -329,6 +335,62 @@ func (ss *SystemServiceImpl) GetUserProfiles(workspaceId string, userId primitiv
 	return nil, errors.New("user does not have a valid permission")
 }
 
+func (ss *SystemServiceImpl) RegisterTelegramIntegration(userId primitive.ObjectID, workspaceId, stage, value string) (int, error) {
+	workspace, err := ss.systemRepo.FindWorkspaceByWorkspaceId(workspaceId)
+	if err != nil {
+		return 500, err
+	}
+
+	if _, exists := workspace.Team[userId]; !exists {
+		return 500, errors.New("user does not have valid permissions")
+	}
+
+	client := resty.New()
+	var resp *resty.Response
+
+	switch stage {
+	case "phone":
+		reqBody := map[string]string{
+			"workspace_id": workspaceId,
+			"phone_number": value,
+		}
+		resp, err = client.R().
+			SetHeader("Content-Type", "application/json").
+			SetHeader("Authorization", "Bearer "+ss.config.Auth.IntegrationsServerSecretKey).
+			SetBody(reqBody).
+			Post(ss.config.Website.IntegrationsServerURL + "/point_ai/telegram_wrapper/send_code")
+
+		return resp.StatusCode(), err
+	case "code":
+		reqBody := map[string]string{
+			"workspace_id": workspaceId,
+			"code":         value,
+			"phone_number": "placeholder_phone_number",
+		}
+		resp, err = client.R().
+			SetHeader("Content-Type", "application/json").
+			SetHeader("Authorization", "Bearer "+ss.config.Auth.IntegrationsServerSecretKey).
+			SetBody(reqBody).
+			Post(ss.config.Website.IntegrationsServerURL + "/point_ai/telegram_wrapper/verify_init_code")
+
+		return resp.StatusCode(), err
+	case "password":
+		reqBody := map[string]string{
+			"workspace_id": workspaceId,
+			"password":     value,
+		}
+		resp, err = client.R().
+			SetHeader("Content-Type", "application/json").
+			SetHeader("Authorization", "Bearer "+ss.config.Auth.IntegrationsServerSecretKey).
+			SetBody(reqBody).
+			Post(ss.config.Website.IntegrationsServerURL + "/point_ai/telegram_wrapper/verify_2fa_password")
+
+		return resp.StatusCode(), err
+	}
+
+	return 500, errors.New("invalid authentication stage")
+}
+
 func (ss *SystemServiceImpl) formatWorkspaces(workspaces []entity.Workspace) ([]model.Workspace, error) {
 	formattedWorkspaces := make([]model.Workspace, len(workspaces))
 	for i, p := range workspaces {
@@ -346,6 +408,19 @@ func (ss *SystemServiceImpl) formatWorkspaces(workspaces []entity.Workspace) ([]
 	}
 
 	return formattedWorkspaces, nil
+}
+
+func (ss *SystemServiceImpl) EditFolders(userId primitive.ObjectID, workspaceId string, folders map[string][]string) error {
+	workspace, err := ss.systemRepo.FindWorkspaceByWorkspaceId(workspaceId)
+	if err != nil {
+		return err
+	}
+
+	if _, exists := workspace.Team[userId]; exists {
+		workspace.Folders = folders
+		return ss.systemRepo.UpdateWorkspace(workspace)
+	}
+	return errors.New("unauthorized")
 }
 
 func (ss *SystemServiceImpl) UpdateWorkspacePendingStatus(userId primitive.ObjectID, workspaceId string, status bool) error {

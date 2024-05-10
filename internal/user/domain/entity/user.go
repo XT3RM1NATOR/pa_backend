@@ -5,19 +5,6 @@ import (
 	"time"
 )
 
-type Workspace struct {
-	Id            primitive.ObjectID                           `bson:"_id,omitempty"`
-	Name          string                                       `bson:"name"`
-	Team          map[primitive.ObjectID]WorkspaceRole         `bson:"team"`
-	PendingTeam   map[string]WorkspaceRole                     `bson:"pending"`
-	InternalTeams map[string]map[primitive.ObjectID]UserStatus `bson:"teams"`
-	FirstTeam     string                                       `bson:"first_team"`
-	Integrations  Integrations                                 `bson:"integrations"`
-	Tickets       []Ticket                                     `bson:"tickets"`
-	WorkspaceId   string                                       `bson:"workspace_id"`
-	CreatedAt     primitive.DateTime                           `bson:"created_at"`
-}
-
 type User struct {
 	Id             primitive.ObjectID `bson:"_id,omitempty"`
 	Email          string             `bson:"email"`
@@ -27,7 +14,7 @@ type User struct {
 	FullName       string             `bson:"name"`
 	PendingInvites []string           `bson:"pending_invites"`
 	Tokens         Tokens             `bson:"tokens"`
-	CreatedAt      primitive.DateTime `bson:"created_at"`
+	CreatedAt      time.Time          `bson:"created_at"`
 }
 
 type Tokens struct {
@@ -37,35 +24,68 @@ type Tokens struct {
 	RefreshToken string `bson:"refresh_token"`
 }
 
+type Workspace struct {
+	Id            primitive.ObjectID                           `bson:"_id,omitempty"`
+	WorkspaceId   string                                       `bson:"workspace_id"`
+	Name          string                                       `bson:"name"`
+	Team          map[primitive.ObjectID]WorkspaceRole         `bson:"team"`
+	PendingTeam   map[string]WorkspaceRole                     `bson:"pending"`
+	InternalTeams map[string]map[primitive.ObjectID]UserStatus `bson:"teams"`
+	FirstTeam     string                                       `bson:"first_team"`
+	Integrations  Integrations                                 `bson:"integrations"`
+	Folders       map[string][]string                          `bson:"folders"`
+	CreatedAt     time.Time                                    `bson:"created_at"`
+}
+
+type Chat struct {
+	Id          primitive.ObjectID `bson:"_id,omitempty"`
+	UserId      primitive.ObjectID `bson:"user_id"`
+	WorkspaceId primitive.ObjectID `bson:"workspace_id"`
+	ChatId      string             `bson:"chat_id"`
+	TgClientId  int                `bson:"tg_user_id"`
+	Tags        []string           `bson:"tags"`
+	Notes       []Note             `bson:"notes"`
+	Tickets     []Ticket           `bson:"tickets"`
+	Source      ChatSource         `bson:"source"`
+	CreatedAt   time.Time          `bson:"created_at"`
+}
+
+type Note struct {
+	UserId    primitive.ObjectID `bson:"user_id"`
+	Text      string             `bson:"text"`
+	CreatedAt time.Time          `bson:"created_at"`
+	NoteId    string             `bson:"note_id"`
+}
+
 type Ticket struct {
 	Id                  primitive.ObjectID    `bson:"_id,omitempty"`
-	TicketId            string                `bson:"ticket_id,omitempty"`
-	BotToken            string                `bson:"bot_token"`
-	SenderId            int                   `bson:"user_id"`
-	ChatId              int64                 `bson:"chat_id"`
+	TicketId            string                `bson:"ticket_id"`
+	Subject             string                `bson:"subject"`
+	Notes               []Note                `bson:"notes"`
 	IntegrationMessages []IntegrationsMessage `bson:"integration_messages"`
 	ResponseMessages    []ResponseMessage     `bson:"response_messages"`
 	Status              TicketStatus          `bson:"status"`
-	Source              TicketSource          `bson:"source"`
-	AssignedTo          primitive.ObjectID    `bson:"assigned_to,omitempty"`
-	CreatedAt           primitive.DateTime    `bson:"created_at"`
-	ResolvedAt          *primitive.DateTime   `bson:"resolved_at,omitempty"`
+	CreatedAt           time.Time             `bson:"created_at"`
+	ResolvedAt          time.Time             `bson:"resolved_at,omitempty"`
 }
 
 type ResponseMessage struct {
-	Id        primitive.ObjectID  `bson:"_id,omitempty"`
-	SenderId  primitive.ObjectID  `bson:"sender_id,omitempty"`
-	Message   string              `bson:"message"`
-	Type      MessageType         `bson:"type"`
-	CreatedAt *primitive.DateTime `bson:"created_at,omitempty"`
+	Id        primitive.ObjectID `bson:"_id,omitempty"`
+	SenderId  primitive.ObjectID `bson:"sender_id,omitempty"`
+	Message   string             `bson:"message"`
+	Type      MessageType        `bson:"type"`
+	CreatedAt *time.Time         `bson:"created_at,omitempty"`
 }
 
 type IntegrationsMessage struct {
-	Id        primitive.ObjectID `bson:"_id,omitempty"`
-	MessageId int                `bson:"message_id"`
-	Message   string             `bson:"message"`
-	Type      MessageType        `bson:"type"`
-	CreatedAt primitive.DateTime `bson:"created_at,omitempty"`
+	Id          primitive.ObjectID `bson:"_id,omitempty"`
+	MessageId   int                `bson:"message_id"`
+	FileIdStr   string             `bson:"file_id_str"`
+	FileIdInt64 int64              `bson:"file_id_int64"`
+	Message     string             `bson:"message"`
+	From        string             `bson:"from"`
+	Type        MessageType        `bson:"type"`
+	CreatedAt   time.Time          `bson:"created_at,omitempty"`
 }
 
 type Integrations struct {
@@ -84,12 +104,9 @@ type TelegramBotIntegration struct {
 }
 
 type TelegramAccountIntegration struct {
-	AccountID     int64              `bson:"account_id"`
-	AccessHash    int64              `bson:"access_hash"`
-	PhoneCodeHash string             `bson:"phone_code_hash"`
-	PhoneNumber   string             `bson:"phone_number"`
-	IsActive      bool               `bson:"is_active"`
-	CreatedAt     primitive.DateTime `bson:"created_at"`
+	Session     string `bson:"session"`
+	PhoneNumber string `bson:"phone_number"`
+	IsActive    bool   `bson:"is_active"`
 }
 
 type MetaIntegration struct {
@@ -113,16 +130,22 @@ type WhatsAppIntegration struct {
 
 type MessageType string
 type WorkspaceRole string
-type TicketSource string
+type ChatSource string
 type TicketStatus string
 type UserStatus string
 
 const (
-	TypeText     MessageType = "text"
-	TypeImage    MessageType = "image"
-	TypeVideo    MessageType = "video"
-	TypeAudio    MessageType = "audio"
-	TypeDocument MessageType = "document"
+	TypeChatNote   MessageType = "chat_note"
+	TypeTicketNote MessageType = "ticket_note"
+	TypeText       MessageType = "text"
+	TypeImage      MessageType = "image"
+	TypeAudio      MessageType = "audio"
+	TypeDocument   MessageType = "document"
+	TypeSticker    MessageType = "sticker"
+	TypeVideo      MessageType = "video"
+	TypeVoice      MessageType = "voice"
+	TypeVideoNote  MessageType = "video_note"
+	TypeGif        MessageType = "gif"
 )
 
 const (
@@ -138,11 +161,11 @@ const (
 )
 
 const (
-	SourceTelegram    TicketSource = "telegram"
-	SourceTelegramBot TicketSource = "telegram_bot"
-	SourceWhatsApp    TicketSource = "whatsapp"
-	SourceInstagram   TicketSource = "instagram"
-	SourceMeta        TicketSource = "meta"
+	SourceTelegram    ChatSource = "telegram"
+	SourceTelegramBot ChatSource = "telegram_bot"
+	SourceWhatsApp    ChatSource = "whatsapp"
+	SourceInstagram   ChatSource = "instagram"
+	SourceMeta        ChatSource = "meta"
 )
 
 const (

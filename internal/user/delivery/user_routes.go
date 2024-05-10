@@ -10,10 +10,11 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/minio/minio-go/v7"
 	"go.mongodb.org/mongo-driver/mongo"
+	"sync"
 )
 
-func RegisterAuthRoutes(e *echo.Echo, cfg *config.Config, db *mongo.Database, str *minio.Client) {
-	ur := repository.NewUserRepositoryImpl(db, cfg)
+func RegisterAuthRoutes(e *echo.Echo, cfg *config.Config, db *mongo.Database, str *minio.Client, mu *sync.RWMutex) {
+	ur := repository.NewUserRepositoryImpl(db, cfg, mu)
 	ec := client.NewEmailClientImpl(cfg.Email.SMTPUsername, cfg.Email.SMTPPassword, cfg.Email.SMTPHost, cfg.Email.SMTPPort)
 	sc := client.NewStorageClientImpl(str)
 	es := service.NewEmailServiceImpl(ec)

@@ -1,6 +1,8 @@
 package model
 
-import "go.mongodb.org/mongo-driver/bson/primitive"
+import (
+	"time"
+)
 
 // Requests
 
@@ -55,8 +57,8 @@ type URLResponse struct {
 }
 
 type UserProfileResponse struct {
-	Email     string             `json:"email"`
-	FullName  string             `json:"name"`
-	Logo      []byte             `json:"logo"`
-	CreatedAt primitive.DateTime `json:"created_at"`
+	Email     string    `json:"email"`
+	FullName  string    `json:"name"`
+	Logo      []byte    `json:"logo"`
+	CreatedAt time.Time `json:"created_at"`
 }

@@ -11,8 +11,7 @@ import (
 
 func ConnectToDB(cfg *config.Config) *mongo.Database {
 	//uri := fmt.Sprintf("mongodb+srv://%s:%s@%s/?retryWrites=true&w=majority&appName=Cluster0", cfg.MongoDB.User, cfg.MongoDB.Password, cfg.MongoDB.Host)
-
-	uri := "mongodb://localhost:27017/?appName=MyApp"
+	uri := "mongodb://localhost:27017/?appName=pointai"
 	serverAPI := options.ServerAPI(options.ServerAPIVersion1)
 	opts := options.Client().ApplyURI(uri).SetServerAPIOptions(serverAPI)
 
