@@ -13,6 +13,7 @@ import (
 	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
+	"log"
 	"time"
 )
 
@@ -230,21 +231,14 @@ func (ms *MessengerServiceImpl) ImportTelegramChats(workspaceId string, chats []
 		return err
 	}
 
-	for i, chat := range chats {
-
-		if chat.ClientId == chat.LastMessage.SenderId {
-			ms.createResponseMessages()
-		} else {
-
-		}
-
-		ticket := ms.createTicket([]entity.Note{}, []entity.IntegrationsMessage{}, []entity.ResponseMessage{}, time.Now())
+	for _, chat := range chats {
+		integrationsMessages := ms.createIntegrationsMessages(chat.LastMessage.Id, chat.LastMessage.Text, chat.Title, entity.TypeText, time.Now())
+		ticket := ms.createTicket([]entity.Note{}, []entity.IntegrationsMessage{*integrationsMessages}, []entity.ResponseMessage{}, time.Now())
 		chat := ms.createNewChat(int(chat.Id), int(chat.LastMessage.SenderId), entity.SourceTelegram, *ticket, workspace.Id, primitive.ObjectID{}, true)
+		err := ms.messengerRepo.InsertNewChat(nil, chat)
+		log.Println(err)
 	}
-
-	ms.createNewChat()
-
-	ms.messengerRepo.InsertNewChat(nil)
+	return nil
 }
 
 func (ms *MessengerServiceImpl) ValidateUserInWorkspaceById(userId primitive.ObjectID, workspaceId string) error {

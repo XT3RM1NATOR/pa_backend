@@ -1,6 +1,7 @@
 package _interface
 
 import (
+	"github.com/Point-AI/backend/internal/messenger/delivery/model"
 	"github.com/Point-AI/backend/internal/messenger/domain/entity"
 	"github.com/gorilla/websocket"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -17,6 +18,7 @@ type MessengerService interface {
 	HandleMessage(userId primitive.ObjectID, workspaceId, ticketId, chatId, messageType, message string) error
 	DeleteMessage(userId primitive.ObjectID, messageType, workspaceId, ticketId, messageId, chatId string) error
 	GetAllChats(userId primitive.ObjectID, workspaceId string) ([]entity.Chat, error)
+	ImportTelegramChats(workspaceId string, chats []model.TelegramChat) error
 }
 
 type WebsocketService interface {
