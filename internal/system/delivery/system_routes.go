@@ -13,12 +13,12 @@ import (
 	"sync"
 )
 
-func RegisterSystemRoutes(e *echo.Echo, cfg *config.Config, db *mongo.Database, str *minio.Client, mu *sync.RWMutex) {
+func RegisterSystemRoutes(e *echo.Echo, cfg *config.Config, db *mongo.Database, str *minio.Client, repoMu *sync.RWMutex, storageMu *sync.RWMutex) {
 	systemGroup := e.Group("/system")
 
 	ec := client.NewEmailClientImpl(cfg.Email.SMTPUsername, cfg.Email.SMTPPassword, cfg.Email.SMTPHost, cfg.Email.SMTPPort)
-	src := client.NewStorageClientImpl(str)
-	sr := repository.NewSystemRepositoryImpl(cfg, db, mu)
+	src := client.NewStorageClientImpl(str, storageMu)
+	sr := repository.NewSystemRepositoryImpl(cfg, db, repoMu)
 	es := service.NewEmailServiceImpl(ec)
 	ss := service.NewSystemServiceImpl(cfg, src, sr, es)
 	sc := controller.NewSystemController(cfg, ss)
@@ -32,7 +32,7 @@ func RegisterSystemRoutes(e *echo.Echo, cfg *config.Config, db *mongo.Database, 
 	workspaceGroup.GET("/:id", sc.GetWorkspaceById, middleware.ValidateAccessTokenMiddleware(cfg.Auth.JWTSecretKey))
 	workspaceGroup.GET("/members/:id", sc.GetUserProfiles, middleware.ValidateAccessTokenMiddleware(cfg.Auth.JWTSecretKey))
 	workspaceGroup.GET("", sc.GetAllWorkspaces, middleware.ValidateAccessTokenMiddleware(cfg.Auth.JWTSecretKey))
-	//workspaceGroup.GET("/folders/:id", sc.GetAllFolders, middleware.ValidateAccessTokenMiddleware(cfg.Auth.JWTSecretKey))
+	workspaceGroup.GET("/folders/:id", sc.GetAllFolders, middleware.ValidateAccessTokenMiddleware(cfg.Auth.JWTSecretKey))
 	workspaceGroup.PUT("/update", sc.UpdateWorkspaceMember, middleware.ValidateAccessTokenMiddleware(cfg.Auth.JWTSecretKey))
 	workspaceGroup.PUT("/update/:status/:id", sc.UpdateMemberStatus, middleware.ValidateAccessTokenMiddleware(cfg.Auth.JWTSecretKey))
 	workspaceGroup.PUT("/status/:id/:status", sc.UpdateWorkspacePendingStatus, middleware.ValidateAccessTokenMiddleware(cfg.Auth.JWTSecretKey))

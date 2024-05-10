@@ -40,14 +40,14 @@ func RunHTTPServer(cfg *config.Config, db *mongo.Database, str *minio.Client) {
 		Format: "${time_rfc3339_nano} [${status}] ${method} ${uri} (${latency_human})\n",
 		Output: logger.Out,
 	}))
-
 	e.Use(middleware.CORS())
 
-	mu := new(sync.RWMutex)
-	authDelivery.RegisterAuthRoutes(e, cfg, db, str, mu)
-	systemDelivery.RegisterSystemRoutes(e, cfg, db, str, mu)
+	repoMu, storageMu := new(sync.RWMutex), new(sync.RWMutex)
+
+	authDelivery.RegisterAuthRoutes(e, cfg, db, str, repoMu, storageMu)
+	systemDelivery.RegisterSystemRoutes(e, cfg, db, str, repoMu, storageMu)
 	apiDelivery.RegisterAPIRoutes(e, cfg, db)
-	messengerDelivery.RegisterMessengerRoutes(e, cfg, db, mu)
+	messengerDelivery.RegisterMessengerRoutes(e, cfg, db, repoMu)
 	e.GET("/swagger/*", echoSwagger.WrapHandler)
 
 	if err := e.Start(cfg.Server.Port); err != nil {

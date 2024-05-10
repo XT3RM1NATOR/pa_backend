@@ -7,15 +7,18 @@ import (
 	"github.com/Point-AI/backend/internal/system/service/interface"
 	"github.com/minio/minio-go/v7"
 	"io"
+	"sync"
 )
 
 type StorageClientImpl struct {
 	str *minio.Client
+	mu  *sync.RWMutex
 }
 
-func NewStorageClientImpl(str *minio.Client) infrastructureInterface.StorageClient {
+func NewStorageClientImpl(str *minio.Client, mu *sync.RWMutex) infrastructureInterface.StorageClient {
 	return &StorageClientImpl{
 		str: str,
+		mu:  mu,
 	}
 }
 
