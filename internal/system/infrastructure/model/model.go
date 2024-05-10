@@ -1,4 +1,4 @@
-package model
+package infrastructureModel
 
 type Workspace struct {
 	Name        string `bson:"name"`

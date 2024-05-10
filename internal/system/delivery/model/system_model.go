@@ -59,3 +59,10 @@ type UserResponse struct {
 	Role     string `json:"role"`
 	Logo     []byte `json:"logo"`
 }
+
+type TeamResponse struct {
+	TeamName    string   `json:"team_name"`
+	MemberCount int      `json:"member_count"`
+	AdminNames  []string `json:"admin_names"`
+	ChatCount   int      `json:"chat_count"`
+}

@@ -3,6 +3,7 @@ package service
 import (
 	"errors"
 	"github.com/Point-AI/backend/config"
+	"github.com/Point-AI/backend/internal/system/delivery/model"
 	"github.com/Point-AI/backend/internal/system/domain/entity"
 	_interface "github.com/Point-AI/backend/internal/system/domain/interface"
 	"github.com/Point-AI/backend/internal/system/infrastructure/model"
@@ -172,33 +173,33 @@ func (ss *SystemServiceImpl) AddTeamsMember(userId primitive.ObjectID, memberEma
 }
 
 // GetWorkspaceById TODO: update function not to return team
-func (ss *SystemServiceImpl) GetWorkspaceById(workspaceId string, userId primitive.ObjectID) (model.Workspace, error) {
+func (ss *SystemServiceImpl) GetWorkspaceById(workspaceId string, userId primitive.ObjectID) (infrastructureModel.Workspace, error) {
 	workspace, err := ss.systemRepo.FindWorkspaceByWorkspaceId(workspaceId)
 	if err != nil {
-		return model.Workspace{}, err
+		return infrastructureModel.Workspace{}, err
 	}
 
 	if _, exists := workspace.Team[userId]; !exists {
-		return model.Workspace{}, errors.New("user is not in the Workspace")
+		return infrastructureModel.Workspace{}, errors.New("user is not in the Workspace")
 	}
 
 	fmtWorkspace, err := ss.formatWorkspaces([]entity.Workspace{*workspace})
 	if err != nil {
-		return model.Workspace{}, err
+		return infrastructureModel.Workspace{}, err
 	}
 
 	return fmtWorkspace[0], nil
 }
 
-func (ss *SystemServiceImpl) GetAllWorkspaces(userId primitive.ObjectID) ([]model.Workspace, error) {
+func (ss *SystemServiceImpl) GetAllWorkspaces(userId primitive.ObjectID) ([]infrastructureModel.Workspace, error) {
 	workspaces, err := ss.systemRepo.FindWorkspacesByUser(userId)
 	if err != nil {
-		return []model.Workspace{}, err
+		return []infrastructureModel.Workspace{}, err
 	}
 
 	fmtWorkspaces, err := ss.formatWorkspaces(*workspaces)
 	if err != nil {
-		return []model.Workspace{}, err
+		return []infrastructureModel.Workspace{}, err
 	}
 
 	return fmtWorkspaces, err
@@ -317,7 +318,7 @@ func (ss *SystemServiceImpl) DeleteWorkspaceById(workspaceId string, userId prim
 	return errors.New("user does not have a valid permission")
 }
 
-func (ss *SystemServiceImpl) GetUserProfiles(workspaceId string, userId primitive.ObjectID) ([]model.User, error) {
+func (ss *SystemServiceImpl) GetUserProfiles(workspaceId string, userId primitive.ObjectID) ([]infrastructureModel.User, error) {
 	workspace, err := ss.systemRepo.FindWorkspaceByWorkspaceId(workspaceId)
 	if err != nil {
 		return nil, err
@@ -395,13 +396,13 @@ func (ss *SystemServiceImpl) RegisterTelegramIntegration(userId primitive.Object
 	return 500, errors.New("invalid authentication stage")
 }
 
-func (ss *SystemServiceImpl) formatWorkspaces(workspaces []entity.Workspace) ([]model.Workspace, error) {
+func (ss *SystemServiceImpl) formatWorkspaces(workspaces []entity.Workspace) ([]infrastructureModel.Workspace, error) {
 	formattedWorkspaces := make([]model.Workspace, len(workspaces))
 	for i, p := range workspaces {
 		logo, _ := ss.storageClient.LoadFile(p.WorkspaceId, ss.config.MinIo.BucketName)
 		team, _ := ss.systemRepo.FormatTeam(p.Team)
 
-		formattedWorkspace := model.Workspace{
+		formattedWorkspace := infrastructureModel.Workspace{
 			Name:        p.Name,
 			WorkspaceId: p.WorkspaceId,
 			Team:        team,
@@ -436,6 +437,43 @@ func (ss *SystemServiceImpl) UpdateWorkspacePendingStatus(userId primitive.Objec
 		return err
 	}
 	return nil
+}
+
+func (ss *SystemServiceImpl) GetAllFolders(userId primitive.ObjectID, workspaceId string) ([]model.TeamResponse, error) {
+	workspace, err := ss.systemRepo.FindWorkspaceByWorkspaceId(workspaceId)
+	if err != nil {
+		return nil, err
+	}
+
+	if _, exists := workspace.Team[userId]; !exists {
+		return nil, errors.New("unauthorised")
+	}
+
+	var teams []model.TeamResponse
+	for name, team := range workspace.InternalTeams {
+		var memberCount int
+		var admins []string
+
+		for userId, _ := range team {
+			memberCount++
+			if ss.isAdmin(workspace.Team[userId]) || ss.isOwner(workspace.Team[userId]) {
+				user, _ := ss.systemRepo.FindUserById(userId)
+				admins = append(admins, user.FullName)
+			}
+		}
+		teams = append(teams, *ss.createTeamResponse(name, memberCount, 0, admins))
+	}
+
+	return teams, nil
+}
+
+func (ss *SystemServiceImpl) createTeamResponse(teamName string, memberCount, chatCount int, adminNames []string) *model.TeamResponse {
+	return &model.TeamResponse{
+		TeamName:    teamName,
+		MemberCount: memberCount,
+		AdminNames:  adminNames,
+		ChatCount:   chatCount,
+	}
 }
 
 func (ss *SystemServiceImpl) isAdmin(userRole entity.WorkspaceRole) bool {

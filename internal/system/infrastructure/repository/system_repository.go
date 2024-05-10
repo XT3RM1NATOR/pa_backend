@@ -200,16 +200,16 @@ func (sr *SystemRepositoryImpl) UpdateUsersInWorkspace(workspace *entity.Workspa
 	return nil
 }
 
-func (sr *SystemRepositoryImpl) GetUserProfiles(Workspace entity.Workspace) (*[]model.User, error) {
+func (sr *SystemRepositoryImpl) GetUserProfiles(Workspace entity.Workspace) (*[]infrastructureModel.User, error) {
 	sr.mu.RLock()
 	defer sr.mu.RUnlock()
 
-	var users []model.User
+	var users []infrastructureModel.User
 
 	for userId, role := range Workspace.Team {
 		user, err := sr.findUserById(userId)
 		if err == nil {
-			users = append(users, model.User{
+			users = append(users, infrastructureModel.User{
 				Email:    user.Email,
 				FullName: user.FullName,
 				Role:     string(role),
@@ -329,6 +329,22 @@ func (sr *SystemRepositoryImpl) FindUserEmailById(userId primitive.ObjectID) (st
 	}
 
 	return user.Email, nil
+}
+
+func (sr *SystemRepositoryImpl) FindUserById(userId primitive.ObjectID) (*entity.User, error) {
+	sr.mu.RLock()
+	defer sr.mu.RUnlock()
+
+	var user entity.User
+	err := sr.database.Collection(sr.config.MongoDB.UserCollection).FindOne(
+		context.Background(),
+		bson.M{"_id": userId},
+	).Decode(&user)
+	if err != nil {
+		return &entity.User{}, err
+	}
+
+	return &user, nil
 }
 
 func (sr *SystemRepositoryImpl) FindUserByEmail(email string) (primitive.ObjectID, error) {

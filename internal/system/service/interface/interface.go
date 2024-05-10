@@ -26,10 +26,11 @@ type SystemRepository interface {
 	UpdateUsersInWorkspace(workspace *entity.Workspace, teamRoles map[primitive.ObjectID]entity.WorkspaceRole) error
 	UpdateWorkspace(workspace *entity.Workspace) error
 	FormatTeam(team map[primitive.ObjectID]entity.WorkspaceRole) (map[string]string, error)
-	GetUserProfiles(workspace entity.Workspace) (*[]model.User, error)
+	GetUserProfiles(workspace entity.Workspace) (*[]infrastructureModel.User, error)
 	AddPendingInviteToUser(userId primitive.ObjectID, projectId string) error
 	ClearPendingStatus(userId primitive.ObjectID, workspaceId string) error
 	UpdateWorkspaceUserStatus(userId primitive.ObjectID, workspaceId string, status bool) error
+	FindUserById(userId primitive.ObjectID) (*entity.User, error)
 }
 
 type EmailClient interface {

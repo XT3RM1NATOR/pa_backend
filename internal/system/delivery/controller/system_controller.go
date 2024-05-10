@@ -412,3 +412,15 @@ func (sc *SystemController) AddFolders(c echo.Context) error {
 	}
 	return c.JSON(http.StatusOK, model.SuccessResponse{Message: "folders updated successfully"})
 }
+
+func (sc *SystemController) GetAllFolders(c echo.Context) error {
+	userId := c.Request().Context().Value("userId").(primitive.ObjectID)
+	workspaceId := c.Param("id")
+
+	folders, err := sc.systemService.GetAllFolders(userId, workspaceId)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, model.ErrorResponse{Error: err.Error()})
+	}
+
+	return c.JSON(http.StatusOK, folders)
+}
