@@ -275,8 +275,14 @@ func (mr *MessengerRepositoryImpl) InsertNewChat(ctx mongo.SessionContext, chat 
 	mr.mu.Lock()
 	defer mr.mu.Unlock()
 
+	c := context.Background()
+
+	if ctx != nil {
+		c = ctx
+	}
+
 	_, err := mr.database.Collection(mr.config.MongoDB.ChatCollection).InsertOne(
-		ctx,
+		c,
 		chat,
 	)
 
