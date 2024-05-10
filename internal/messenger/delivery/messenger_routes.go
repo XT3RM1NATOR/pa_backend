@@ -35,6 +35,6 @@ func RegisterMessengerRoutes(e *echo.Echo, cfg *config.Config, db *mongo.Databas
 	messengerGroup.DELETE("/message", ic.DeleteMessage, middleware.ValidateAccessTokenMiddleware(cfg.Auth.JWTSecretKey))
 
 	telegramGroup := e.Group("/telegram")
-	telegramGroup.POST("/import", ic.ImportTelegramChats, middleware.ValidateServerMiddleware(cfg.Auth.IntegrationsServerSecretKey))
+	telegramGroup.POST("/import/:id", ic.ImportTelegramChats, middleware.ValidateServerMiddleware(cfg.Auth.IntegrationsServerSecretKey))
 
 }
