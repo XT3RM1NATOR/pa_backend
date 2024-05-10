@@ -48,7 +48,7 @@ type Chat struct {
 	Notes       []Note             `bson:"notes"`
 	Tickets     []Ticket           `bson:"tickets"`
 	Source      ChatSource         `bson:"source"`
-	IsImported  bool               `json:"is_imported"`
+	IsImported  bool               `bson:"is_imported"`
 	CreatedAt   time.Time          `bson:"created_at"`
 }
 
