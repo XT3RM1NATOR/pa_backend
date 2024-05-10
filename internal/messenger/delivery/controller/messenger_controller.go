@@ -197,6 +197,7 @@ func (mc *MessengerController) DeleteMessage(c echo.Context) error {
 
 func (mc *MessengerController) ImportTelegramChats(c echo.Context) error {
 	workspaceId := c.Param("id")
+	userId := c.Request().Context().Value("userId").(primitive.ObjectID)
 	var request model.TelegramChatsRequest
 	if err := c.Bind(&request); err != nil {
 		return c.JSON(http.StatusBadRequest, model.ErrorResponse{Error: "invalid request parameters"})
