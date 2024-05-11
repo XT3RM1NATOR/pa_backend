@@ -7,6 +7,7 @@ import (
 	_interface "github.com/Point-AI/backend/internal/user/domain/interface"
 	"github.com/labstack/echo/v4"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"log"
 	"net/http"
 )
 
@@ -207,6 +208,7 @@ func (uc *UserController) RenewAccessToken(c echo.Context) error {
 	if err := c.Bind(&request); err != nil {
 		return c.JSON(http.StatusBadRequest, model.ErrorResponse{Error: err.Error()})
 	}
+	log.Println("THE REQUEST IS:", request)
 
 	accessToken, err := uc.userService.RenewAccessToken(request.RefreshToken)
 	if err != nil {
