@@ -132,17 +132,14 @@ func (us *UserServiceImpl) RegisterUser(email string, password string) error {
 
 	confirmToken, err := utils.GenerateToken()
 	if err != nil {
-		log.Println(err)
 		return err
 	}
 	passwordHash, err := utils.HashPassword(password)
 	if err != nil {
-		log.Println(err)
 		return err
 	}
 	confirmationLink := fmt.Sprintf("%s/confirm?token=%s", us.config.Website.WebURL, confirmToken)
 	if err := us.emailService.SendConfirmationEmail(email, confirmationLink); err != nil {
-		log.Println(err)
 		return err
 	}
 

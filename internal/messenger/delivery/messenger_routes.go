@@ -17,13 +17,6 @@ func RegisterMessengerRoutes(e *echo.Echo, cfg *config.Config, db *mongo.Databas
 	is := service.NewMessengerServiceImpl(cfg, ir, wss)
 	ic := controller.NewMessengerController(cfg, is, wss)
 
-	//integrationGroup := e.Group("/integrations")
-
-	//telegramGroup := integrationGroup.Group("/telegram")
-	//telegramGroup.POST("/bots", ic.RegisterBotIntegration, middleware.ValidateAccessTokenMiddleware(cfg.Auth.JWTSecretKey))
-	//telegramGroup.POST("/bots/webhook/:token", ic.HandleBotMessage)
-	//telegramGroup.POST("/setInfo/:id", ic.HandleTelegramClientAuth, middleware.ValidateAccessTokenMiddleware(cfg.Auth.JWTSecretKey))
-
 	messengerGroup := e.Group("/messenger")
 	messengerGroup.GET("/poop", ic.SendOk)
 	messengerGroup.GET("/ws/:id", ic.WSHandler, middleware.ValidateAccessTokenMiddleware(cfg.Auth.JWTSecretKey))
