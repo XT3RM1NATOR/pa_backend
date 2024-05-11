@@ -169,7 +169,6 @@ func (ms *MessengerServiceImpl) ReassignTicketToUser(userId primitive.ObjectID, 
 	return err
 }
 
-// GetAllChats TODO: change to response model
 func (ms *MessengerServiceImpl) GetAllChats(userId primitive.ObjectID, workspaceId string) ([]model.ChatResponse, error) {
 	workspace, err := ms.messengerRepo.FindWorkspaceByWorkspaceId(nil, workspaceId)
 	if err != nil {
@@ -179,7 +178,7 @@ func (ms *MessengerServiceImpl) GetAllChats(userId primitive.ObjectID, workspace
 	if _, ok := workspace.Team[userId]; !ok {
 		return nil, errors.New("unauthorised")
 	}
-	chats, err := ms.messengerRepo.FindChatsWithLatestTicket(nil, workspace.Id)
+	chats, err := ms.messengerRepo.FindLatestChatsByWorkspaceId(workspace.Id, 50)
 	if err != nil {
 		return nil, err
 	}
@@ -187,8 +186,7 @@ func (ms *MessengerServiceImpl) GetAllChats(userId primitive.ObjectID, workspace
 	var responseChats []model.ChatResponse
 
 	for _, chat := range chats {
-		latestMessage := ms.GetLatestMessage(chat.Tickets[0])
-		messageResponse := ms.createMessageResponse(nil, latestMessage.CreatedAt, userId == latestMessage.SenderId, latestMessage.From, "", workspaceId, chat.Tickets[0].TicketId, chat.ChatId, latestMessage.MessageId, latestMessage.Message, string(entity.TypeText))
+		messageResponse := ms.createMessageResponse(nil, chat.LastMessage.CreatedAt, userId == chat.LastMessage.SenderId, chat.LastMessage.From, "", workspaceId, chat.Tickets[0].TicketId, chat.ChatId, chat.LastMessage.MessageId, chat.LastMessage.Message, string(chat.LastMessage.Type))
 		responseChats = append(responseChats, *ms.createChatResponse(workspace.WorkspaceId, chat.ChatId, chat.TgClientId, chat.TgChatId, chat.Tags, *messageResponse, string(entity.SourceTelegram), chat.IsImported, chat.CreatedAt))
 	}
 

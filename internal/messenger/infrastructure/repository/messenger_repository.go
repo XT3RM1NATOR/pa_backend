@@ -9,8 +9,10 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 	"log"
 	"sync"
+	"time"
 )
 
 type MessengerRepositoryImpl struct {
@@ -241,31 +243,29 @@ func (mr *MessengerRepositoryImpl) FindChatByUserId(ctx mongo.SessionContext, tg
 	return &chat, nil
 }
 
-func (mr *MessengerRepositoryImpl) FindChatsWithLatestTicket(ctx mongo.SessionContext, workspaceId primitive.ObjectID) ([]entity.Chat, error) {
-	mr.mu.RLock()
-	defer mr.mu.RUnlock()
+func (mr *MessengerRepositoryImpl) FindLatestChatsByWorkspaceId(workspaceId primitive.ObjectID, n int) ([]entity.Chat, error) {
+	var chats []entity.Chat
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
 
-	pipeline := mongo.Pipeline{
-		{{"$match", bson.M{"workspace_id": workspaceId}}},
-		{{"$addFields", bson.M{
-			"tickets": bson.M{"$slice": []interface{}{
-				bson.M{"$sortArray": bson.M{
-					"input":  "$tickets",
-					"sortBy": bson.M{"created_at": -1},
-				}},
-				1,
-			}},
-		}}},
-	}
+	filter := bson.M{"workspace_id": workspaceId}
+	opts := options.Find().SetSort(bson.M{"last_message.created_at": -1}).SetLimit(int64(n))
 
-	cursor, err := mr.database.Collection(mr.config.MongoDB.ChatCollection).Aggregate(ctx, pipeline)
+	cursor, err := mr.database.Collection(mr.config.MongoDB.ChatCollection).Find(ctx, filter, opts)
 	if err != nil {
 		return nil, err
 	}
 	defer cursor.Close(ctx)
 
-	var chats []entity.Chat
-	if err = cursor.All(ctx, &chats); err != nil {
+	for cursor.Next(ctx) {
+		var chat entity.Chat
+		if err = cursor.Decode(&chat); err != nil {
+			return nil, err
+		}
+		chats = append(chats, chat)
+	}
+
+	if err = cursor.Err(); err != nil {
 		return nil, err
 	}
 

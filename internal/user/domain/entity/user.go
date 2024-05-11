@@ -47,8 +47,9 @@ type Chat struct {
 	Tags        []string           `bson:"tags"`
 	Notes       []Note             `bson:"notes"`
 	Tickets     []Ticket           `bson:"tickets"`
+	LastMessage Message            `bson:"last_message"`
 	Source      ChatSource         `bson:"source"`
-	IsImported  bool               `json:"is_imported"`
+	IsImported  bool               `bson:"is_imported"`
 	CreatedAt   time.Time          `bson:"created_at"`
 }
 
@@ -71,13 +72,14 @@ type Ticket struct {
 }
 
 type Message struct {
-	Id        primitive.ObjectID `bson:"_id,omitempty"`
-	SenderId  primitive.ObjectID `bson:"sender_id"`
-	MessageId int                `bson:"message_id"`
-	Message   string             `bson:"message"`
-	From      string             `bson:"from"`
-	Type      MessageType        `bson:"type"`
-	CreatedAt time.Time          `bson:"created_at"`
+	Id              primitive.ObjectID `bson:"_id,omitempty"`
+	SenderId        primitive.ObjectID `bson:"sender_id"`
+	MessageId       string             `bson:"message_id"`
+	MessageIdClient int                `bson:"message_id_client"`
+	Message         string             `bson:"message"`
+	From            string             `bson:"from"`
+	Type            MessageType        `bson:"type"`
+	CreatedAt       time.Time          `bson:"created_at"`
 }
 
 type Integrations struct {

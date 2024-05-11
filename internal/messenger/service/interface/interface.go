@@ -52,5 +52,5 @@ type MessengerRepository interface {
 	CountActiveTickets(memberId primitive.ObjectID) (int, error)
 	StartSession() (mongo.Session, error)
 	FindChatByChatId(chatId string) (*entity.Chat, error)
-	FindChatsWithLatestTicket(ctx mongo.SessionContext, workspaceId primitive.ObjectID) ([]entity.Chat, error)
+	FindLatestChatsByWorkspaceId(workspaceId primitive.ObjectID, n int) ([]entity.Chat, error)
 }
