@@ -507,7 +507,7 @@ func (ms *MessengerServiceImpl) findTicketIdAndNoteIdByNoteId(chat *entity.Chat,
 	return -1, -1, errors.New("invalid noteId")
 }
 
-func (ms *MessengerServiceImpl) createNewChat(tgChatId int, tgClientId int, source entity.ChatSource, ticket entity.Ticket, workspaceId, assigneeId primitive.ObjectID, isImported bool) *entity.Chat {
+func (ms *MessengerServiceImpl) createNewChat(tgChatId int, tgClientId int, source entity.ChatSource, ticket entity.Ticket, workspaceId, assigneeId primitive.ObjectID, isImported bool, lastMessage entity.Message) *entity.Chat {
 	return &entity.Chat{
 		UserId:      assigneeId,
 		WorkspaceId: workspaceId,
@@ -519,6 +519,7 @@ func (ms *MessengerServiceImpl) createNewChat(tgChatId int, tgClientId int, sour
 		Tags:        []string{},
 		Source:      source,
 		IsImported:  isImported,
+		LastMessage: lastMessage,
 		CreatedAt:   time.Now(),
 	}
 }
