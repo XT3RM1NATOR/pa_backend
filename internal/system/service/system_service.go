@@ -370,7 +370,6 @@ func (ss *SystemServiceImpl) RegisterTelegramIntegration(userId primitive.Object
 		reqBody := map[string]string{
 			"workspace_id": workspaceId,
 			"code":         value,
-			"phone_number": value,
 		}
 		resp, err = client.R().
 			SetHeader("Content-Type", "application/json").
