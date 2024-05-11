@@ -24,10 +24,6 @@ type RenewAccessTokenRequest struct {
 	RefreshToken string `json:"refresh_token"`
 }
 
-type AccessTokenRequest struct {
-	AccessToken string `json:"access_token"`
-}
-
 type OAuth2TokenRequest struct {
 	OAuth2Token string `json:"oAuth2Token"`
 }

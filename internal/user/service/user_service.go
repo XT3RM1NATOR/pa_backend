@@ -217,8 +217,8 @@ func (us *UserServiceImpl) ResetPassword(token, newPassword string) error {
 }
 
 func (us *UserServiceImpl) RenewAccessToken(refreshToken string) (string, error) {
-	userId, err := utils.ValidateJWTToken("refresh_token", refreshToken, us.config.Auth.JWTSecretKey)
-	log.Println(userId, err)
+	log.Println(refreshToken)
+	userId, err := utils.ValidateJWTToken(utils.RefreshToken, refreshToken, us.config.Auth.JWTSecretKey)
 	if err != nil {
 		return "", err
 	}
@@ -231,7 +231,7 @@ func (us *UserServiceImpl) RenewAccessToken(refreshToken string) (string, error)
 		return "", errors.New("invalid refresh token")
 	}
 
-	accessToken, err := utils.GenerateJWTToken("access_token", user.Id, us.config.Auth.JWTSecretKey)
+	accessToken, err := utils.GenerateJWTToken(utils.AccessToken, user.Id, us.config.Auth.JWTSecretKey)
 	if err != nil {
 		return "", err
 	}
