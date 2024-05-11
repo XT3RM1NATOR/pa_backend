@@ -13,12 +13,12 @@ func ValidateAccessTokenMiddleware(secretKey string) echo.MiddlewareFunc {
 		return func(c echo.Context) error {
 			authHeader := c.Request().Header.Get("Authorization")
 			if authHeader == "" {
-				return c.JSON(http.StatusBadRequest, map[string]string{"error": "Authorization header required"})
+				return c.JSON(http.StatusForbidden, map[string]string{"error": "Authorization header required"})
 			}
 
 			parts := strings.Split(authHeader, " ")
 			if len(parts) != 2 || parts[0] != "Bearer" {
-				return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid authorization header format"})
+				return c.JSON(http.StatusForbidden, map[string]string{"error": "Invalid authorization header format"})
 			}
 
 			token := parts[1]
