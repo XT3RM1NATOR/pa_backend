@@ -382,6 +382,7 @@ func (ms *MessengerServiceImpl) GetChatsByFolder(userId primitive.ObjectID, work
 	for _, chat := range chats {
 		if chat.IsImported {
 			log.Println(ms.updateWallpaper(workspaceId, chat.TgClientId))
+			log.Println(workspaceId, chat.TgClientId)
 		}
 		messageResponse := ms.createMessageResponse(nil, chat.LastMessage.CreatedAt, userId == chat.LastMessage.SenderId, chat.LastMessage.From, "", workspaceId, chat.Tickets[0].TicketId, chat.ChatId, chat.LastMessage.MessageId, chat.LastMessage.Message, string(chat.LastMessage.Type))
 		responseChats = append(responseChats, *ms.createChatResponse(workspace.WorkspaceId, chat.ChatId, chat.TgClientId, chat.TgChatId, chat.Tags, *messageResponse, string(entity.SourceTelegram), chat.IsImported, chat.CreatedAt, chat.Name))
