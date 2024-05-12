@@ -554,7 +554,7 @@ func (ms *MessengerServiceImpl) updateWallpaper(workspaceId string, userId int) 
 		SetHeader("Content-Type", "application/json").
 		SetHeader("Authorization", "Bearer "+ms.config.Auth.IntegrationsServerSecretKey).
 		SetBody(reqBody).
-		Get(ms.config.Website.IntegrationsServerURL + "/point_ai/telegram_wrapper/get_user_avatar")
+		Put(ms.config.Website.IntegrationsServerURL + "/point_ai/telegram_wrapper/get_user_avatar")
 
 	if err != nil {
 		return err
