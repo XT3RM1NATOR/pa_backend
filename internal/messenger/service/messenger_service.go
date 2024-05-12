@@ -189,7 +189,7 @@ func (ms *MessengerServiceImpl) GetAllChats(userId primitive.ObjectID, workspace
 
 	for _, chat := range chats {
 		if chat.IsImported {
-			go ms.updateWallpaper(workspaceId, chat.TgClientId)
+			log.Println(ms.updateWallpaper(workspaceId, chat.TgClientId))
 			log.Println(workspaceId, chat.TgClientId)
 
 		}
