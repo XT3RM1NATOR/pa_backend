@@ -53,4 +53,5 @@ type MessengerRepository interface {
 	StartSession() (mongo.Session, error)
 	FindChatByChatId(chatId string) (*entity.Chat, error)
 	FindLatestChatsByWorkspaceId(workspaceId primitive.ObjectID, n int) ([]entity.Chat, error)
+	FindLatestChatsByWorkspaceIdAndAllTags(workspaceId primitive.ObjectID, tags []string, chatNumber int) ([]entity.Chat, error)
 }

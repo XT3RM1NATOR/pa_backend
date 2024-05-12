@@ -224,6 +224,44 @@ func (mr *MessengerRepositoryImpl) FindWorkspaceById(id primitive.ObjectID) (*en
 	return &workspace, nil
 }
 
+func (mr *MessengerRepositoryImpl) FindLatestChatsByWorkspaceIdAndAllTags(workspaceId primitive.ObjectID, tags []string, chatNumber int) ([]entity.Chat, error) {
+	mr.mu.RLock()
+	defer mr.mu.RUnlock()
+
+	var chats []entity.Chat
+
+	filter := bson.M{
+		"workspace_id": workspaceId,
+		"tags":         bson.M{"$all": tags},
+	}
+	opts := options.Find().
+		SetSort(bson.D{{"last_message.created_at", -1}}).
+		SetLimit(int64(chatNumber))
+
+	cursor, err := mr.database.Collection(mr.config.MongoDB.ChatCollection).Find(context.Background(), filter, opts)
+	if err != nil {
+		log.Printf("Failed to fetch chats: %v", err)
+		return nil, err
+	}
+	defer cursor.Close(context.Background())
+
+	for cursor.Next(context.Background()) {
+		var chat entity.Chat
+		if err := cursor.Decode(&chat); err != nil {
+			log.Printf("Failed to decode chat: %v", err)
+			return nil, err
+		}
+		chats = append(chats, chat)
+	}
+
+	if err := cursor.Err(); err != nil {
+		log.Printf("Error occurred during cursor operation: %v", err)
+		return nil, err
+	}
+
+	return chats, nil
+}
+
 func (mr *MessengerRepositoryImpl) FindChatByUserId(ctx mongo.SessionContext, tgClientId int, workspaceId, assigneeId primitive.ObjectID) (*entity.Chat, error) {
 	mr.mu.RLock()
 	defer mr.mu.RUnlock()

@@ -413,6 +413,18 @@ func (sc *SystemController) AddFolders(c echo.Context) error {
 	return c.JSON(http.StatusOK, model.SuccessResponse{Message: "folders updated successfully"})
 }
 
+func (sc *SystemController) GetAllTeams(c echo.Context) error {
+	userId := c.Request().Context().Value("userId").(primitive.ObjectID)
+	workspaceId := c.Param("id")
+
+	folders, err := sc.systemService.GetAllTeams(userId, workspaceId)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, model.ErrorResponse{Error: err.Error()})
+	}
+
+	return c.JSON(http.StatusOK, folders)
+}
+
 func (sc *SystemController) GetAllFolders(c echo.Context) error {
 	userId := c.Request().Context().Value("userId").(primitive.ObjectID)
 	workspaceId := c.Param("id")
@@ -422,5 +434,6 @@ func (sc *SystemController) GetAllFolders(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, model.ErrorResponse{Error: err.Error()})
 	}
 
-	return c.JSON(http.StatusOK, folders)
+	folderResponse := model.FoldersResponse{Folders: folders}
+	return c.JSON(http.StatusOK, folderResponse)
 }

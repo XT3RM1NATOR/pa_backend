@@ -438,7 +438,7 @@ func (ss *SystemServiceImpl) UpdateWorkspacePendingStatus(userId primitive.Objec
 	return nil
 }
 
-func (ss *SystemServiceImpl) GetAllFolders(userId primitive.ObjectID, workspaceId string) ([]model.TeamResponse, error) {
+func (ss *SystemServiceImpl) GetAllTeams(userId primitive.ObjectID, workspaceId string) ([]model.TeamResponse, error) {
 	workspace, err := ss.systemRepo.FindWorkspaceByWorkspaceId(workspaceId)
 	if err != nil {
 		return nil, err
@@ -464,6 +464,19 @@ func (ss *SystemServiceImpl) GetAllFolders(userId primitive.ObjectID, workspaceI
 	}
 
 	return teams, nil
+}
+
+func (ss *SystemServiceImpl) GetAllFolders(userId primitive.ObjectID, workspaceId string) (map[string][]string, error) {
+	workspace, err := ss.systemRepo.FindWorkspaceByWorkspaceId(workspaceId)
+	if err != nil {
+		return nil, err
+	}
+
+	if _, exists := workspace.Team[userId]; !exists {
+		return nil, errors.New("unauthorised")
+	}
+
+	return workspace.Folders, nil
 }
 
 func (ss *SystemServiceImpl) createTeamResponse(teamName string, memberCount, chatCount int, adminNames []string) *model.TeamResponse {

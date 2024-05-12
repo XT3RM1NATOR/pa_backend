@@ -19,6 +19,7 @@ type MessengerService interface {
 	DeleteMessage(userId primitive.ObjectID, messageType, workspaceId, ticketId, messageId, chatId string) error
 	GetAllChats(userId primitive.ObjectID, workspaceId string) ([]model.ChatResponse, error)
 	ImportTelegramChats(workspaceId string, chats []model.TelegramChat) error
+	GetChatsByFolder(userId primitive.ObjectID, workspaceId, folderName string) ([]model.ChatResponse, error)
 }
 
 type WebsocketService interface {

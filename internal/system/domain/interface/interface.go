@@ -23,7 +23,8 @@ type SystemService interface {
 	SetFirstTeam(userId primitive.ObjectID, teamName, workspaceId string) error
 	EditFolders(userId primitive.ObjectID, workspaceId string, folders map[string][]string) error
 	RegisterTelegramIntegration(userId primitive.ObjectID, workspaceId, stage, value string) (int, error)
-	GetAllFolders(userId primitive.ObjectID, workspaceId string) ([]model.TeamResponse, error)
+	GetAllTeams(userId primitive.ObjectID, workspaceId string) ([]model.TeamResponse, error)
+	GetAllFolders(userId primitive.ObjectID, workspaceId string) (map[string][]string, error)
 }
 
 type EmailService interface {

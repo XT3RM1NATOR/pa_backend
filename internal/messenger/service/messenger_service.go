@@ -361,6 +361,34 @@ func (ms *MessengerServiceImpl) UpdateChatInfo(userId primitive.ObjectID, chatId
 	return ms.messengerRepo.UpdateChat(nil, chat)
 }
 
+func (ms *MessengerServiceImpl) GetChatsByFolder(userId primitive.ObjectID, workspaceId, folderName string) ([]model.ChatResponse, error) {
+	workspace, err := ms.messengerRepo.FindWorkspaceByWorkspaceId(nil, workspaceId)
+	if err != nil {
+		return nil, err
+	}
+
+	if _, exists := workspace.Team[userId]; !exists {
+		return nil, errors.New("unauthorised")
+	}
+
+	chats, err := ms.messengerRepo.FindLatestChatsByWorkspaceIdAndAllTags(workspace.Id, workspace.Folders[folderName], 50)
+	if err != nil {
+		return nil, err
+	}
+
+	var responseChats []model.ChatResponse
+
+	for _, chat := range chats {
+		if chat.IsImported {
+			go ms.updateWallpaper(workspaceId, chat.TgClientId)
+		}
+		messageResponse := ms.createMessageResponse(nil, chat.LastMessage.CreatedAt, userId == chat.LastMessage.SenderId, chat.LastMessage.From, "", workspaceId, chat.Tickets[0].TicketId, chat.ChatId, chat.LastMessage.MessageId, chat.LastMessage.Message, string(chat.LastMessage.Type))
+		responseChats = append(responseChats, *ms.createChatResponse(workspace.WorkspaceId, chat.ChatId, chat.TgClientId, chat.TgChatId, chat.Tags, *messageResponse, string(entity.SourceTelegram), chat.IsImported, chat.CreatedAt, chat.Name))
+	}
+
+	return responseChats, nil
+}
+
 func (ms *MessengerServiceImpl) DeleteMessage(userId primitive.ObjectID, messageType, workspaceId, ticketId, messageId, chatId string) error {
 	if messageType == "chat_note" {
 		workspace, err := ms.messengerRepo.FindWorkspaceByWorkspaceId(nil, workspaceId)
@@ -533,9 +561,7 @@ func (ms *MessengerServiceImpl) updateWallpaper(workspaceId string, userId int) 
 		return nil
 	}
 
-	dir := "../../../telegram_static"
-
-	imagePath := dir + string(userId) + ".jpg"
+	imagePath := "../../../telegram_static/" + string(userId) + ".jpg"
 	err = os.WriteFile(imagePath, resp.Body(), 0644)
 	if err != nil {
 		return err

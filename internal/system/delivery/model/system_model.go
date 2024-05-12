@@ -60,6 +60,10 @@ type UserResponse struct {
 	Logo     []byte `json:"logo"`
 }
 
+type FoldersResponse struct {
+	Folders map[string][]string `json:"folders"`
+}
+
 type TeamResponse struct {
 	TeamName    string   `json:"team_name"`
 	MemberCount int      `json:"member_count"`

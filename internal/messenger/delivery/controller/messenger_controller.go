@@ -221,6 +221,18 @@ func (mc *MessengerController) GetAllChats(c echo.Context) error {
 	return c.JSON(http.StatusOK, chats)
 }
 
+func (mc *MessengerController) GetChatsByFolder(c echo.Context) error {
+	workspaceId, folderName := c.Param("id"), c.Param("name")
+	userId := c.Request().Context().Value("userId").(primitive.ObjectID)
+
+	chats, err := mc.messengerService.GetChatsByFolder(userId, workspaceId, folderName)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, model.ErrorResponse{Error: err.Error()})
+	}
+
+	return c.JSON(http.StatusOK, chats)
+}
+
 //func (mc *MessengerController) HandleTelegramMessage(c echo.Context) error {
 //	workspaceId := c.Param("id")
 //
