@@ -48,7 +48,7 @@ type ChangeTicketStatusRequest struct {
 }
 
 type UpdateChatInfoRequest struct {
-	ChatId      string   `json:"tg_client_id"`
+	ChatId      string   `json:"chat_id"`
 	WorkspaceId string   `json:"workspace_id"`
 	Tags        []string `json:"tags"`
 }

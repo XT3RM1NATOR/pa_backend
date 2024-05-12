@@ -17,6 +17,7 @@ import (
 	"log"
 	"os"
 	"sort"
+	"strconv"
 	"time"
 )
 
@@ -565,7 +566,7 @@ func (ms *MessengerServiceImpl) updateWallpaper(workspaceId string, userId int) 
 		return errors.New("an error occured")
 	}
 
-	imagePath := "../../../telegram_static/" + string(rune(userId)) + ".jpg"
+	imagePath := "../../../telegram_static/" + strconv.FormatInt(int64(userId), 10) + ".jpg"
 	log.Println(imagePath)
 	err = os.WriteFile(imagePath, resp.Body(), 0644)
 	if err != nil {
