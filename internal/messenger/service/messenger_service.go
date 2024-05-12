@@ -13,7 +13,6 @@ import (
 	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
-	"log"
 	"sort"
 	"time"
 )
@@ -245,10 +244,9 @@ func (ms *MessengerServiceImpl) ImportTelegramChats(workspaceId string, chats []
 	for _, chat := range chats {
 		message := ms.createMessage(primitive.ObjectID{}, chat.LastMessage.Id, chat.LastMessage.Text, chat.Title, entity.TypeText, time.Now())
 		ticket := ms.createTicket([]entity.Note{}, []entity.Message{*message}, time.Now())
-		newChat := ms.createNewChat(int(chat.Id), int(chat.LastMessage.SenderId), entity.SourceTelegram, *ticket, workspace.Id, primitive.ObjectID{}, true)
+		newChat := ms.createNewChat(int(chat.Id), int(chat.LastMessage.SenderId), entity.SourceTelegram, *ticket, workspace.Id, primitive.ObjectID{}, true, *message)
 
 		err := ms.messengerRepo.InsertNewChat(nil, newChat)
-		log.Println(err)
 		if err != nil {
 			return err
 		}
