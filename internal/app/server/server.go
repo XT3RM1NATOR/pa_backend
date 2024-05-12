@@ -49,6 +49,7 @@ func RunHTTPServer(cfg *config.Config, db *mongo.Database, str *minio.Client) {
 	apiDelivery.RegisterAPIRoutes(e, cfg, db)
 	messengerDelivery.RegisterMessengerRoutes(e, cfg, db, repoMu)
 	e.GET("/swagger/*", echoSwagger.WrapHandler)
+	e.Static("/static", "static")
 
 	if err := e.Start(cfg.Server.Port); err != nil {
 		panic(err)

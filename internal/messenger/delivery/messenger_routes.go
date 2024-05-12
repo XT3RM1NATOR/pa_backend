@@ -29,4 +29,5 @@ func RegisterMessengerRoutes(e *echo.Echo, cfg *config.Config, db *mongo.Databas
 
 	telegramGroup := e.Group("/telegram")
 	telegramGroup.POST("/import/:id", ic.ImportTelegramChats, middleware.ValidateServerMiddleware(cfg.Auth.IntegrationsServerSecretKey))
+	telegramGroup.POST("/messages/webhook/:id", ic.HandleTelegramMessage, middleware.ValidateServerMiddleware(cfg.Auth.IntegrationsServerSecretKey))
 }

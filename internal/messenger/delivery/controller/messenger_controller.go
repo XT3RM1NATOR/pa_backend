@@ -220,3 +220,14 @@ func (mc *MessengerController) GetAllChats(c echo.Context) error {
 
 	return c.JSON(http.StatusOK, chats)
 }
+
+//func (mc *MessengerController) HandleTelegramMessage(c echo.Context) error {
+//	workspaceId := c.Param("id")
+//
+//	chats, err := mc.messengerService.GetAllChats(userId, workspaceId)
+//	if err != nil {
+//		return c.JSON(http.StatusInternalServerError, model.ErrorResponse{Error: err.Error()})
+//	}
+//
+//	return c.JSON(http.StatusOK, chats)
+//}
