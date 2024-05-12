@@ -14,6 +14,7 @@ import (
 	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
+	"log"
 	"os"
 	"sort"
 	"time"
@@ -380,7 +381,7 @@ func (ms *MessengerServiceImpl) GetChatsByFolder(userId primitive.ObjectID, work
 
 	for _, chat := range chats {
 		if chat.IsImported {
-			go ms.updateWallpaper(workspaceId, chat.TgClientId)
+			log.Println(ms.updateWallpaper(workspaceId, chat.TgClientId))
 		}
 		messageResponse := ms.createMessageResponse(nil, chat.LastMessage.CreatedAt, userId == chat.LastMessage.SenderId, chat.LastMessage.From, "", workspaceId, chat.Tickets[0].TicketId, chat.ChatId, chat.LastMessage.MessageId, chat.LastMessage.Message, string(chat.LastMessage.Type))
 		responseChats = append(responseChats, *ms.createChatResponse(workspace.WorkspaceId, chat.ChatId, chat.TgClientId, chat.TgChatId, chat.Tags, *messageResponse, string(entity.SourceTelegram), chat.IsImported, chat.CreatedAt, chat.Name))
@@ -556,9 +557,10 @@ func (ms *MessengerServiceImpl) updateWallpaper(workspaceId string, userId int) 
 	if err != nil {
 		return err
 	}
+	log.Println(resp.StatusCode())
 
 	if resp.StatusCode() != 200 {
-		return nil
+		return errors.New("an error occured")
 	}
 
 	imagePath := "../../../telegram_static/" + string(userId) + ".jpg"
