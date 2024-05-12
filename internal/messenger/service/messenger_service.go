@@ -250,7 +250,7 @@ func (ms *MessengerServiceImpl) ImportTelegramChats(workspaceId string, chats []
 	}
 
 	for _, chat := range chats {
-		go ms.updateWallpaper(workspaceId, int(chat.Id))
+		go ms.updateWallpaper(workspaceId, int(chat.LastMessage.SenderId))
 		message := ms.createMessage(primitive.ObjectID{}, chat.LastMessage.Id, chat.LastMessage.Text, chat.Title, entity.TypeText, time.Now())
 		ticket := ms.createTicket([]entity.Note{}, []entity.Message{*message}, time.Now())
 		newChat := ms.createNewChat(int(chat.Id), int(chat.LastMessage.SenderId), entity.SourceTelegram, *ticket, workspace.Id, primitive.ObjectID{}, true, *message, chat.Name)
