@@ -10,9 +10,11 @@ import (
 	"github.com/Point-AI/backend/internal/messenger/domain/entity"
 	_interface "github.com/Point-AI/backend/internal/messenger/domain/interface"
 	infrastructureInterface "github.com/Point-AI/backend/internal/messenger/service/interface"
+	"github.com/go-resty/resty/v2"
 	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
+	"os"
 	"sort"
 	"time"
 )
@@ -185,8 +187,11 @@ func (ms *MessengerServiceImpl) GetAllChats(userId primitive.ObjectID, workspace
 	var responseChats []model.ChatResponse
 
 	for _, chat := range chats {
+		if chat.IsImported {
+			go ms.updateWallpaper(workspaceId, chat.TgClientId)
+		}
 		messageResponse := ms.createMessageResponse(nil, chat.LastMessage.CreatedAt, userId == chat.LastMessage.SenderId, chat.LastMessage.From, "", workspaceId, chat.Tickets[0].TicketId, chat.ChatId, chat.LastMessage.MessageId, chat.LastMessage.Message, string(chat.LastMessage.Type))
-		responseChats = append(responseChats, *ms.createChatResponse(workspace.WorkspaceId, chat.ChatId, chat.TgClientId, chat.TgChatId, chat.Tags, *messageResponse, string(entity.SourceTelegram), chat.IsImported, chat.CreatedAt))
+		responseChats = append(responseChats, *ms.createChatResponse(workspace.WorkspaceId, chat.ChatId, chat.TgClientId, chat.TgChatId, chat.Tags, *messageResponse, string(entity.SourceTelegram), chat.IsImported, chat.CreatedAt, chat.Name))
 	}
 
 	return responseChats, nil
@@ -242,9 +247,10 @@ func (ms *MessengerServiceImpl) ImportTelegramChats(workspaceId string, chats []
 	}
 
 	for _, chat := range chats {
+		go ms.updateWallpaper(workspaceId, int(chat.Id))
 		message := ms.createMessage(primitive.ObjectID{}, chat.LastMessage.Id, chat.LastMessage.Text, chat.Title, entity.TypeText, time.Now())
 		ticket := ms.createTicket([]entity.Note{}, []entity.Message{*message}, time.Now())
-		newChat := ms.createNewChat(int(chat.Id), int(chat.LastMessage.SenderId), entity.SourceTelegram, *ticket, workspace.Id, primitive.ObjectID{}, true, *message)
+		newChat := ms.createNewChat(int(chat.Id), int(chat.LastMessage.SenderId), entity.SourceTelegram, *ticket, workspace.Id, primitive.ObjectID{}, true, *message, chat.Name)
 
 		err := ms.messengerRepo.InsertNewChat(nil, newChat)
 		if err != nil {
@@ -505,7 +511,40 @@ func (ms *MessengerServiceImpl) findTicketIdAndNoteIdByNoteId(chat *entity.Chat,
 	return -1, -1, errors.New("invalid noteId")
 }
 
-func (ms *MessengerServiceImpl) createNewChat(tgChatId int, tgClientId int, source entity.ChatSource, ticket entity.Ticket, workspaceId, assigneeId primitive.ObjectID, isImported bool, lastMessage entity.Message) *entity.Chat {
+func (ms *MessengerServiceImpl) updateWallpaper(workspaceId string, userId int) error {
+	client := resty.New()
+
+	reqBody := map[string]interface{}{
+		"workspace_id": workspaceId,
+		"user_id":      userId,
+	}
+
+	resp, err := client.R().
+		SetHeader("Content-Type", "application/json").
+		SetHeader("Authorization", "Bearer "+ms.config.Auth.IntegrationsServerSecretKey).
+		SetBody(reqBody).
+		Post(ms.config.Website.IntegrationsServerURL + "/point_ai/telegram_wrapper/get_user_avatar")
+
+	if err != nil {
+		return err
+	}
+
+	if resp.StatusCode() != 200 {
+		return nil
+	}
+
+	dir := "../../../telegram_static"
+
+	imagePath := dir + string(userId) + ".jpg"
+	err = os.WriteFile(imagePath, resp.Body(), 0644)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (ms *MessengerServiceImpl) createNewChat(tgChatId int, tgClientId int, source entity.ChatSource, ticket entity.Ticket, workspaceId, assigneeId primitive.ObjectID, isImported bool, lastMessage entity.Message, name string) *entity.Chat {
 	return &entity.Chat{
 		UserId:      assigneeId,
 		WorkspaceId: workspaceId,
@@ -517,6 +556,7 @@ func (ms *MessengerServiceImpl) createNewChat(tgChatId int, tgClientId int, sour
 		Tags:        []string{},
 		Source:      source,
 		IsImported:  isImported,
+		Name:        name,
 		LastMessage: lastMessage,
 		CreatedAt:   time.Now(),
 	}
@@ -587,7 +627,7 @@ func (ms *MessengerServiceImpl) createMessageResponse(content []byte, createdAt 
 	}
 }
 
-func (ms *MessengerServiceImpl) createChatResponse(workspaceId, chatId string, tgClientId, tgChatId int, tags []string, lastMessage model.MessageResponse, source string, isImported bool, createdAt time.Time) *model.ChatResponse {
+func (ms *MessengerServiceImpl) createChatResponse(workspaceId, chatId string, tgClientId, tgChatId int, tags []string, lastMessage model.MessageResponse, source string, isImported bool, createdAt time.Time, name string) *model.ChatResponse {
 	return &model.ChatResponse{
 		WorkspaceId: workspaceId,
 		ChatId:      chatId,
@@ -597,6 +637,7 @@ func (ms *MessengerServiceImpl) createChatResponse(workspaceId, chatId string, t
 		LastMessage: lastMessage,
 		Source:      source,
 		IsImported:  isImported,
+		Name:        name,
 		CreatedAt:   createdAt,
 	}
 }

@@ -56,6 +56,7 @@ type UpdateChatInfoRequest struct {
 type TelegramChat struct {
 	EntityType  string          `json:"entity_type"`
 	Id          int64           `json:"id"`
+	Name        string          `json:"name"`
 	Title       string          `json:"title"`
 	UnreadCount int             `json:"unread_count"`
 	LastMessage TelegramMessage `json:"last_message"`
@@ -116,5 +117,6 @@ type ChatResponse struct {
 	LastMessage MessageResponse `bson:"last_message"`
 	Source      string          `bson:"source"`
 	IsImported  bool            `json:"is_imported"`
+	Name        string          `json:"name"`
 	CreatedAt   time.Time       `bson:"created_at"`
 }
