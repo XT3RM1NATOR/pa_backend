@@ -566,6 +566,7 @@ func (ms *MessengerServiceImpl) updateWallpaper(workspaceId string, userId int) 
 	}
 
 	imagePath := "../../../telegram_static/" + string(rune(userId)) + ".jpg"
+	log.Println(imagePath)
 	err = os.WriteFile(imagePath, resp.Body(), 0644)
 	if err != nil {
 		return err
