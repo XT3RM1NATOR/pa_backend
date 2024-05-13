@@ -48,6 +48,7 @@ type Chat struct {
 	Notes       []Note             `bson:"notes"`
 	Tickets     []Ticket           `bson:"tickets"`
 	LastMessage Message            `bson:"last_message"`
+	Name        string             `bson:"name"`
 	Source      ChatSource         `bson:"source"`
 	IsImported  bool               `bson:"is_imported"`
 	CreatedAt   time.Time          `bson:"created_at"`

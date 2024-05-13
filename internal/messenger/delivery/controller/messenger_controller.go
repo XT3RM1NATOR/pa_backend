@@ -260,6 +260,18 @@ func (mc *MessengerController) GetMessages(c echo.Context) error {
 	return c.JSON(http.StatusOK, messages)
 }
 
+func (mc *MessengerController) GetAllTags(c echo.Context) error {
+	userId := c.Request().Context().Value("userId").(primitive.ObjectID)
+	workspaceId := c.Param("id")
+
+	tags, err := mc.messengerService.GetAllTags(userId, workspaceId)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, model.ErrorResponse{Error: err.Error()})
+	}
+
+	return c.JSON(http.StatusOK, tags)
+}
+
 //func (mc *MessengerController) HandleTelegramMessage(c echo.Context) error {
 //	workspaceId := c.Param("id")
 //

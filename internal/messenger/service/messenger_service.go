@@ -432,6 +432,19 @@ func (ms *MessengerServiceImpl) GetChatsByFolder(userId primitive.ObjectID, work
 	return responseChats, nil
 }
 
+func (ms *MessengerServiceImpl) GetAllTags(userId primitive.ObjectID, workspaceId string) ([]string, error) {
+	workspace, err := ms.messengerRepo.FindWorkspaceByWorkspaceId(nil, workspaceId)
+	if err != nil {
+		return nil, err
+	}
+
+	if !ms.isAdmin(workspace.Team[userId]) || !ms.isOwner(workspace.Team[userId]) {
+		return nil, errors.New("unauthorised")
+	}
+
+	return nil, nil
+}
+
 func (ms *MessengerServiceImpl) DeleteMessage(userId primitive.ObjectID, messageType, workspaceId, ticketId, messageId, chatId string) error {
 	if messageType == "chat_note" {
 		workspace, err := ms.messengerRepo.FindWorkspaceByWorkspaceId(nil, workspaceId)

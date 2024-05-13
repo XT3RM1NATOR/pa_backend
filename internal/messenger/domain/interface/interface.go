@@ -23,6 +23,7 @@ type MessengerService interface {
 	GetChatsByFolder(userId primitive.ObjectID, workspaceId, folderName string) ([]model.ChatResponse, error)
 	GetChat(userId primitive.ObjectID, workspaceId, chatId string) (model.ChatResponse, error)
 	GetMessages(userId primitive.ObjectID, workspaceId, chatId string, lastMessageDate time.Time) ([]model.MessageResponse, error)
+	GetAllTags(userId primitive.ObjectID, workspaceId string) ([]string, error)
 }
 
 type WebsocketService interface {

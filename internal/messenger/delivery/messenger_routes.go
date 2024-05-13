@@ -27,6 +27,7 @@ func RegisterMessengerRoutes(e *echo.Echo, cfg *config.Config, db *mongo.Databas
 	messengerGroup.GET("/chats/:id", ic.GetAllChats, middleware.ValidateAccessTokenMiddleware(cfg.Auth.JWTSecretKey))
 	messengerGroup.GET("/chats/message/:id/:chat_id", ic.GetMessages, middleware.ValidateAccessTokenMiddleware(cfg.Auth.JWTSecretKey))
 	messengerGroup.GET("/chats/folder/:id/:name", ic.GetChatsByFolder, middleware.ValidateAccessTokenMiddleware(cfg.Auth.JWTSecretKey))
+	messengerGroup.GET("/chats/tags/:id", ic.GetAllTags, middleware.ValidateAccessTokenMiddleware(cfg.Auth.JWTSecretKey))
 	messengerGroup.GET("/chats/chat/:id/:chat_id", ic.GetChat, middleware.ValidateAccessTokenMiddleware(cfg.Auth.JWTSecretKey))
 	messengerGroup.DELETE("/message", ic.DeleteMessage, middleware.ValidateAccessTokenMiddleware(cfg.Auth.JWTSecretKey))
 	//messengerGroup.GET("/messages/:id/")
