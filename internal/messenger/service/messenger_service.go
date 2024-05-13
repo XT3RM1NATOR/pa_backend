@@ -14,7 +14,6 @@ import (
 	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
-	"log"
 	"os"
 	"sort"
 	"strconv"
@@ -363,6 +362,48 @@ func (ms *MessengerServiceImpl) UpdateChatInfo(userId primitive.ObjectID, chatId
 	return ms.messengerRepo.UpdateChat(nil, chat)
 }
 
+func (ms *MessengerServiceImpl) GetChat(userId primitive.ObjectID, workspaceId, chatId string) (model.ChatResponse, error) {
+	workspace, err := ms.messengerRepo.FindWorkspaceByWorkspaceId(nil, workspaceId)
+	if err != nil {
+		return model.ChatResponse{}, err
+	}
+
+	if err = ms.ValidateUserInWorkspace(userId, workspace); err != nil {
+		return model.ChatResponse{}, err
+	}
+
+	chat, err := ms.messengerRepo.FindChatByWorkspaceIdAndChatId(workspace.Id, chatId)
+	if err != nil {
+		return model.ChatResponse{}, err
+	}
+
+	responseMessage := ms.createMessageResponse(nil, chat.LastMessage.CreatedAt, chat.UserId == userId, chat.LastMessage.From, "", workspaceId, "", chat.ChatId, chat.LastMessage.MessageId, chat.LastMessage.Message, string(entity.TypeText))
+	responseChat := ms.createChatResponse(workspaceId, chatId, chat.TgClientId, chat.TgChatId, chat.Tags, *responseMessage, string(chat.Source), chat.IsImported, chat.CreatedAt, chat.Name)
+
+	return *responseChat, nil
+}
+
+func (ms *MessengerServiceImpl) GetMessages(userId primitive.ObjectID, workspaceId, chatId string, lastMessageDate time.Time) ([]model.MessageResponse, error) {
+	//workspace, err := ms.messengerRepo.FindWorkspaceByWorkspaceId(nil, workspaceId)
+	//if err != nil {
+	//	return model.ChatResponse{}, err
+	//}
+
+	//if err = ms.ValidateUserInWorkspace(userId, workspace); err != nil {
+	//	return model.ChatResponse{}, err
+	//}
+	//
+	//chat, err := ms.messengerRepo.FindChatByWorkspaceIdAndChatId(workspace.Id, chatId)
+	//if err != nil {
+	//	return model.ChatResponse{}, err
+	//}
+	//
+	//responseMessage := ms.createMessageResponse(nil, chat.LastMessage.CreatedAt, chat.UserId == userId, chat.LastMessage.From, "", workspaceId, "", chat.ChatId, chat.LastMessage.MessageId, chat.LastMessage.Message, string(entity.TypeText))
+	//responseChat := ms.createChatResponse(workspaceId, chatId, chat.TgClientId, chat.TgChatId, chat.Tags, *responseMessage, string(chat.Source), chat.IsImported, chat.CreatedAt, chat.Name)
+
+	return nil, nil
+}
+
 func (ms *MessengerServiceImpl) GetChatsByFolder(userId primitive.ObjectID, workspaceId, folderName string) ([]model.ChatResponse, error) {
 	workspace, err := ms.messengerRepo.FindWorkspaceByWorkspaceId(nil, workspaceId)
 	if err != nil {
@@ -558,7 +599,6 @@ func (ms *MessengerServiceImpl) updateWallpaper(workspaceId string, userId int) 
 	if err != nil {
 		return err
 	}
-	log.Println(resp.StatusCode())
 
 	if resp.StatusCode() != 200 {
 		return errors.New("an error occured")

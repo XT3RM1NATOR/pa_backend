@@ -233,6 +233,33 @@ func (mc *MessengerController) GetChatsByFolder(c echo.Context) error {
 	return c.JSON(http.StatusOK, chats)
 }
 
+func (mc *MessengerController) GetChat(c echo.Context) error {
+	workspaceId, chatId := c.Param("id"), c.Param("chat_id")
+	userId := c.Request().Context().Value("userId").(primitive.ObjectID)
+
+	chat, err := mc.messengerService.GetChat(userId, workspaceId, chatId)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, model.ErrorResponse{Error: err.Error()})
+	}
+
+	return c.JSON(http.StatusOK, chat)
+}
+
+func (mc *MessengerController) GetMessages(c echo.Context) error {
+	userId := c.Request().Context().Value("userId").(primitive.ObjectID)
+	var request model.GetMessagesRequest
+	if err := c.Bind(&request); err != nil {
+		return c.JSON(http.StatusBadRequest, model.ErrorResponse{Error: "invalid request parameters"})
+	}
+
+	messages, err := mc.messengerService.GetMessages(userId, request.WorkspaceId, request.ChatId, request.LastMessageDate)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, model.ErrorResponse{Error: err.Error()})
+	}
+
+	return c.JSON(http.StatusOK, messages)
+}
+
 //func (mc *MessengerController) HandleTelegramMessage(c echo.Context) error {
 //	workspaceId := c.Param("id")
 //

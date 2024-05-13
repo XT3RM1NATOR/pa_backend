@@ -6,6 +6,7 @@ import (
 	"github.com/gorilla/websocket"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"net/http"
+	"time"
 )
 
 type MessengerService interface {
@@ -20,6 +21,8 @@ type MessengerService interface {
 	GetAllChats(userId primitive.ObjectID, workspaceId string) ([]model.ChatResponse, error)
 	ImportTelegramChats(workspaceId string, chats []model.TelegramChat) error
 	GetChatsByFolder(userId primitive.ObjectID, workspaceId, folderName string) ([]model.ChatResponse, error)
+	GetChat(userId primitive.ObjectID, workspaceId, chatId string) (model.ChatResponse, error)
+	GetMessages(userId primitive.ObjectID, workspaceId, chatId string, lastMessageDate time.Time) ([]model.MessageResponse, error)
 }
 
 type WebsocketService interface {

@@ -56,11 +56,12 @@ func (sr *SystemRepositoryImpl) CreateWorkspace(ownerId primitive.ObjectID, pend
 	return err
 }
 
-func (sr *SystemRepositoryImpl) ValidateTeam(team map[string]string, ownerId primitive.ObjectID) (map[primitive.ObjectID]entity.WorkspaceRole, error) {
+func (sr *SystemRepositoryImpl) ValidateTeam(team map[string]string, ownerId primitive.ObjectID) (map[primitive.ObjectID]entity.WorkspaceRole, map[string]entity.WorkspaceRole, error) {
 	sr.mu.RLock()
 	defer sr.mu.RUnlock()
 
 	userRoles := make(map[primitive.ObjectID]entity.WorkspaceRole)
+	pendingUserRoles := make(map[string]entity.WorkspaceRole)
 	userRoles[ownerId] = entity.RoleAdmin
 
 	for email, role := range team {
@@ -71,9 +72,16 @@ func (sr *SystemRepositoryImpl) ValidateTeam(team map[string]string, ownerId pri
 		).Decode(&user)
 		if err != nil {
 			if errors.Is(err, mongo.ErrNoDocuments) {
+				switch role {
+				case string(entity.RoleAdmin), string(entity.RoleMember), string(entity.RoleOwner):
+					pendingUserRoles[email] = entity.WorkspaceRole(role)
+				default:
+					pendingUserRoles[email] = entity.RoleMember
+				}
+
 				continue
 			}
-			return nil, err
+			return nil, nil, err
 		}
 		if _, exists := userRoles[user.Id]; exists {
 			continue
@@ -87,7 +95,7 @@ func (sr *SystemRepositoryImpl) ValidateTeam(team map[string]string, ownerId pri
 		}
 	}
 
-	return userRoles, nil
+	return userRoles, pendingUserRoles, nil
 }
 
 func (sr *SystemRepositoryImpl) FormatTeam(team map[primitive.ObjectID]entity.WorkspaceRole) (map[string]string, error) {
@@ -150,7 +158,7 @@ func (sr *SystemRepositoryImpl) RemoveUserFromWorkspace(workspace *entity.Worksp
 	return nil
 }
 
-func (sr *SystemRepositoryImpl) AddUsersToWorkspace(workspace *entity.Workspace, teamRoles map[primitive.ObjectID]entity.WorkspaceRole) error {
+func (sr *SystemRepositoryImpl) AddUsersToWorkspace(workspace *entity.Workspace, teamRoles map[primitive.ObjectID]entity.WorkspaceRole, pendingTeamRoles map[string]entity.WorkspaceRole) error {
 	sr.mu.Lock()
 	defer sr.mu.Unlock()
 
@@ -160,16 +168,15 @@ func (sr *SystemRepositoryImpl) AddUsersToWorkspace(workspace *entity.Workspace,
 		}
 	}
 
-	res, err := sr.database.Collection(sr.config.MongoDB.WorkspaceCollection).UpdateOne(
-		context.Background(),
-		bson.M{"_id": workspace.Id},
-		bson.M{"$set": bson.M{"team": workspace.Team}},
-	)
+	for email, role := range pendingTeamRoles {
+		if _, exists := workspace.PendingTeam[email]; !exists {
+			workspace.PendingTeam[email] = role
+		}
+	}
+
+	err := sr.UpdateWorkspace(workspace)
 	if err != nil {
 		return err
-	}
-	if res.MatchedCount == 0 {
-		return errors.New("workspace not found")
 	}
 
 	return nil

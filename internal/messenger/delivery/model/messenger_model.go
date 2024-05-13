@@ -73,6 +73,12 @@ type TelegramChatsRequest struct {
 	Chats []TelegramChat `json:"chats"`
 }
 
+type GetMessagesRequest struct {
+	WorkspaceId     string    `json:"workspace_id"`
+	ChatId          string    `json:"chat_id"`
+	LastMessageDate time.Time `json:"last_message_date"`
+}
+
 // Responses
 
 type ErrorResponse struct {

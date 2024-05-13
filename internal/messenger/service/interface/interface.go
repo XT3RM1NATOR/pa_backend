@@ -4,6 +4,7 @@ import (
 	"github.com/Point-AI/backend/internal/messenger/domain/entity"
 	"github.com/celestix/gotgproto/ext"
 	"go.mongodb.org/mongo-driver/mongo"
+	"time"
 
 	"github.com/celestix/gotgproto"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -54,4 +55,5 @@ type MessengerRepository interface {
 	FindChatByChatId(chatId string) (*entity.Chat, error)
 	FindLatestChatsByWorkspaceId(workspaceId primitive.ObjectID, n int) ([]entity.Chat, error)
 	FindLatestChatsByWorkspaceIdAndAllTags(workspaceId primitive.ObjectID, tags []string, chatNumber int) ([]entity.Chat, error)
+	FindLatestTicketsByChatIdBeforeDate(workspaceId primitive.ObjectID, chatId string, beforeDate time.Time) ([]entity.Ticket, error)
 }

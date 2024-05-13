@@ -250,12 +250,12 @@ func (ss *SystemServiceImpl) AddWorkspaceMembers(userId primitive.ObjectID, team
 	}
 
 	if ss.isAdmin(workspace.Team[userId]) || ss.isOwner(workspace.Team[userId]) {
-		teamRoles, err := ss.systemRepo.ValidateTeam(team, userId)
+		teamRoles, pendingTeamRoles, err := ss.systemRepo.ValidateTeam(team, userId)
 		if err != nil {
 			return err
 		}
 
-		if err := ss.systemRepo.AddUsersToWorkspace(workspace, teamRoles); err != nil {
+		if err := ss.systemRepo.AddUsersToWorkspace(workspace, teamRoles, pendingTeamRoles); err != nil {
 			return err
 		}
 	}
@@ -270,7 +270,7 @@ func (ss *SystemServiceImpl) UpdateWorkspaceMembers(userId primitive.ObjectID, t
 	}
 
 	if ss.isAdmin(workspace.Team[userId]) || ss.isOwner(workspace.Team[userId]) {
-		teamRoles, err := ss.systemRepo.ValidateTeam(team, userId)
+		teamRoles, _, err := ss.systemRepo.ValidateTeam(team, userId)
 		if err != nil {
 			return err
 		}

@@ -105,6 +105,52 @@ func (mr *MessengerRepositoryImpl) FindChatByChatId(chatId string) (*entity.Chat
 	return &chat, nil
 }
 
+func (mr *MessengerRepositoryImpl) FindLatestTicketsByChatIdBeforeDate(workspaceId primitive.ObjectID, chatId string, beforeDate time.Time) ([]entity.Ticket, error) {
+	mr.mu.RLock()
+	defer mr.mu.RUnlock()
+
+	pipeline := mongo.Pipeline{
+		{{"$match", bson.M{"workspace_id": workspaceId, "chat_id": chatId}}},
+		{{"$project", bson.M{
+			"tickets": bson.M{"$filter": bson.M{
+				"input": "$tickets",
+				"as":    "ticket",
+				"cond":  bson.M{"$lt": []interface{}{"$$ticket.created_at", beforeDate}},
+			}},
+		}}},
+		{{"$unwind", "$tickets"}},
+		{{"$replaceRoot", bson.M{"newRoot": "$tickets"}}},
+		{{"$sort", bson.M{"created_at": -1}}},
+		{{"$limit", 10}},
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	cursor, err := mr.database.Collection(mr.config.MongoDB.ChatCollection).Aggregate(ctx, pipeline)
+	if err != nil {
+		log.Printf("Failed to fetch tickets: %v", err)
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+
+	var tickets []entity.Ticket
+	for cursor.Next(ctx) {
+		var ticket entity.Ticket
+		if err := cursor.Decode(&ticket); err != nil {
+			log.Printf("Failed to decode ticket: %v", err)
+			return nil, err
+		}
+		tickets = append(tickets, ticket)
+	}
+
+	if err := cursor.Err(); err != nil {
+		return nil, err
+	}
+
+	return tickets, nil
+}
+
 func (mr *MessengerRepositoryImpl) FindChatByTicketId(ctx mongo.SessionContext, ticketId string) (*entity.Chat, error) {
 	mr.mu.RLock()
 	defer mr.mu.RUnlock()
