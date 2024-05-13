@@ -31,6 +31,7 @@ type SystemRepository interface {
 	ClearPendingStatus(userId primitive.ObjectID, workspaceId string) error
 	UpdateWorkspaceUserStatus(userId primitive.ObjectID, workspaceId string, status bool) error
 	FindUserById(userId primitive.ObjectID) (*entity.User, error)
+	ValidateNewTeamUsers(team map[string]string) (map[primitive.ObjectID]entity.WorkspaceRole, map[string]entity.WorkspaceRole, error)
 }
 
 type EmailClient interface {

@@ -10,10 +10,18 @@ type CreateWorkspaceRequest struct {
 	WorkspaceId string            `json:"workspace_id"`
 }
 
+type CreateTeamRequest struct {
+	TeamName    string            `json:"team_name"`
+	Members     map[string]string `json:"members"`
+	Logo        []byte            `json:"logo"`
+	WorkspaceId string            `json:"workspace_id"`
+}
+
 type AddTeamMembersRequest struct {
 	TeamName    string `json:"team_name"`
 	WorkspaceId string `json:"workspace_id"`
 	Member      string `json:"member_email"`
+	Role        string `json:"role"`
 }
 
 type AddWorkspaceMemberRequest struct {

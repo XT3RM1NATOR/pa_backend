@@ -98,6 +98,47 @@ func (sr *SystemRepositoryImpl) ValidateTeam(team map[string]string, ownerId pri
 	return userRoles, pendingUserRoles, nil
 }
 
+func (sr *SystemRepositoryImpl) ValidateNewTeamUsers(team map[string]string) (map[primitive.ObjectID]entity.WorkspaceRole, map[string]entity.WorkspaceRole, error) {
+	sr.mu.RLock()
+	defer sr.mu.RUnlock()
+
+	userRoles := make(map[primitive.ObjectID]entity.WorkspaceRole)
+	pendingUserRoles := make(map[string]entity.WorkspaceRole)
+
+	for email, role := range team {
+		var user entity.User
+		err := sr.database.Collection(sr.config.MongoDB.UserCollection).FindOne(
+			context.Background(),
+			bson.M{"email": email},
+		).Decode(&user)
+		if err != nil {
+			if errors.Is(err, mongo.ErrNoDocuments) {
+				switch role {
+				case string(entity.RoleAdmin), string(entity.RoleMember), string(entity.RoleOwner):
+					pendingUserRoles[email] = entity.WorkspaceRole(role)
+				default:
+					pendingUserRoles[email] = entity.RoleMember
+				}
+
+				continue
+			}
+			return nil, nil, err
+		}
+		if _, exists := userRoles[user.Id]; exists {
+			continue
+		}
+
+		switch role {
+		case string(entity.RoleAdmin), string(entity.RoleMember), string(entity.RoleOwner):
+			userRoles[user.Id] = entity.WorkspaceRole(role)
+		default:
+			userRoles[user.Id] = entity.RoleMember
+		}
+	}
+
+	return userRoles, pendingUserRoles, nil
+}
+
 func (sr *SystemRepositoryImpl) FormatTeam(team map[primitive.ObjectID]entity.WorkspaceRole) (map[string]string, error) {
 	sr.mu.RLock()
 	defer sr.mu.RUnlock()

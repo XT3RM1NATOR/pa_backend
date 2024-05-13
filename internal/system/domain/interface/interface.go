@@ -18,13 +18,14 @@ type SystemService interface {
 	UpdateWorkspaceMembers(userId primitive.ObjectID, team map[string]string, WorkspaceId string) error
 	GetUserProfiles(WorkspaceId string, userId primitive.ObjectID) ([]infrastructureModel.User, error)
 	UpdateWorkspacePendingStatus(userId primitive.ObjectID, workspaceId string, status bool) error
-	AddTeamsMember(userId primitive.ObjectID, memberEmail, teamName, workspaceId string) error
+	AddTeamsMember(userId primitive.ObjectID, memberEmail, memberRole string, teamName, workspaceId string) error
 	UpdateMemberStatus(userId primitive.ObjectID, status string, workspaceId string) error
 	SetFirstTeam(userId primitive.ObjectID, teamName, workspaceId string) error
 	EditFolders(userId primitive.ObjectID, workspaceId string, folders map[string][]string) error
 	RegisterTelegramIntegration(userId primitive.ObjectID, workspaceId, stage, value string) (int, error)
 	GetAllTeams(userId primitive.ObjectID, workspaceId string) ([]model.TeamResponse, error)
 	GetAllFolders(userId primitive.ObjectID, workspaceId string) (map[string][]string, error)
+	CreateTeam(userId primitive.ObjectID, workspaceId, teamName string, members map[string]string) error
 }
 
 type EmailService interface {

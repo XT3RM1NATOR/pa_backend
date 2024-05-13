@@ -138,7 +138,7 @@ func (ss *SystemServiceImpl) UpdateMemberStatus(userId primitive.ObjectID, statu
 	return nil
 }
 
-func (ss *SystemServiceImpl) AddTeamsMember(userId primitive.ObjectID, memberEmail, teamName, workspaceId string) error {
+func (ss *SystemServiceImpl) AddTeamsMember(userId primitive.ObjectID, memberEmail, memberRole string, teamName, workspaceId string) error {
 	workspace, err := ss.systemRepo.FindWorkspaceByWorkspaceId(workspaceId)
 	if err != nil {
 		return err
@@ -150,11 +150,21 @@ func (ss *SystemServiceImpl) AddTeamsMember(userId primitive.ObjectID, memberEma
 			return errors.New("team not found")
 		}
 
+		var role entity.WorkspaceRole
+		switch memberRole {
+		case string(entity.RoleAdmin), string(entity.RoleMember), string(entity.RoleOwner):
+			role = entity.WorkspaceRole(memberRole)
+		default:
+			role = entity.RoleMember
+		}
+
 		user, err := ss.systemRepo.FindUserByEmail(memberEmail)
 		if err != nil {
 			workspace.PendingInternalTeams[teamName][memberEmail] = true
+			workspace.PendingTeam[memberEmail] = role
 		} else {
 			workspace.InternalTeams[teamName][user] = entity.StatusOffline
+			workspace.Team[user] = role
 		}
 
 		return ss.systemRepo.UpdateWorkspace(workspace)
@@ -194,6 +204,42 @@ func (ss *SystemServiceImpl) GetAllWorkspaces(userId primitive.ObjectID) ([]infr
 	}
 
 	return fmtWorkspaces, err
+}
+
+func (ss *SystemServiceImpl) CreateTeam(userId primitive.ObjectID, workspaceId, teamName string, members map[string]string) error {
+	workspace, err := ss.systemRepo.FindWorkspaceByWorkspaceId(workspaceId)
+	if err != nil {
+		return err
+	}
+
+	if !ss.isAdmin(workspace.Team[userId]) || !ss.isOwner(workspace.Team[userId]) {
+		return errors.New("unauthorised")
+	}
+
+	if _, exists := workspace.InternalTeams[teamName]; exists {
+		return errors.New("team name already exists")
+	}
+
+	teamRoles, pendingTeamRoles, err := ss.systemRepo.ValidateTeam(members, userId)
+	if err != nil {
+		return err
+	}
+
+	for id, role := range teamRoles {
+		if _, exists := workspace.Team[id]; !exists {
+			workspace.Team[id] = role
+			workspace.InternalTeams[teamName][id] = entity.StatusOffline
+		}
+	}
+
+	for email, role := range pendingTeamRoles {
+		if _, exists := workspace.PendingTeam[email]; !exists {
+			workspace.PendingTeam[email] = role
+			workspace.PendingInternalTeams[teamName][email] = true
+		}
+	}
+
+	return ss.systemRepo.UpdateWorkspace(workspace)
 }
 
 func (ss *SystemServiceImpl) UpdateWorkspace(userId primitive.ObjectID, newLogo []byte, workspaceId, newWorkspaceId, newName string) error {
