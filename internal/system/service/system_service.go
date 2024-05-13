@@ -389,14 +389,14 @@ func (ss *SystemServiceImpl) RegisterTelegramIntegration(userId primitive.Object
 func (ss *SystemServiceImpl) formatWorkspaces(workspaces []entity.Workspace) ([]infrastructureModel.Workspace, error) {
 	formattedWorkspaces := make([]infrastructureModel.Workspace, len(workspaces))
 	for i, p := range workspaces {
-		logo, _ := ss.storageClient.LoadFile(p.WorkspaceId, ss.config.MinIo.BucketName)
+		//logo, _ := ss.storageClient.LoadFile(p.WorkspaceId, ss.config.MinIo.BucketName)
 		team, _ := ss.systemRepo.FormatTeam(p.Team)
 
 		formattedWorkspace := infrastructureModel.Workspace{
 			Name:        p.Name,
 			WorkspaceId: p.WorkspaceId,
 			Team:        team,
-			Logo:        logo,
+			Logo:        nil,
 		}
 
 		formattedWorkspaces[i] = formattedWorkspace

@@ -301,13 +301,13 @@ func (sr *SystemRepositoryImpl) UpdateWorkspaceUserStatus(userId primitive.Objec
 	return nil
 }
 
-func (sr *SystemRepositoryImpl) FindWorkspacesByUser(userID primitive.ObjectID) (*[]entity.Workspace, error) {
+func (sr *SystemRepositoryImpl) FindWorkspacesByUser(userId primitive.ObjectID) (*[]entity.Workspace, error) {
 	sr.mu.RLock()
 	defer sr.mu.RUnlock()
 
 	cursor, err := sr.database.Collection(sr.config.MongoDB.WorkspaceCollection).Find(
 		context.Background(),
-		bson.M{"team." + userID.Hex(): bson.M{"$exists": true}},
+		bson.M{"team." + userId.Hex(): bson.M{"$exists": true}},
 	)
 	if err != nil {
 		return nil, err
