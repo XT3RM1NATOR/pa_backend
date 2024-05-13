@@ -26,6 +26,7 @@ type SystemService interface {
 	GetAllTeams(userId primitive.ObjectID, workspaceId string) ([]model.TeamResponse, error)
 	GetAllFolders(userId primitive.ObjectID, workspaceId string) (map[string][]string, error)
 	CreateTeam(userId primitive.ObjectID, workspaceId, teamName string, members map[string]string) error
+	DeleteTeam(userId primitive.ObjectID, workspaceId, teamName string) error
 }
 
 type EmailService interface {

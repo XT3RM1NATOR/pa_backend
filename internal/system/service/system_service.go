@@ -242,6 +242,20 @@ func (ss *SystemServiceImpl) CreateTeam(userId primitive.ObjectID, workspaceId, 
 	return ss.systemRepo.UpdateWorkspace(workspace)
 }
 
+func (ss *SystemServiceImpl) DeleteTeam(userId primitive.ObjectID, workspaceId, teamName string) error {
+	workspace, err := ss.systemRepo.FindWorkspaceByWorkspaceId(workspaceId)
+	if err != nil {
+		return err
+	}
+
+	if !ss.isOwner(workspace.Team[userId]) || !ss.isAdmin(workspace.Team[userId]) {
+		return errors.New("unauthorized to make the changes")
+	}
+
+	delete(workspace.InternalTeams, teamName)
+	return ss.systemRepo.UpdateWorkspace(workspace)
+}
+
 func (ss *SystemServiceImpl) UpdateWorkspace(userId primitive.ObjectID, newLogo []byte, workspaceId, newWorkspaceId, newName string) error {
 	workspace, err := ss.systemRepo.FindWorkspaceByWorkspaceId(workspaceId)
 	if err != nil {

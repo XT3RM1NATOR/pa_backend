@@ -105,6 +105,44 @@ func (mr *MessengerRepositoryImpl) FindChatByChatId(chatId string) (*entity.Chat
 	return &chat, nil
 }
 
+func (mr *MessengerRepositoryImpl) FindUniqueTagsByWorkspaceId(workspaceId primitive.ObjectID) ([]string, error) {
+	mr.mu.RLock()
+	defer mr.mu.RUnlock()
+
+	tagsSet := make(map[string]bool)
+	var uniqueTags []string
+
+	cursor, err := mr.database.Collection("chats").Find(
+		context.Background(),
+		bson.M{"workspace_id": workspaceId},
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(context.Background())
+
+	for cursor.Next(context.Background()) {
+		var chat entity.Chat
+		if err := cursor.Decode(&chat); err != nil {
+			log.Printf("Error decoding chat: %v", err)
+			continue
+		}
+
+		for _, tag := range chat.Tags {
+			if _, exists := tagsSet[tag]; !exists {
+				tagsSet[tag] = true
+				uniqueTags = append(uniqueTags, tag)
+			}
+		}
+	}
+
+	if err := cursor.Err(); err != nil {
+		return nil, err
+	}
+
+	return uniqueTags, nil
+}
+
 func (mr *MessengerRepositoryImpl) FindLatestTicketsByChatIdBeforeDate(workspaceId primitive.ObjectID, chatId string, beforeDate time.Time) ([]entity.Ticket, error) {
 	mr.mu.RLock()
 	defer mr.mu.RUnlock()

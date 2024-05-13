@@ -442,7 +442,7 @@ func (ms *MessengerServiceImpl) GetAllTags(userId primitive.ObjectID, workspaceI
 		return nil, errors.New("unauthorised")
 	}
 
-	return nil, nil
+	return ms.messengerRepo.FindUniqueTagsByWorkspaceId(workspace.Id)
 }
 
 func (ms *MessengerServiceImpl) DeleteMessage(userId primitive.ObjectID, messageType, workspaceId, ticketId, messageId, chatId string) error {

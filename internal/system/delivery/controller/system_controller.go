@@ -426,6 +426,16 @@ func (sc *SystemController) CreateTeam(c echo.Context) error {
 	return c.JSON(http.StatusOK, model.SuccessResponse{Message: "new team created successfully"})
 }
 
+func (sc *SystemController) DeleteTeam(c echo.Context) error {
+	userId := c.Request().Context().Value("userId").(primitive.ObjectID)
+	workspaceId, teamName := c.Param("id"), c.Param("name")
+
+	if err := sc.systemService.DeleteTeam(userId, workspaceId, teamName); err != nil {
+		return c.JSON(http.StatusInternalServerError, model.ErrorResponse{Error: err.Error()})
+	}
+	return c.JSON(http.StatusOK, model.SuccessResponse{Message: "new team created successfully"})
+}
+
 func (sc *SystemController) GetAllTeams(c echo.Context) error {
 	userId := c.Request().Context().Value("userId").(primitive.ObjectID)
 	workspaceId := c.Param("id")
