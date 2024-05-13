@@ -13,12 +13,12 @@ type CreateWorkspaceRequest struct {
 type AddTeamMembersRequest struct {
 	TeamName    string `json:"team_name"`
 	WorkspaceId string `json:"workspace_id"`
-	Member      string `json:"member"`
+	Member      string `json:"member_email"`
 }
 
 type AddWorkspaceMemberRequest struct {
 	Team        map[string]string `json:"team"`
-	WorkspaceId string            `json:"Workspace_id"`
+	WorkspaceId string            `json:"workspace_id"`
 }
 
 type UpdateWorkspaceMemberRequest struct {

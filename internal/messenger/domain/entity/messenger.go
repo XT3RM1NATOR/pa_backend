@@ -6,15 +6,14 @@ import (
 )
 
 type User struct {
-	Id             primitive.ObjectID `bson:"_id,omitempty"`
-	Email          string             `bson:"email"`
-	PasswordHash   string             `bson:"password"`
-	IsConfirmed    bool               `bson:"is_confirmed"`
-	AuthSource     string             `bson:"auth_source"`
-	FullName       string             `bson:"name"`
-	PendingInvites []string           `bson:"pending_invites"`
-	Tokens         Tokens             `bson:"tokens"`
-	CreatedAt      time.Time          `bson:"created_at"`
+	Id           primitive.ObjectID `bson:"_id,omitempty"`
+	Email        string             `bson:"email"`
+	PasswordHash string             `bson:"password"`
+	IsConfirmed  bool               `bson:"is_confirmed"`
+	AuthSource   string             `bson:"auth_source"`
+	FullName     string             `bson:"name"`
+	Tokens       Tokens             `bson:"tokens"`
+	CreatedAt    time.Time          `bson:"created_at"`
 }
 
 type Tokens struct {
@@ -25,16 +24,17 @@ type Tokens struct {
 }
 
 type Workspace struct {
-	Id            primitive.ObjectID                           `bson:"_id,omitempty"`
-	WorkspaceId   string                                       `bson:"workspace_id"`
-	Name          string                                       `bson:"name"`
-	Team          map[primitive.ObjectID]WorkspaceRole         `bson:"team"`
-	PendingTeam   map[string]WorkspaceRole                     `bson:"pending"`
-	InternalTeams map[string]map[primitive.ObjectID]UserStatus `bson:"teams"`
-	FirstTeam     string                                       `bson:"first_team"`
-	Integrations  Integrations                                 `bson:"integrations"`
-	Folders       map[string][]string                          `bson:"folders"`
-	CreatedAt     time.Time                                    `bson:"created_at"`
+	Id                   primitive.ObjectID                           `bson:"_id,omitempty"`
+	WorkspaceId          string                                       `bson:"workspace_id"`
+	Name                 string                                       `bson:"name"`
+	Team                 map[primitive.ObjectID]WorkspaceRole         `bson:"team"`
+	PendingTeam          map[string]WorkspaceRole                     `bson:"pending"`
+	InternalTeams        map[string]map[primitive.ObjectID]UserStatus `bson:"teams"`
+	PendingInternalTeams map[string]map[string]bool                   `bson:"pending_internal_teams"`
+	FirstTeam            string                                       `bson:"first_team"`
+	Integrations         Integrations                                 `bson:"integrations"`
+	Folders              map[string][]string                          `bson:"folders"`
+	CreatedAt            time.Time                                    `bson:"created_at"`
 }
 
 type Chat struct {
@@ -48,7 +48,6 @@ type Chat struct {
 	Notes       []Note             `bson:"notes"`
 	Tickets     []Ticket           `bson:"tickets"`
 	LastMessage Message            `bson:"last_message"`
-	Name        string             `bson:"name"`
 	Source      ChatSource         `bson:"source"`
 	IsImported  bool               `bson:"is_imported"`
 	CreatedAt   time.Time          `bson:"created_at"`

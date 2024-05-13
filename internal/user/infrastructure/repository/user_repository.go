@@ -28,7 +28,7 @@ func NewUserRepositoryImpl(db *mongo.Database, config *config.Config, mu *sync.R
 	}
 }
 
-func (ur *UserRepositoryImpl) CreateUser(pendingInvites []string, email, passwordHash, confirmToken string) error {
+func (ur *UserRepositoryImpl) CreateUser(email, passwordHash, confirmToken string) error {
 	ur.mu.Lock()
 	defer ur.mu.Unlock()
 
@@ -39,18 +39,18 @@ func (ur *UserRepositoryImpl) CreateUser(pendingInvites []string, email, passwor
 		Tokens: entity.Tokens{
 			ConfirmToken: confirmToken,
 		},
-		PendingInvites: pendingInvites,
-		CreatedAt:      time.Now(),
+		CreatedAt: time.Now(),
 	}
 
 	_, err := ur.database.Collection(ur.config.MongoDB.UserCollection).InsertOne(
 		context.Background(),
 		user,
 	)
+
 	return err
 }
 
-func (ur *UserRepositoryImpl) CreateOauth2User(pendingInvites []string, email, authSource string) (string, error) {
+func (ur *UserRepositoryImpl) CreateOauth2User(email, authSource string) (string, error) {
 	ur.mu.Lock()
 	defer ur.mu.Unlock()
 
@@ -75,12 +75,11 @@ func (ur *UserRepositoryImpl) CreateOauth2User(pendingInvites []string, email, a
 	}
 
 	user := &entity.User{
-		Email:          email,
-		AuthSource:     authSource,
-		Tokens:         entity.Tokens{OAuth2Token: oAuth2Token},
-		IsConfirmed:    true,
-		PendingInvites: pendingInvites,
-		CreatedAt:      time.Now(),
+		Email:       email,
+		AuthSource:  authSource,
+		Tokens:      entity.Tokens{OAuth2Token: oAuth2Token},
+		IsConfirmed: true,
+		CreatedAt:   time.Now(),
 	}
 
 	if _, err := ur.database.Collection(ur.config.MongoDB.UserCollection).InsertOne(
@@ -93,34 +92,76 @@ func (ur *UserRepositoryImpl) CreateOauth2User(pendingInvites []string, email, a
 	return oAuth2Token, nil
 }
 
-func (ur *UserRepositoryImpl) GetAllPendingInvites(email string) ([]string, error) {
-	ur.mu.RLock()
-	defer ur.mu.RUnlock()
-
-	var workspaceIds []string
+func (ur *UserRepositoryImpl) UpdateAllPendingWorkspaceInvites(userId primitive.ObjectID, email string) error {
+	ur.mu.Lock()
+	defer ur.mu.Unlock()
 
 	cursor, err := ur.database.Collection(ur.config.MongoDB.WorkspaceCollection).Find(
 		context.Background(),
 		bson.M{"pending." + email: bson.M{"$exists": true}},
 	)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	defer cursor.Close(context.Background())
 
 	for cursor.Next(context.Background()) {
 		var workspace entity.Workspace
 		if err := cursor.Decode(&workspace); err != nil {
-			return nil, err
+			continue
 		}
-		workspaceIds = append(workspaceIds, workspace.WorkspaceId)
+		teamRole := workspace.PendingTeam[email]
+
+		delete(workspace.PendingTeam, email)
+		workspace.Team[userId] = teamRole
+		go ur.UpdateWorkspace(&workspace)
 	}
 
 	if err := cursor.Err(); err != nil {
-		return nil, err
+		return err
 	}
 
-	return workspaceIds, nil
+	return nil
+}
+
+func (ur *UserRepositoryImpl) UpdateAllPendingWorkspaceTeamInvites(userId primitive.ObjectID, email string) error {
+	ur.mu.Lock()
+	defer ur.mu.Unlock()
+
+	filter := bson.M{
+		"pending_internal_teams.$." + email: bson.M{"$exists": true},
+	}
+
+	cursor, err := ur.database.Collection(ur.config.MongoDB.WorkspaceCollection).Find(
+		context.Background(),
+		filter,
+	)
+	if err != nil {
+		return err
+	}
+	defer cursor.Close(context.Background())
+
+	for cursor.Next(context.Background()) {
+		var workspace entity.Workspace
+		if err := cursor.Decode(&workspace); err != nil {
+			continue
+		}
+
+		for teamName, members := range workspace.PendingInternalTeams {
+			if _, exists := members[email]; exists {
+				delete(workspace.PendingInternalTeams[teamName], email)
+				workspace.InternalTeams[teamName][userId] = entity.StatusOffline
+
+				go ur.UpdateWorkspace(&workspace)
+			}
+		}
+	}
+
+	if err := cursor.Err(); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (ur *UserRepositoryImpl) GetUserByEmail(email string) (*entity.User, error) {

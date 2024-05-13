@@ -145,28 +145,19 @@ func (ss *SystemServiceImpl) AddTeamsMember(userId primitive.ObjectID, memberEma
 	}
 
 	if ss.isAdmin(workspace.Team[userId]) || ss.isOwner(workspace.Team[userId]) {
-		teamMembers, ok := workspace.InternalTeams[teamName]
+		_, ok := workspace.InternalTeams[teamName]
 		if !ok {
 			return errors.New("team not found")
 		}
 
-		id, err := ss.systemRepo.FindUserByEmail(memberEmail)
+		user, err := ss.systemRepo.FindUserByEmail(memberEmail)
 		if err != nil {
-			return err
+			workspace.PendingInternalTeams[teamName][memberEmail] = true
+		} else {
+			workspace.InternalTeams[teamName][user] = entity.StatusOffline
 		}
 
-		for _, team := range workspace.InternalTeams {
-			if _, exists := team[id]; exists {
-				return errors.New("user is already a member of another team")
-			}
-		}
-
-		teamMembers[id] = entity.StatusOffline
-		err = ss.systemRepo.UpdateWorkspace(workspace)
-		if err != nil {
-			return err
-		}
-		return nil
+		return ss.systemRepo.UpdateWorkspace(workspace)
 	}
 
 	return errors.New("unauthorised")

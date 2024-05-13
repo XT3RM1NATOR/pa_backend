@@ -35,8 +35,7 @@ func (us *UserServiceImpl) GoogleAuthCallback(code string) (string, error) {
 		return "", err
 	}
 
-	invites, _ := us.userRepo.GetAllPendingInvites(email)
-	oAuth2Token, err := us.userRepo.CreateOauth2User(invites, email, "google")
+	oAuth2Token, err := us.userRepo.CreateOauth2User(email, "google")
 	if err != nil {
 		return "", err
 	}
@@ -84,6 +83,9 @@ func (us *UserServiceImpl) GoogleTokens(token string) (string, string, error) {
 	if err != nil {
 		return "", "", err
 	}
+
+	go us.userRepo.UpdateAllPendingWorkspaceInvites(user.Id, user.Email)
+	go us.userRepo.UpdateAllPendingWorkspaceTeamInvites(user.Id, user.Email)
 
 	return accessToken, refreshToken, nil
 }
@@ -143,16 +145,16 @@ func (us *UserServiceImpl) RegisterUser(email string, password string) error {
 		return err
 	}
 
-	invites, _ := us.userRepo.GetAllPendingInvites(email)
-
 	_, err = mail.ParseAddress(email)
 	if err != nil {
 		return err
 	}
 
-	if err := us.userRepo.CreateUser(invites, email, passwordHash, confirmToken); err != nil {
+	err = us.userRepo.CreateUser(email, passwordHash, confirmToken)
+	if err != nil {
 		return err
 	}
+
 	return nil
 }
 
@@ -168,6 +170,9 @@ func (us *UserServiceImpl) ConfirmUser(token string) error {
 	if err := us.userRepo.ConfirmUser(user.Id); err != nil {
 		return err
 	}
+
+	go us.userRepo.UpdateAllPendingWorkspaceInvites(user.Id, user.Email)
+	go us.userRepo.UpdateAllPendingWorkspaceTeamInvites(user.Id, user.Email)
 
 	return nil
 }
