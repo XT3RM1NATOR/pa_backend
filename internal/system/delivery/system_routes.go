@@ -38,7 +38,7 @@ func RegisterSystemRoutes(e *echo.Echo, cfg *config.Config, db *mongo.Database, 
 	workspaceGroup.GET("/folders", sc.GetAllFolders, middleware.ValidateAccessTokenMiddleware(cfg.Auth.JWTSecretKey))
 	workspaceGroup.PUT("/update/:status/:id", sc.UpdateMemberStatus, middleware.ValidateAccessTokenMiddleware(cfg.Auth.JWTSecretKey))
 	workspaceGroup.PUT("/status/:id/:status", sc.UpdateWorkspacePendingStatus, middleware.ValidateAccessTokenMiddleware(cfg.Auth.JWTSecretKey))
-	//workspaceGroup.PUT("/team", sc.UpdateTeam, middleware.ValidateAccessTokenMiddleware(cfg.Auth.JWTSecretKey))
+	workspaceGroup.PUT("/team", sc.UpdateTeam, middleware.ValidateAccessTokenMiddleware(cfg.Auth.JWTSecretKey))
 	workspaceGroup.PUT("/:id", sc.UpdateWorkspace, middleware.ValidateAccessTokenMiddleware(cfg.Auth.JWTSecretKey))
 	workspaceGroup.DELETE("/leave/:id", sc.LeaveWorkspace, middleware.ValidateAccessTokenMiddleware(cfg.Auth.JWTSecretKey))
 	workspaceGroup.DELETE("/team/:id/:name", sc.DeleteTeam, middleware.ValidateAccessTokenMiddleware(cfg.Auth.JWTSecretKey))
