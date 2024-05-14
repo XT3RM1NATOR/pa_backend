@@ -17,6 +17,13 @@ type CreateTeamRequest struct {
 	WorkspaceId string            `json:"workspace_id"`
 }
 
+type UpdateTeamRequest struct {
+	OldTeamName string `json:"old_team_name"`
+	TeamName    string `json:"team_name"`
+	Logo        []byte `json:"logo"`
+	WorkspaceId string `json:"workspace_id"`
+}
+
 type AddTeamMembersRequest struct {
 	TeamName    string `json:"team_name"`
 	WorkspaceId string `json:"workspace_id"`
@@ -77,4 +84,5 @@ type TeamResponse struct {
 	MemberCount int      `json:"member_count"`
 	AdminNames  []string `json:"admin_names"`
 	ChatCount   int      `json:"chat_count"`
+	Logo        []byte   `json:"logo"`
 }

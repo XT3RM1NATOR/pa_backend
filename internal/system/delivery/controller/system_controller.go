@@ -420,10 +420,23 @@ func (sc *SystemController) CreateTeam(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, model.ErrorResponse{Error: err.Error()})
 	}
 
-	if err := sc.systemService.CreateTeam(userId, request.WorkspaceId, request.TeamName, request.Members); err != nil {
+	if err := sc.systemService.CreateTeam(userId, request.WorkspaceId, request.TeamName, request.Members, request.Logo); err != nil {
 		return c.JSON(http.StatusInternalServerError, model.ErrorResponse{Error: err.Error()})
 	}
 	return c.JSON(http.StatusOK, model.SuccessResponse{Message: "new team created successfully"})
+}
+
+func (sc *SystemController) UpdateTeam(c echo.Context) error {
+	userId := c.Request().Context().Value("userId").(primitive.ObjectID)
+	var request model.UpdateTeamRequest
+	if err := c.Bind(&request); err != nil {
+		return c.JSON(http.StatusBadRequest, model.ErrorResponse{Error: err.Error()})
+	}
+
+	if err := sc.systemService.UpdateTeam(userId, request.WorkspaceId, request.TeamName, request.OldTeamName); err != nil {
+		return c.JSON(http.StatusInternalServerError, model.ErrorResponse{Error: err.Error()})
+	}
+	return c.JSON(http.StatusOK, model.SuccessResponse{Message: "team updated successfully"})
 }
 
 func (sc *SystemController) DeleteTeam(c echo.Context) error {

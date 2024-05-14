@@ -17,10 +17,11 @@ func RegisterSystemRoutes(e *echo.Echo, cfg *config.Config, db *mongo.Database, 
 	systemGroup := e.Group("/system")
 
 	ec := client.NewEmailClientImpl(cfg.Email.SMTPUsername, cfg.Email.SMTPPassword, cfg.Email.SMTPHost, cfg.Email.SMTPPort)
-	src := client.NewStorageClientImpl(str, storageMu)
+	//src := client.NewStorageClientImpl(str, storageMu)
 	sr := repository.NewSystemRepositoryImpl(cfg, db, repoMu)
 	es := service.NewEmailServiceImpl(ec)
-	ss := service.NewSystemServiceImpl(cfg, src, sr, es)
+	fsi := service.NewFileServiceImpl("../../static")
+	ss := service.NewSystemServiceImpl(cfg, sr, es, fsi)
 	sc := controller.NewSystemController(cfg, ss)
 
 	workspaceGroup := systemGroup.Group("/workspace")

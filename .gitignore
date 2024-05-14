@@ -1,3 +1,5 @@
 .env
 /cmd/pointai/pointai
 .idea
+/static
+/telegram_static

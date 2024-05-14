@@ -25,10 +25,18 @@ type SystemService interface {
 	RegisterTelegramIntegration(userId primitive.ObjectID, workspaceId, stage, value string) (int, error)
 	GetAllTeams(userId primitive.ObjectID, workspaceId string) ([]model.TeamResponse, error)
 	GetAllFolders(userId primitive.ObjectID, workspaceId string) (map[string][]string, error)
-	CreateTeam(userId primitive.ObjectID, workspaceId, teamName string, members map[string]string) error
+	CreateTeam(userId primitive.ObjectID, workspaceId, teamName string, members map[string]string, logo []byte) error
 	DeleteTeam(userId primitive.ObjectID, workspaceId, teamName string) error
+	UpdateTeam(userId primitive.ObjectID, workspaceId string, newTeamName, oldTeamName string) error
 }
 
 type EmailService interface {
 	SendInvitationEmail(recipientEmail, confirmationLink string) error
+}
+
+type FileService interface {
+	SaveFile(filename string, content []byte) error
+	LoadFile(filename string) ([]byte, error)
+	UpdateFileName(oldName, newName string) error
+	UpdateFile(newFileBytes []byte, fileName string) error
 }

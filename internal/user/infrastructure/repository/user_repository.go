@@ -312,7 +312,7 @@ func (ur *UserRepositoryImpl) UpdateWorkspace(workspace *entity.Workspace) error
 	res, err := ur.database.Collection(ur.config.MongoDB.WorkspaceCollection).ReplaceOne(
 		context.Background(),
 		bson.M{"_id": workspace.Id},
-		bson.M{"$set": workspace},
+		workspace,
 	)
 	if err != nil {
 		return err

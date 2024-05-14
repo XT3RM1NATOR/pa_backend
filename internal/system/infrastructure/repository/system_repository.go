@@ -33,7 +33,7 @@ func (sr *SystemRepositoryImpl) CreateWorkspace(ownerId primitive.ObjectID, pend
 	defer sr.mu.Unlock()
 
 	team := make(map[primitive.ObjectID]entity.WorkspaceRole)
-	team[ownerId] = entity.RoleAdmin
+	team[ownerId] = entity.RoleOwner
 
 	teamsMap := make(map[string]map[primitive.ObjectID]entity.UserStatus)
 	for _, teamName := range teams {
@@ -62,7 +62,6 @@ func (sr *SystemRepositoryImpl) ValidateTeam(team map[string]string, ownerId pri
 
 	userRoles := make(map[primitive.ObjectID]entity.WorkspaceRole)
 	pendingUserRoles := make(map[string]entity.WorkspaceRole)
-	userRoles[ownerId] = entity.RoleAdmin
 
 	for email, role := range team {
 		var user entity.User
@@ -430,7 +429,7 @@ func (sr *SystemRepositoryImpl) UpdateWorkspace(workspace *entity.Workspace) err
 	res, err := sr.database.Collection(sr.config.MongoDB.WorkspaceCollection).ReplaceOne(
 		context.Background(),
 		bson.M{"_id": workspace.Id},
-		bson.M{"$set": workspace},
+		workspace,
 	)
 	if err != nil {
 		return err

@@ -14,18 +14,18 @@ import (
 )
 
 type UserServiceImpl struct {
-	userRepo      infrastructureInterface.UserRepository
-	emailService  _interface.EmailService
-	storageClient infrastructureInterface.StorageClient
-	config        *config.Config
+	userRepo     infrastructureInterface.UserRepository
+	emailService _interface.EmailService
+	fileService  _interface.FileService
+	config       *config.Config
 }
 
-func NewUserServiceImpl(userRepo infrastructureInterface.UserRepository, storageClient infrastructureInterface.StorageClient, emailService _interface.EmailService, cfg *config.Config) _interface.UserService {
+func NewUserServiceImpl(userRepo infrastructureInterface.UserRepository, fileService _interface.FileService, emailService _interface.EmailService, cfg *config.Config) _interface.UserService {
 	return &UserServiceImpl{
-		userRepo:      userRepo,
-		emailService:  emailService,
-		storageClient: storageClient,
-		config:        cfg,
+		userRepo:     userRepo,
+		emailService: emailService,
+		fileService:  fileService,
+		config:       cfg,
 	}
 }
 
@@ -40,7 +40,7 @@ func (us *UserServiceImpl) GoogleAuthCallback(code string) (string, error) {
 		return "", err
 	}
 
-	go us.storageClient.SaveFile(photo, us.config.MinIo.BucketName, email)
+	go us.fileService.SaveFile(email+".jpg", photo)
 
 	return oAuth2Token, nil
 }
@@ -277,7 +277,7 @@ func (us *UserServiceImpl) GetUserProfile(userId primitive.ObjectID) (*entity.Us
 		return &entity.User{}, nil, err
 	}
 
-	logo, err := us.storageClient.LoadFile(user.Email, us.config.MinIo.BucketName)
+	logo, err := us.fileService.LoadFile(user.Email + ".jpg")
 
 	return user, logo, nil
 }
@@ -289,7 +289,7 @@ func (us *UserServiceImpl) UpdateUserProfile(userId primitive.ObjectID, logo []b
 	}
 
 	if logo != nil {
-		go us.storageClient.UpdateFile(logo, user.Email, us.config.MinIo.BucketName)
+		go us.fileService.UpdateFile(logo, user.Email+".jpg")
 	}
 	if name != "" {
 		user.FullName = name

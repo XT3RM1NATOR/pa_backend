@@ -36,7 +36,7 @@ func (mr *MessengerRepositoryImpl) UpdateWorkspace(workspace *entity.Workspace) 
 	res, err := mr.database.Collection(mr.config.MongoDB.WorkspaceCollection).ReplaceOne(
 		context.Background(),
 		bson.M{"_id": workspace.Id},
-		bson.M{"$set": workspace},
+		workspace,
 	)
 	if err != nil {
 		return err

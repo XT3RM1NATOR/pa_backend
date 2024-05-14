@@ -15,18 +15,18 @@ import (
 )
 
 type SystemServiceImpl struct {
-	systemRepo    infrastructureInterface.SystemRepository
-	storageClient infrastructureInterface.StorageClient
-	emailService  _interface.EmailService
-	config        *config.Config
+	systemRepo   infrastructureInterface.SystemRepository
+	emailService _interface.EmailService
+	fileService  _interface.FileService
+	config       *config.Config
 }
 
-func NewSystemServiceImpl(cfg *config.Config, storageClient infrastructureInterface.StorageClient, systemRepo infrastructureInterface.SystemRepository, emailService _interface.EmailService) *SystemServiceImpl {
+func NewSystemServiceImpl(cfg *config.Config, systemRepo infrastructureInterface.SystemRepository, emailService _interface.EmailService, fileService _interface.FileService) *SystemServiceImpl {
 	return &SystemServiceImpl{
-		systemRepo:    systemRepo,
-		emailService:  emailService,
-		storageClient: storageClient,
-		config:        cfg,
+		systemRepo:   systemRepo,
+		emailService: emailService,
+		fileService:  fileService,
+		config:       cfg,
 	}
 }
 
@@ -48,6 +48,7 @@ func (ss *SystemServiceImpl) CreateWorkspace(logo []byte, team map[string]string
 		}
 		teamRoles = roles
 	}
+
 	if teams != nil {
 		if err := utils.ValidateTeamNames(teams); err != nil {
 			return err
@@ -60,7 +61,7 @@ func (ss *SystemServiceImpl) CreateWorkspace(logo []byte, team map[string]string
 			return err
 		}
 
-		go ss.storageClient.SaveFile(logo, ss.config.MinIo.BucketName, name)
+		go ss.fileService.SaveFile(workspaceId+".jpg", logo)
 
 		for email, _ := range teamRoles {
 			id, err := ss.systemRepo.FindUserByEmail(email)
@@ -206,13 +207,13 @@ func (ss *SystemServiceImpl) GetAllWorkspaces(userId primitive.ObjectID) ([]infr
 	return fmtWorkspaces, err
 }
 
-func (ss *SystemServiceImpl) CreateTeam(userId primitive.ObjectID, workspaceId, teamName string, members map[string]string) error {
+func (ss *SystemServiceImpl) CreateTeam(userId primitive.ObjectID, workspaceId, teamName string, members map[string]string, logo []byte) error {
 	workspace, err := ss.systemRepo.FindWorkspaceByWorkspaceId(workspaceId)
 	if err != nil {
 		return err
 	}
 
-	if !ss.isAdmin(workspace.Team[userId]) || !ss.isOwner(workspace.Team[userId]) {
+	if !ss.isAdmin(workspace.Team[userId]) && !ss.isOwner(workspace.Team[userId]) {
 		return errors.New("unauthorised")
 	}
 
@@ -240,7 +241,11 @@ func (ss *SystemServiceImpl) CreateTeam(userId primitive.ObjectID, workspaceId, 
 			}
 		}
 	} else {
-		workspace.InternalTeams[teamName] = nil
+		workspace.InternalTeams[teamName] = make(map[primitive.ObjectID]entity.UserStatus)
+	}
+
+	if logo != nil {
+		ss.fileService.SaveFile(workspaceId+"."+teamName+".jpg", logo)
 	}
 
 	return ss.systemRepo.UpdateWorkspace(workspace)
@@ -252,7 +257,7 @@ func (ss *SystemServiceImpl) DeleteTeam(userId primitive.ObjectID, workspaceId, 
 		return err
 	}
 
-	if !ss.isOwner(workspace.Team[userId]) || !ss.isAdmin(workspace.Team[userId]) {
+	if !ss.isOwner(workspace.Team[userId]) && !ss.isAdmin(workspace.Team[userId]) {
 		return errors.New("unauthorized to make the changes")
 	}
 
@@ -271,7 +276,7 @@ func (ss *SystemServiceImpl) UpdateWorkspace(userId primitive.ObjectID, newLogo 
 			if err := utils.ValidateWorkspaceId(workspaceId); err != nil {
 				return err
 			}
-			if err := ss.storageClient.UpdateFileName(workspace.WorkspaceId, newWorkspaceId, ss.config.MinIo.BucketName); err != nil {
+			if err := ss.fileService.UpdateFileName(workspace.WorkspaceId+".jpg", newWorkspaceId+".jpg"); err != nil {
 				return err
 			}
 			workspace.WorkspaceId = newWorkspaceId
@@ -281,7 +286,7 @@ func (ss *SystemServiceImpl) UpdateWorkspace(userId primitive.ObjectID, newLogo 
 			if err := utils.ValidatePhoto(newLogo); err != nil {
 				return err
 			}
-			if err := ss.storageClient.UpdateFile(newLogo, workspace.WorkspaceId, ss.config.MinIo.BucketName); err != nil {
+			if err := ss.fileService.UpdateFile(newLogo, workspace.WorkspaceId+".jpg"); err != nil {
 				return err
 			}
 		}
@@ -386,7 +391,7 @@ func (ss *SystemServiceImpl) GetUserProfiles(workspaceId string, userId primitiv
 		}
 
 		for _, user := range *users {
-			user.Logo, _ = ss.storageClient.LoadFile(user.Email, ss.config.MinIo.BucketName)
+			user.Logo, _ = ss.fileService.LoadFile(user.Email + ".jpg")
 		}
 
 		return *users, nil
@@ -453,14 +458,14 @@ func (ss *SystemServiceImpl) RegisterTelegramIntegration(userId primitive.Object
 func (ss *SystemServiceImpl) formatWorkspaces(workspaces []entity.Workspace) ([]infrastructureModel.Workspace, error) {
 	formattedWorkspaces := make([]infrastructureModel.Workspace, len(workspaces))
 	for i, p := range workspaces {
-		//logo, _ := ss.storageClient.LoadFile(p.WorkspaceId, ss.config.MinIo.BucketName)
+		logo, _ := ss.fileService.LoadFile(p.WorkspaceId + ".jpg")
 		team, _ := ss.systemRepo.FormatTeam(p.Team)
 
 		formattedWorkspace := infrastructureModel.Workspace{
 			Name:        p.Name,
 			WorkspaceId: p.WorkspaceId,
 			Team:        team,
-			Logo:        nil,
+			Logo:        logo,
 		}
 
 		formattedWorkspaces[i] = formattedWorkspace
@@ -493,6 +498,30 @@ func (ss *SystemServiceImpl) UpdateWorkspacePendingStatus(userId primitive.Objec
 	return nil
 }
 
+func (ss *SystemServiceImpl) UpdateTeam(userId primitive.ObjectID, workspaceId string, newTeamName, oldTeamName string) error {
+	workspace, err := ss.systemRepo.FindWorkspaceByWorkspaceId(workspaceId)
+	if err != nil {
+		return err
+	}
+
+	if !ss.isAdmin(workspace.Team[userId]) && !ss.isOwner(workspace.Team[userId]) {
+		return errors.New("unauthorised")
+	}
+
+	if _, exists := workspace.InternalTeams[newTeamName]; exists {
+		return errors.New("team name already exists")
+	}
+
+	if _, exists := workspace.InternalTeams[oldTeamName]; !exists {
+		return errors.New("team name does not exist")
+	}
+
+	workspace.InternalTeams[newTeamName] = workspace.InternalTeams[oldTeamName]
+	delete(workspace.InternalTeams, oldTeamName)
+
+	return ss.systemRepo.UpdateWorkspace(workspace)
+}
+
 func (ss *SystemServiceImpl) GetAllTeams(userId primitive.ObjectID, workspaceId string) ([]model.TeamResponse, error) {
 	workspace, err := ss.systemRepo.FindWorkspaceByWorkspaceId(workspaceId)
 	if err != nil {
@@ -515,7 +544,8 @@ func (ss *SystemServiceImpl) GetAllTeams(userId primitive.ObjectID, workspaceId 
 				admins = append(admins, user.FullName)
 			}
 		}
-		teams = append(teams, *ss.createTeamResponse(name, memberCount, 0, admins))
+		logo, _ := ss.fileService.LoadFile(workspaceId + "." + name + ".jpg")
+		teams = append(teams, *ss.createTeamResponse(name, memberCount, 0, admins, logo))
 	}
 
 	return teams, nil
@@ -534,12 +564,13 @@ func (ss *SystemServiceImpl) GetAllFolders(userId primitive.ObjectID, workspaceI
 	return workspace.Folders, nil
 }
 
-func (ss *SystemServiceImpl) createTeamResponse(teamName string, memberCount, chatCount int, adminNames []string) *model.TeamResponse {
+func (ss *SystemServiceImpl) createTeamResponse(teamName string, memberCount, chatCount int, adminNames []string, logo []byte) *model.TeamResponse {
 	return &model.TeamResponse{
 		TeamName:    teamName,
 		MemberCount: memberCount,
 		AdminNames:  adminNames,
 		ChatCount:   chatCount,
+		Logo:        logo,
 	}
 }
 

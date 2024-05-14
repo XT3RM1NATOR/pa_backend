@@ -16,9 +16,10 @@ import (
 func RegisterAuthRoutes(e *echo.Echo, cfg *config.Config, db *mongo.Database, str *minio.Client, repoMu *sync.RWMutex, storageMu *sync.RWMutex) {
 	ur := repository.NewUserRepositoryImpl(db, cfg, repoMu)
 	ec := client.NewEmailClientImpl(cfg.Email.SMTPUsername, cfg.Email.SMTPPassword, cfg.Email.SMTPHost, cfg.Email.SMTPPort)
-	sc := client.NewStorageClientImpl(str, storageMu)
+	//sc := client.NewStorageClientImpl(str, storageMu)
 	es := service.NewEmailServiceImpl(ec)
-	us := service.NewUserServiceImpl(ur, sc, es, cfg)
+	fsi := service.NewFileServiceImpl("../../static")
+	us := service.NewUserServiceImpl(ur, fsi, es, cfg)
 	uc := controller.NewUserController(us, cfg)
 
 	userGroup := e.Group("/user")

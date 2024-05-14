@@ -24,3 +24,10 @@ type EmailService interface {
 	SendConfirmationEmail(recipientEmail, confirmationLink string) error
 	SendResetPasswordEmail(recipientEmail, resetLink string) error
 }
+
+type FileService interface {
+	SaveFile(filename string, content []byte) error
+	LoadFile(filename string) ([]byte, error)
+	UpdateFileName(oldName, newName string) error
+	UpdateFile(newFileBytes []byte, fileName string) error
+}
