@@ -12,6 +12,7 @@ type User struct {
 	IsConfirmed  bool               `bson:"is_confirmed"`
 	AuthSource   string             `bson:"auth_source"`
 	FullName     string             `bson:"name"`
+	Role         UserRole           `bson:"role"`
 	Tokens       Tokens             `bson:"tokens"`
 	CreatedAt    time.Time          `bson:"created_at"`
 }
@@ -34,6 +35,7 @@ type Workspace struct {
 	FirstTeam            string                                       `bson:"first_team"`
 	Integrations         Integrations                                 `bson:"integrations"`
 	Folders              map[string][]string                          `bson:"folders"`
+	Tags                 []string                                     `bson:"tags"`
 	CreatedAt            time.Time                                    `bson:"created_at"`
 }
 
@@ -125,6 +127,7 @@ type WhatsAppIntegration struct {
 
 type MessageType string
 type WorkspaceRole string
+type UserRole string
 type ChatSource string
 type TicketStatus string
 type UserStatus string
@@ -144,9 +147,9 @@ const (
 )
 
 const (
-	RoleAdmin  WorkspaceRole = "admin"
-	RoleMember WorkspaceRole = "member"
-	RoleOwner  WorkspaceRole = "owner"
+	RoleAdmin WorkspaceRole = "admin"
+	RoleAgent WorkspaceRole = "agent"
+	RoleOwner WorkspaceRole = "owner"
 )
 
 const (
@@ -167,4 +170,9 @@ const (
 	StatusAvailable UserStatus = "available"
 	StatusBusy      UserStatus = "busy"
 	StatusOffline   UserStatus = "offline"
+)
+
+const (
+	UserRoleSuperAdmin UserRole = "super_admin"
+	UserRoleMember     UserRole = "member"
 )

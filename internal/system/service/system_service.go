@@ -153,10 +153,10 @@ func (ss *SystemServiceImpl) AddTeamsMember(userId primitive.ObjectID, memberEma
 
 		var role entity.WorkspaceRole
 		switch memberRole {
-		case string(entity.RoleAdmin), string(entity.RoleMember), string(entity.RoleOwner):
+		case string(entity.RoleAdmin), string(entity.RoleAgent), string(entity.RoleOwner):
 			role = entity.WorkspaceRole(memberRole)
 		default:
-			role = entity.RoleMember
+			role = entity.RoleAgent
 		}
 
 		user, err := ss.systemRepo.FindUserByEmail(memberEmail)

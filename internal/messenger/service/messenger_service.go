@@ -361,6 +361,22 @@ func (ms *MessengerServiceImpl) UpdateChatInfo(userId primitive.ObjectID, chatId
 	}
 	chat.Tags = tags
 
+	for _, tag := range tags {
+		var found bool
+		for _, workspaceTag := range workspace.Tags {
+			if tag == workspaceTag {
+				found = true
+			}
+		}
+		if !found {
+			workspace.Tags = append(workspace.Tags, tag)
+		}
+	}
+
+	if err := ms.messengerRepo.UpdateWorkspace(workspace); err != nil {
+		return err
+	}
+
 	return ms.messengerRepo.UpdateChat(nil, chat)
 }
 
@@ -442,11 +458,11 @@ func (ms *MessengerServiceImpl) GetAllTags(userId primitive.ObjectID, workspaceI
 		return nil, err
 	}
 
-	if !ms.isAdmin(workspace.Team[userId]) || !ms.isOwner(workspace.Team[userId]) {
+	if !ms.isAdmin(workspace.Team[userId]) && !ms.isOwner(workspace.Team[userId]) {
 		return nil, errors.New("unauthorised")
 	}
 
-	return ms.messengerRepo.FindUniqueTagsByWorkspaceId(workspace.Id)
+	return workspace.Tags, nil
 }
 
 func (ms *MessengerServiceImpl) DeleteMessage(userId primitive.ObjectID, messageType, workspaceId, ticketId, messageId, chatId string) error {

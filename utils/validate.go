@@ -56,10 +56,10 @@ func ValidateTeamRoles(team map[string]string) (map[string]entity.WorkspaceRole,
 	userRoles := make(map[string]entity.WorkspaceRole)
 	for email, role := range team {
 		switch role {
-		case string(entity.RoleAdmin), string(entity.RoleMember), string(entity.RoleOwner):
+		case string(entity.RoleAdmin), string(entity.RoleAgent), string(entity.RoleOwner):
 			userRoles[email] = entity.WorkspaceRole(role)
 		default:
-			userRoles[email] = entity.RoleMember
+			userRoles[email] = entity.RoleAgent
 		}
 	}
 

@@ -72,10 +72,10 @@ func (sr *SystemRepositoryImpl) ValidateTeam(team map[string]string, ownerId pri
 		if err != nil {
 			if errors.Is(err, mongo.ErrNoDocuments) {
 				switch role {
-				case string(entity.RoleAdmin), string(entity.RoleMember), string(entity.RoleOwner):
+				case string(entity.RoleAdmin), string(entity.RoleAgent), string(entity.RoleOwner):
 					pendingUserRoles[email] = entity.WorkspaceRole(role)
 				default:
-					pendingUserRoles[email] = entity.RoleMember
+					pendingUserRoles[email] = entity.RoleAgent
 				}
 
 				continue
@@ -87,10 +87,10 @@ func (sr *SystemRepositoryImpl) ValidateTeam(team map[string]string, ownerId pri
 		}
 
 		switch role {
-		case string(entity.RoleAdmin), string(entity.RoleMember), string(entity.RoleOwner):
+		case string(entity.RoleAdmin), string(entity.RoleAgent), string(entity.RoleOwner):
 			userRoles[user.Id] = entity.WorkspaceRole(role)
 		default:
-			userRoles[user.Id] = entity.RoleMember
+			userRoles[user.Id] = entity.RoleAgent
 		}
 	}
 
@@ -113,10 +113,10 @@ func (sr *SystemRepositoryImpl) ValidateNewTeamUsers(team map[string]string) (ma
 		if err != nil {
 			if errors.Is(err, mongo.ErrNoDocuments) {
 				switch role {
-				case string(entity.RoleAdmin), string(entity.RoleMember), string(entity.RoleOwner):
+				case string(entity.RoleAdmin), string(entity.RoleAgent), string(entity.RoleOwner):
 					pendingUserRoles[email] = entity.WorkspaceRole(role)
 				default:
-					pendingUserRoles[email] = entity.RoleMember
+					pendingUserRoles[email] = entity.RoleAgent
 				}
 
 				continue
@@ -128,10 +128,10 @@ func (sr *SystemRepositoryImpl) ValidateNewTeamUsers(team map[string]string) (ma
 		}
 
 		switch role {
-		case string(entity.RoleAdmin), string(entity.RoleMember), string(entity.RoleOwner):
+		case string(entity.RoleAdmin), string(entity.RoleAgent), string(entity.RoleOwner):
 			userRoles[user.Id] = entity.WorkspaceRole(role)
 		default:
-			userRoles[user.Id] = entity.RoleMember
+			userRoles[user.Id] = entity.RoleAgent
 		}
 	}
 

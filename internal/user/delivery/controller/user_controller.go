@@ -38,7 +38,7 @@ func (uc *UserController) RegisterUser(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, model.ErrorResponse{Error: err.Error()})
 	}
 
-	if err := uc.userService.RegisterUser(request.Email, request.Password); err != nil {
+	if err := uc.userService.RegisterUser(request.Email, request.Password, request.WorkspaceId); err != nil {
 		return c.JSON(http.StatusInternalServerError, model.ErrorResponse{Error: err.Error()})
 	}
 

@@ -123,7 +123,7 @@ func (us *UserServiceImpl) Login(email, password string) (string, string, error)
 	return accessToken, refreshToken, nil
 }
 
-func (us *UserServiceImpl) RegisterUser(email string, password string) error {
+func (us *UserServiceImpl) RegisterUser(email, password, workspaceId string) error {
 	existingUser, err := us.userRepo.GetUserByEmail(email)
 	if err != nil {
 		return err
@@ -148,6 +148,15 @@ func (us *UserServiceImpl) RegisterUser(email string, password string) error {
 	_, err = mail.ParseAddress(email)
 	if err != nil {
 		return err
+	}
+
+	workspace, err := us.userRepo.FindWorkspaceByWorkspaceId(workspaceId)
+	if err != nil {
+		return err
+	}
+
+	if _, exists := workspace.PendingTeam[email]; !exists {
+		return errors.New("unauthorised")
 	}
 
 	err = us.userRepo.CreateUser(email, passwordHash, confirmToken)
