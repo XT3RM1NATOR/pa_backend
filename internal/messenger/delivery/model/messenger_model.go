@@ -125,5 +125,6 @@ type ChatResponse struct {
 	Source      string            `bson:"source"`
 	IsImported  bool              `json:"is_imported"`
 	Name        string            `json:"name"`
+	Logo        []byte            `json:"logo"`
 	CreatedAt   time.Time         `bson:"created_at"`
 }

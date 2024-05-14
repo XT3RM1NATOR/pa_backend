@@ -35,3 +35,10 @@ type WebsocketService interface {
 	GetConnections(workspaceId string) map[primitive.ObjectID]*websocket.Conn
 	SendToAllButOne(workspaceId string, message []byte, userId primitive.ObjectID)
 }
+
+type FileService interface {
+	SaveFile(filename string, content []byte) error
+	LoadFile(filename string) ([]byte, error)
+	UpdateFileName(oldName, newName string) error
+	UpdateFile(newFileBytes []byte, fileName string) error
+}

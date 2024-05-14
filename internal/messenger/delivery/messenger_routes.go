@@ -13,8 +13,9 @@ import (
 
 func RegisterMessengerRoutes(e *echo.Echo, cfg *config.Config, db *mongo.Database, mu *sync.RWMutex) {
 	ir := repository.NewMessengerRepositoryImpl(cfg, db, mu)
+	fsi := service.NewFileServiceImpl("../../static")
 	wss := service.NewWebSocketServiceImpl(ir)
-	is := service.NewMessengerServiceImpl(cfg, ir, wss)
+	is := service.NewMessengerServiceImpl(cfg, ir, wss, fsi)
 	ic := controller.NewMessengerController(cfg, is, wss)
 
 	messengerGroup := e.Group("/messenger")
