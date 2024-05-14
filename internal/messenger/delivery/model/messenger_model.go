@@ -115,14 +115,15 @@ type TelegramStatusResponse struct {
 }
 
 type ChatResponse struct {
-	WorkspaceId string          `bson:"workspace_id"`
-	ChatId      string          `bson:"chat_id"`
-	TgClientId  int             `bson:"tg_user_id"`
-	TgChatId    int             `bson:"tg_chat_id"`
-	Tags        []string        `bson:"tags"`
-	LastMessage MessageResponse `bson:"last_message"`
-	Source      string          `bson:"source"`
-	IsImported  bool            `json:"is_imported"`
-	Name        string          `json:"name"`
-	CreatedAt   time.Time       `bson:"created_at"`
+	WorkspaceId string            `bson:"workspace_id"`
+	ChatId      string            `bson:"chat_id"`
+	TgClientId  int               `bson:"tg_user_id"`
+	TgChatId    int               `bson:"tg_chat_id"`
+	Notes       []MessageResponse `bson:"notes"`
+	Tags        []string          `bson:"tags"`
+	LastMessage MessageResponse   `bson:"last_message"`
+	Source      string            `bson:"source"`
+	IsImported  bool              `json:"is_imported"`
+	Name        string            `json:"name"`
+	CreatedAt   time.Time         `bson:"created_at"`
 }

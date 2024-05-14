@@ -220,23 +220,27 @@ func (ss *SystemServiceImpl) CreateTeam(userId primitive.ObjectID, workspaceId, 
 		return errors.New("team name already exists")
 	}
 
-	teamRoles, pendingTeamRoles, err := ss.systemRepo.ValidateTeam(members, userId)
-	if err != nil {
-		return err
-	}
-
-	for id, role := range teamRoles {
-		if _, exists := workspace.Team[id]; !exists {
-			workspace.Team[id] = role
-			workspace.InternalTeams[teamName][id] = entity.StatusOffline
+	if members != nil {
+		teamRoles, pendingTeamRoles, err := ss.systemRepo.ValidateTeam(members, userId)
+		if err != nil {
+			return err
 		}
-	}
 
-	for email, role := range pendingTeamRoles {
-		if _, exists := workspace.PendingTeam[email]; !exists {
-			workspace.PendingTeam[email] = role
-			workspace.PendingInternalTeams[teamName][email] = true
+		for id, role := range teamRoles {
+			if _, exists := workspace.Team[id]; !exists {
+				workspace.Team[id] = role
+				workspace.InternalTeams[teamName][id] = entity.StatusOffline
+			}
 		}
+
+		for email, role := range pendingTeamRoles {
+			if _, exists := workspace.PendingTeam[email]; !exists {
+				workspace.PendingTeam[email] = role
+				workspace.PendingInternalTeams[teamName][email] = true
+			}
+		}
+	} else {
+		workspace.InternalTeams[teamName] = nil
 	}
 
 	return ss.systemRepo.UpdateWorkspace(workspace)
