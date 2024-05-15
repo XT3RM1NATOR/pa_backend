@@ -7,6 +7,7 @@ import (
 // Requests
 
 type UserRequest struct {
+	Hash        string `json:"hash"`
 	WorkspaceId string `json:"workspace_id"`
 	Email       string `json:"email"`
 	Password    string `json:"password"`

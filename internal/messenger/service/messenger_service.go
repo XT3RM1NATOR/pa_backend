@@ -35,7 +35,7 @@ func NewMessengerServiceImpl(cfg *config.Config, messengerRepo infrastructureInt
 	}
 }
 
-func (ms *MessengerServiceImpl) ReassignTicketToTeam(userId primitive.ObjectID, chatId string, ticketId, workspaceId, teamName string) error {
+func (ms *MessengerServiceImpl) ReassignTicketToTeam(userId primitive.ObjectID, chatId string, ticketId, workspaceId, teamId string) error {
 	session, err := ms.messengerRepo.StartSession()
 	if err != nil {
 		return err
@@ -77,7 +77,7 @@ func (ms *MessengerServiceImpl) ReassignTicketToTeam(userId primitive.ObjectID, 
 			return err
 		}
 
-		assigneeId, err := ms.getAssigneeIdByTeam(workspace, teamName)
+		assigneeId, err := ms.getAssigneeIdByTeam(workspace, teamId)
 		if err != nil {
 			return err
 		}
@@ -190,11 +190,11 @@ func (ms *MessengerServiceImpl) GetAllChats(userId primitive.ObjectID, workspace
 
 	for _, chat := range chats {
 		if chat.IsImported {
-			go ms.updateWallpaper(workspaceId, chat.ChatId, chat.TgClientId)
+
 		}
-		logo, _ := ms.fileService.LoadFile(chat.ChatId + "jpg")
+		logo, _ := ms.fileService.LoadFile("chat." + chat.ChatId)
 		messageResponse := ms.createMessageResponse(nil, chat.LastMessage.CreatedAt, userId == chat.LastMessage.SenderId, chat.LastMessage.From, "", workspaceId, chat.Tickets[0].TicketId, chat.ChatId, chat.LastMessage.MessageId, chat.LastMessage.Message, string(chat.LastMessage.Type))
-		responseChats = append(responseChats, *ms.createChatResponse(workspace.WorkspaceId, chat.ChatId, chat.TgClientId, chat.TgChatId, chat.Tags, *messageResponse, string(entity.SourceTelegram), chat.IsImported, chat.CreatedAt, chat.Name, logo))
+		responseChats = append(responseChats, *ms.createChatResponse(workspace.WorkspaceId, chat.ChatId, chat.TgClientId, chat.TgChatId, chat.Tags, *messageResponse, string(entity.SourceTelegram), chat.IsImported, chat.CreatedAt, chat.Name, logo, nil))
 	}
 
 	return responseChats, nil
@@ -276,17 +276,18 @@ func (ms *MessengerServiceImpl) ValidateUserInWorkspaceById(userId primitive.Obj
 }
 
 func (ms *MessengerServiceImpl) HandleMessage(userId primitive.ObjectID, workspaceId, ticketId, chatId, messageType, message string) error {
-	if messageType == "chat_note" {
-		chat, err := ms.messengerRepo.FindChatByChatId(chatId)
-		if err != nil {
-			return err
-		}
+	chat, err := ms.messengerRepo.FindChatByChatId(chatId)
+	if err != nil {
+		return err
+	}
 
-		user, err := ms.messengerRepo.GetUserById(userId)
-		if err != nil {
-			return err
-		}
+	user, err := ms.messengerRepo.GetUserById(userId)
+	if err != nil {
+		return err
+	}
 
+	switch messageType {
+	case "chat_note":
 		note := ms.createNote(userId, message)
 		chat.Notes = append(chat.Notes, *note)
 
@@ -307,16 +308,8 @@ func (ms *MessengerServiceImpl) HandleMessage(userId primitive.ObjectID, workspa
 		ms.websocketService.SendToAllButOne(workspaceId, res, userId)
 
 		return nil
-	} else if messageType == "ticket_note" {
-		chat, err := ms.messengerRepo.FindChatByChatId(chatId)
-		if err != nil {
-			return err
-		}
+	case "ticket_note":
 		ticket, err := ms.findTicketInChat(chat, ticketId)
-		if err != nil {
-			return err
-		}
-		user, err := ms.messengerRepo.GetUserById(userId)
 		if err != nil {
 			return err
 		}
@@ -340,9 +333,9 @@ func (ms *MessengerServiceImpl) HandleMessage(userId primitive.ObjectID, workspa
 		ms.websocketService.SendToAllButOne(workspaceId, res, userId)
 
 		return nil
+	default:
+		return errors.New("unknown message type")
 	}
-
-	return errors.New("unknown message type")
 }
 
 func (ms *MessengerServiceImpl) UpdateChatInfo(userId primitive.ObjectID, chatId string, tags []string, workspaceId string) error {
@@ -395,9 +388,15 @@ func (ms *MessengerServiceImpl) GetChat(userId primitive.ObjectID, workspaceId, 
 		return model.ChatResponse{}, err
 	}
 
-	logo, _ := ms.fileService.LoadFile(chatId + "jpg")
+	var notes []model.MessageResponse
+	for _, note := range chat.Notes {
+		user, _ := ms.messengerRepo.FindUserById(note.UserId)
+		notes = append(notes, *ms.createMessageResponse(nil, note.CreatedAt, note.UserId == userId, user.FullName, "", workspaceId, "", chatId, note.NoteId, note.Text, string(entity.TypeChatNote)))
+	}
+
+	logo, _ := ms.fileService.LoadFile("chat." + chatId)
 	responseMessage := ms.createMessageResponse(nil, chat.LastMessage.CreatedAt, chat.UserId == userId, chat.LastMessage.From, "", workspaceId, "", chat.ChatId, chat.LastMessage.MessageId, chat.LastMessage.Message, string(entity.TypeText))
-	responseChat := ms.createChatResponse(workspaceId, chatId, chat.TgClientId, chat.TgChatId, chat.Tags, *responseMessage, string(chat.Source), chat.IsImported, chat.CreatedAt, chat.Name, logo)
+	responseChat := ms.createChatResponse(workspaceId, chatId, chat.TgClientId, chat.TgChatId, chat.Tags, *responseMessage, string(chat.Source), chat.IsImported, chat.CreatedAt, chat.Name, logo, notes)
 
 	return *responseChat, nil
 }
@@ -444,9 +443,9 @@ func (ms *MessengerServiceImpl) GetChatsByFolder(userId primitive.ObjectID, work
 		if chat.IsImported {
 			go ms.updateWallpaper(workspaceId, chat.ChatId, chat.TgClientId)
 		}
-		logo, _ := ms.fileService.LoadFile(chat.ChatId + ".jpg")
+		logo, _ := ms.fileService.LoadFile("chat." + chat.ChatId)
 		messageResponse := ms.createMessageResponse(nil, chat.LastMessage.CreatedAt, userId == chat.LastMessage.SenderId, chat.LastMessage.From, "", workspaceId, chat.Tickets[0].TicketId, chat.ChatId, chat.LastMessage.MessageId, chat.LastMessage.Message, string(chat.LastMessage.Type))
-		responseChats = append(responseChats, *ms.createChatResponse(workspace.WorkspaceId, chat.ChatId, chat.TgClientId, chat.TgChatId, chat.Tags, *messageResponse, string(entity.SourceTelegram), chat.IsImported, chat.CreatedAt, chat.Name, logo))
+		responseChats = append(responseChats, *ms.createChatResponse(workspace.WorkspaceId, chat.ChatId, chat.TgClientId, chat.TgChatId, chat.Tags, *messageResponse, string(entity.SourceTelegram), chat.IsImported, chat.CreatedAt, chat.Name, logo, nil))
 	}
 
 	return responseChats, nil
@@ -466,23 +465,21 @@ func (ms *MessengerServiceImpl) GetAllTags(userId primitive.ObjectID, workspaceI
 }
 
 func (ms *MessengerServiceImpl) DeleteMessage(userId primitive.ObjectID, messageType, workspaceId, ticketId, messageId, chatId string) error {
-	if messageType == "chat_note" {
-		workspace, err := ms.messengerRepo.FindWorkspaceByWorkspaceId(nil, workspaceId)
-		if err != nil {
-			return err
-		}
-		if _, exists := workspace.Team[userId]; !exists {
-			return errors.New("unauthorized")
-		}
+	workspace, err := ms.messengerRepo.FindWorkspaceByWorkspaceId(nil, workspaceId)
+	if err != nil {
+		return err
+	}
+	if _, exists := workspace.Team[userId]; !exists {
+		return errors.New("unauthorized")
+	}
 
-		chat, err := ms.messengerRepo.FindChatByChatId(chatId)
-		if err != nil {
-			return err
-		}
-		if chat.WorkspaceId != workspace.Id {
-			return errors.New("wrong chatId or workspaceId")
-		}
+	chat, err := ms.messengerRepo.FindChatByWorkspaceIdAndChatId(workspace.Id, chatId)
+	if err != nil {
+		return err
+	}
 
+	switch messageType {
+	case "chat_note":
 		index, err := ms.findNoteIndexInChat(chat, messageId)
 		if err != nil {
 			return err
@@ -500,23 +497,7 @@ func (ms *MessengerServiceImpl) DeleteMessage(userId primitive.ObjectID, message
 
 		ms.websocketService.SendToAll(workspaceId, res)
 		return nil
-	} else if messageType == "ticket_note" {
-		workspace, err := ms.messengerRepo.FindWorkspaceByWorkspaceId(nil, workspaceId)
-		if err != nil {
-			return err
-		}
-		if _, exists := workspace.Team[userId]; !exists {
-			return errors.New("unauthorized")
-		}
-
-		chat, err := ms.messengerRepo.FindChatByChatId(chatId)
-		if err != nil {
-			return err
-		}
-		if chat.WorkspaceId != workspace.Id {
-			return errors.New("wrong chatId or workspaceId")
-		}
-
+	case "ticket_note":
 		ticketIndex, noteIndex, err := ms.findTicketIdAndNoteIdByNoteId(chat, messageId)
 		if err != nil {
 			return err
@@ -534,37 +515,27 @@ func (ms *MessengerServiceImpl) DeleteMessage(userId primitive.ObjectID, message
 
 		ms.websocketService.SendToAll(workspaceId, res)
 		return nil
-	}
-
-	return errors.New("invalid message type")
-}
-
-func (ms *MessengerServiceImpl) getAssigneeIdByTeam(workspace *entity.Workspace, teamName string) (primitive.ObjectID, error) {
-	if team, exists := workspace.InternalTeams[teamName]; exists {
-		return ms.findLeastBusyMember(team)
-	}
-
-	return primitive.NilObjectID, errors.New("specified team does not exist in the workspace")
-}
-
-func (ms *MessengerServiceImpl) validateTicketStatus(status string) (entity.TicketStatus, error) {
-	switch entity.TicketStatus(status) {
-	case entity.StatusOpen, entity.StatusPending, entity.StatusClosed:
-		return entity.TicketStatus(status), nil
 	default:
-		return "", fmt.Errorf("invalid ticket status: %s", status)
+		return errors.New("invalid message type")
 	}
 }
 
-func (ms *MessengerServiceImpl) findLeastBusyMember(team map[primitive.ObjectID]entity.UserStatus) (primitive.ObjectID, error) {
+func (ms *MessengerServiceImpl) getAssigneeIdByTeam(workspace *entity.Workspace, teamId string) (primitive.ObjectID, error) {
+	team, err := ms.messengerRepo.FindTeamByWorkspaceIdAndTeamId(workspace.Id, teamId)
+	if err != nil {
+		return primitive.ObjectID{}, err
+	}
+
 	var leastBusyMember primitive.ObjectID
 	minTickets := int(^uint(0) >> 1)
 
 	findMember := func(status entity.UserStatus) bool {
-		for memberId, userStatus := range team {
-			if userStatus != status {
+		for memberId := range team.Members {
+			user, err := ms.messengerRepo.FindUserById(memberId)
+			if err != nil || user.Status != status {
 				continue
 			}
+
 			activeTicketsCount, err := ms.messengerRepo.CountActiveTickets(memberId)
 			if err != nil {
 				continue
@@ -582,6 +553,15 @@ func (ms *MessengerServiceImpl) findLeastBusyMember(team map[primitive.ObjectID]
 	}
 
 	return primitive.NilObjectID, errors.New("no suitable team member found")
+}
+
+func (ms *MessengerServiceImpl) validateTicketStatus(status string) (entity.TicketStatus, error) {
+	switch entity.TicketStatus(status) {
+	case entity.StatusOpen, entity.StatusPending, entity.StatusClosed:
+		return entity.TicketStatus(status), nil
+	default:
+		return "", fmt.Errorf("invalid ticket status: %s", status)
+	}
 }
 
 func (ms *MessengerServiceImpl) findTicketInChat(chat *entity.Chat, ticketId string) (*entity.Ticket, error) {
@@ -637,7 +617,7 @@ func (ms *MessengerServiceImpl) updateWallpaper(workspaceId, chatId string, user
 		return errors.New("an error occured")
 	}
 
-	ms.fileService.SaveFile(chatId+".jpg", resp.Body())
+	ms.fileService.SaveFile("chat."+chatId, resp.Body())
 
 	return nil
 }
@@ -725,7 +705,7 @@ func (ms *MessengerServiceImpl) createMessageResponse(content []byte, createdAt 
 	}
 }
 
-func (ms *MessengerServiceImpl) createChatResponse(workspaceId, chatId string, tgClientId, tgChatId int, tags []string, lastMessage model.MessageResponse, source string, isImported bool, createdAt time.Time, name string, logo []byte) *model.ChatResponse {
+func (ms *MessengerServiceImpl) createChatResponse(workspaceId, chatId string, tgClientId, tgChatId int, tags []string, lastMessage model.MessageResponse, source string, isImported bool, createdAt time.Time, name string, logo []byte, notes []model.MessageResponse) *model.ChatResponse {
 	return &model.ChatResponse{
 		WorkspaceId: workspaceId,
 		ChatId:      chatId,
@@ -735,6 +715,7 @@ func (ms *MessengerServiceImpl) createChatResponse(workspaceId, chatId string, t
 		LastMessage: lastMessage,
 		Source:      source,
 		IsImported:  isImported,
+		Notes:       notes,
 		Name:        name,
 		Logo:        logo,
 		CreatedAt:   createdAt,

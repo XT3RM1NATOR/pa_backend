@@ -28,7 +28,7 @@ func NewUserRepositoryImpl(db *mongo.Database, config *config.Config, mu *sync.R
 	}
 }
 
-func (ur *UserRepositoryImpl) CreateUser(email, passwordHash, confirmToken string) error {
+func (ur *UserRepositoryImpl) CreateUser(userRole entity.UserRole, email, passwordHash, confirmToken string) error {
 	ur.mu.Lock()
 	defer ur.mu.Unlock()
 
@@ -39,7 +39,28 @@ func (ur *UserRepositoryImpl) CreateUser(email, passwordHash, confirmToken strin
 		Tokens: entity.Tokens{
 			ConfirmToken: confirmToken,
 		},
+		Role:      userRole,
 		CreatedAt: time.Now(),
+	}
+
+	_, err := ur.database.Collection(ur.config.MongoDB.UserCollection).InsertOne(
+		context.Background(),
+		user,
+	)
+
+	return err
+}
+
+func (ur *UserRepositoryImpl) CreateReadyUser(userRole entity.UserRole, email, passwordHash string) error {
+	ur.mu.Lock()
+	defer ur.mu.Unlock()
+
+	user := &entity.User{
+		Email:        email,
+		PasswordHash: passwordHash,
+		IsConfirmed:  true,
+		Role:         userRole,
+		CreatedAt:    time.Now(),
 	}
 
 	_, err := ur.database.Collection(ur.config.MongoDB.UserCollection).InsertOne(
@@ -128,13 +149,9 @@ func (ur *UserRepositoryImpl) UpdateAllPendingWorkspaceTeamInvites(userId primit
 	ur.mu.Lock()
 	defer ur.mu.Unlock()
 
-	filter := bson.M{
-		"pending_internal_teams.$." + email: bson.M{"$exists": true},
-	}
-
-	cursor, err := ur.database.Collection(ur.config.MongoDB.WorkspaceCollection).Find(
+	cursor, err := ur.database.Collection(ur.config.MongoDB.TeamCollection).Find(
 		context.Background(),
-		filter,
+		bson.M{"pending_members." + email: bson.M{"$exists": true}},
 	)
 	if err != nil {
 		return err
@@ -142,23 +159,40 @@ func (ur *UserRepositoryImpl) UpdateAllPendingWorkspaceTeamInvites(userId primit
 	defer cursor.Close(context.Background())
 
 	for cursor.Next(context.Background()) {
-		var workspace entity.Workspace
-		if err := cursor.Decode(&workspace); err != nil {
+		var team entity.Team
+		if err := cursor.Decode(&team); err != nil {
 			continue
 		}
 
-		for teamName, members := range workspace.PendingInternalTeams {
-			if _, exists := members[email]; exists {
-				delete(workspace.PendingInternalTeams[teamName], email)
-				workspace.InternalTeams[teamName][userId] = entity.StatusOffline
+		delete(team.PendingMembers, email)
+		team.Members[userId] = true
 
-				go ur.UpdateWorkspace(&workspace)
-			}
+		if err = ur.UpdateTeam(&team); err != nil {
+			return err
 		}
 	}
 
 	if err := cursor.Err(); err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func (ur *UserRepositoryImpl) UpdateTeam(team *entity.Team) error {
+	ur.mu.Lock()
+	defer ur.mu.Unlock()
+
+	res, err := ur.database.Collection(ur.config.MongoDB.TeamCollection).ReplaceOne(
+		context.Background(),
+		bson.M{"_id": team.Id},
+		team,
+	)
+	if err != nil {
+		return err
+	}
+	if res.MatchedCount == 0 {
+		return errors.New("team not found")
 	}
 
 	return nil

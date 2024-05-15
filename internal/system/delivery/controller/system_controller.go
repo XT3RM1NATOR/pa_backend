@@ -64,33 +64,11 @@ func (sc *SystemController) AddTeamsMembers(c echo.Context) error {
 	}
 
 	userId := c.Request().Context().Value("userId").(primitive.ObjectID)
-	if err := sc.systemService.AddTeamsMember(userId, request.Member, request.TeamName, request.Role, request.WorkspaceId); err != nil {
+	if err := sc.systemService.AddTeamsMembers(userId, request.Members, request.TeamId, request.WorkspaceId); err != nil {
 		return c.JSON(http.StatusInternalServerError, model.ErrorResponse{Error: err.Error()})
 	}
 
 	return c.JSON(http.StatusCreated, model.SuccessResponse{Message: "user added to the team"})
-}
-
-// UpdateMemberStatus updates the status of a workspace member.
-// @Summary Updates the status of a member within a workspace.
-// @Tags System
-// @Accept json
-// @Produce json
-// @Param id path string true "Workspace ID"
-// @Param status path string true "New status"
-// @Param userId path string true "User ID"
-// @Success 201 {object} model.SuccessResponse "Status updated successfully"
-// @Failure 500 {object} model.ErrorResponse "Internal server error, failed to update member status"
-// @Router /system/workspace/{id}/status/{status} [put]
-func (sc *SystemController) UpdateMemberStatus(c echo.Context) error {
-	status, workspaceId := c.Param("status"), c.Param("id")
-	userId := c.Request().Context().Value("userId").(primitive.ObjectID)
-
-	if err := sc.systemService.UpdateMemberStatus(userId, status, workspaceId); err != nil {
-		return c.JSON(http.StatusInternalServerError, model.ErrorResponse{Error: err.Error()})
-	}
-
-	return c.JSON(http.StatusCreated, model.SuccessResponse{Message: "status updated"})
 }
 
 // SetFirstTeam sets the first team for a user in a workspace.
@@ -105,10 +83,10 @@ func (sc *SystemController) UpdateMemberStatus(c echo.Context) error {
 // @Failure 500 {object} model.ErrorResponse "Internal server error, failed to set the first team"
 // @Router /system/teams/{id}/{name} [post]
 func (sc *SystemController) SetFirstTeam(c echo.Context) error {
-	teamName, workspaceId := c.Param("name"), c.Param("id")
+	teamId, workspaceId := c.Param("team_id"), c.Param("id")
 	userId := c.Request().Context().Value("userId").(primitive.ObjectID)
 
-	if err := sc.systemService.SetFirstTeam(userId, teamName, workspaceId); err != nil {
+	if err := sc.systemService.SetFirstTeam(userId, teamId, workspaceId); err != nil {
 		return c.JSON(http.StatusInternalServerError, model.ErrorResponse{Error: err.Error()})
 	}
 
@@ -433,7 +411,7 @@ func (sc *SystemController) UpdateTeam(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, model.ErrorResponse{Error: err.Error()})
 	}
 
-	if err := sc.systemService.UpdateTeam(userId, request.WorkspaceId, request.TeamName, request.OldTeamName); err != nil {
+	if err := sc.systemService.UpdateTeam(userId, request.Logo, request.WorkspaceId, request.NewTeamName, request.TeamId); err != nil {
 		return c.JSON(http.StatusInternalServerError, model.ErrorResponse{Error: err.Error()})
 	}
 	return c.JSON(http.StatusOK, model.SuccessResponse{Message: "team updated successfully"})
@@ -441,9 +419,9 @@ func (sc *SystemController) UpdateTeam(c echo.Context) error {
 
 func (sc *SystemController) DeleteTeam(c echo.Context) error {
 	userId := c.Request().Context().Value("userId").(primitive.ObjectID)
-	workspaceId, teamName := c.Param("id"), c.Param("name")
+	workspaceId, teamId := c.Param("id"), c.Param("team_id")
 
-	if err := sc.systemService.DeleteTeam(userId, workspaceId, teamName); err != nil {
+	if err := sc.systemService.DeleteTeam(userId, workspaceId, teamId); err != nil {
 		return c.JSON(http.StatusInternalServerError, model.ErrorResponse{Error: err.Error()})
 	}
 	return c.JSON(http.StatusOK, model.SuccessResponse{Message: "new team created successfully"})
@@ -453,12 +431,12 @@ func (sc *SystemController) GetAllTeams(c echo.Context) error {
 	userId := c.Request().Context().Value("userId").(primitive.ObjectID)
 	workspaceId := c.Param("id")
 
-	folders, err := sc.systemService.GetAllTeams(userId, workspaceId)
+	teams, err := sc.systemService.GetAllTeams(userId, workspaceId)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, model.ErrorResponse{Error: err.Error()})
 	}
 
-	return c.JSON(http.StatusOK, folders)
+	return c.JSON(http.StatusOK, teams)
 }
 
 func (sc *SystemController) GetAllFolders(c echo.Context) error {

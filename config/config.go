@@ -29,6 +29,7 @@ type (
 		WorkspaceCollection string `env:"DB_WORKSPACE_COLLECTION"`
 		HelpDeskCollection  string `env:"DB_HELPDESK_COLLECTION"`
 		ChatCollection      string `env:"DB_CHAT_COLLECTION"`
+		TeamCollection      string `env:"DB_TEAM_COLLECTION"`
 	}
 
 	Server struct {

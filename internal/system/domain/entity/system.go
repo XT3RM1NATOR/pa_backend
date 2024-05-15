@@ -13,6 +13,7 @@ type User struct {
 	AuthSource   string             `bson:"auth_source"`
 	FullName     string             `bson:"name"`
 	Role         UserRole           `bson:"role"`
+	Status       UserStatus         `bson:"status"`
 	Tokens       Tokens             `bson:"tokens"`
 	CreatedAt    time.Time          `bson:"created_at"`
 }
@@ -25,24 +26,31 @@ type Tokens struct {
 }
 
 type Workspace struct {
-	Id                   primitive.ObjectID                           `bson:"_id,omitempty"`
-	WorkspaceId          string                                       `bson:"workspace_id"`
-	Name                 string                                       `bson:"name"`
-	Team                 map[primitive.ObjectID]WorkspaceRole         `bson:"team"`
-	PendingTeam          map[string]WorkspaceRole                     `bson:"pending"`
-	InternalTeams        map[string]map[primitive.ObjectID]UserStatus `bson:"teams"`
-	PendingInternalTeams map[string]map[string]bool                   `bson:"pending_internal_teams"`
-	FirstTeam            string                                       `bson:"first_team"`
-	Integrations         Integrations                                 `bson:"integrations"`
-	Folders              map[string][]string                          `bson:"folders"`
-	Tags                 []string                                     `bson:"tags"`
-	CreatedAt            time.Time                                    `bson:"created_at"`
+	Id          primitive.ObjectID                   `bson:"_id,omitempty"`
+	WorkspaceId string                               `bson:"workspace_id"`
+	Name        string                               `bson:"name"`
+	Team        map[primitive.ObjectID]WorkspaceRole `bson:"team"`
+	PendingTeam map[string]WorkspaceRole             `bson:"pending"`
+	Folders     map[string][]string                  `bson:"folders"`
+	Tags        []string                             `bson:"tags"`
+	CreatedAt   time.Time                            `bson:"created_at"`
+}
+
+type Team struct {
+	Id             primitive.ObjectID          `bson:"_id,omitempty"`
+	WorkspaceId    primitive.ObjectID          `bson:"workspace_id"`
+	TeamId         string                      `bson:"team_id"`
+	TeamName       string                      `bson:"team_name"`
+	Members        map[primitive.ObjectID]bool `bson:"members"`
+	PendingMembers map[string]bool             `bson:"pending_members"`
+	IsFirstTeam    bool                        `bson:"is_first_team"`
 }
 
 type Chat struct {
 	Id          primitive.ObjectID `bson:"_id,omitempty"`
 	UserId      primitive.ObjectID `bson:"user_id"`
 	WorkspaceId primitive.ObjectID `bson:"workspace_id"`
+	TeamId      primitive.ObjectID `bson:"team_id"`
 	ChatId      string             `bson:"chat_id"`
 	TgClientId  int                `bson:"tg_user_id"`
 	TgChatId    int                `bson:"tg_chat_id"`
@@ -83,46 +91,6 @@ type Message struct {
 	From            string             `bson:"from"`
 	Type            MessageType        `bson:"type"`
 	CreatedAt       time.Time          `bson:"created_at"`
-}
-
-type Integrations struct {
-	Id          primitive.ObjectID          `bson:"_id"`
-	TelegramBot *TelegramBotIntegration     `bson:"telegram_bot"`
-	Telegram    *TelegramAccountIntegration `bson:"telegram"`
-	Meta        *MetaIntegration            `bson:"meta"`
-	Instagram   *InstagramIntegration       `bson:"instagram"`
-	WhatsApp    *WhatsAppIntegration        `bson:"whatsapp"`
-	CreatedAt   time.Time                   `bson:"created_at"`
-}
-
-type TelegramBotIntegration struct {
-	BotToken string `bson:"bot_token"`
-	IsActive bool   `bson:"is_active"`
-}
-
-type TelegramAccountIntegration struct {
-	Session     string `bson:"session"`
-	PhoneNumber string `bson:"phone_number"`
-	IsActive    bool   `bson:"is_active"`
-}
-
-type MetaIntegration struct {
-	AccessToken  string `bson:"access_token"`
-	RefreshToken string `bson:"refresh_token"`
-	PageId       string `bson:"page_id"`
-	IsActive     bool   `bson:"is_active"`
-}
-
-type InstagramIntegration struct {
-	AccessToken  string `bson:"access_token"`
-	RefreshToken string `bson:"refresh_token"`
-	PageId       string `bson:"page_id"`
-	IsActive     bool   `bson:"is_active"`
-}
-
-type WhatsAppIntegration struct {
-	InstanceId string `bson:"instance_id"`
-	IsActive   bool   `bson:"is_active"`
 }
 
 type MessageType string

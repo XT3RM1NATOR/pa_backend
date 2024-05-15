@@ -18,20 +18,20 @@ type SystemService interface {
 	UpdateWorkspaceMembers(userId primitive.ObjectID, team map[string]string, WorkspaceId string) error
 	GetUserProfiles(WorkspaceId string, userId primitive.ObjectID) ([]infrastructureModel.User, error)
 	UpdateWorkspacePendingStatus(userId primitive.ObjectID, workspaceId string, status bool) error
-	AddTeamsMember(userId primitive.ObjectID, memberEmail, memberRole string, teamName, workspaceId string) error
-	UpdateMemberStatus(userId primitive.ObjectID, status string, workspaceId string) error
-	SetFirstTeam(userId primitive.ObjectID, teamName, workspaceId string) error
+	AddTeamsMembers(userId primitive.ObjectID, members map[string]string, teamId, workspaceId string) error
+	SetFirstTeam(userId primitive.ObjectID, teamId, workspaceId string) error
 	EditFolders(userId primitive.ObjectID, workspaceId string, folders map[string][]string) error
 	RegisterTelegramIntegration(userId primitive.ObjectID, workspaceId, stage, value string) (int, error)
 	GetAllTeams(userId primitive.ObjectID, workspaceId string) ([]model.TeamResponse, error)
 	GetAllFolders(userId primitive.ObjectID, workspaceId string) (map[string][]string, error)
 	CreateTeam(userId primitive.ObjectID, workspaceId, teamName string, members map[string]string, logo []byte) error
 	DeleteTeam(userId primitive.ObjectID, workspaceId, teamName string) error
-	UpdateTeam(userId primitive.ObjectID, workspaceId string, newTeamName, oldTeamName string) error
+	UpdateTeam(userId primitive.ObjectID, newLogo []byte, workspaceId, newTeamName, teamId string) error
 }
 
 type EmailService interface {
 	SendInvitationEmail(recipientEmail, confirmationLink string) error
+	SendWorkspaceInvitationEmail(recipientEmail, inviteLink string) error
 }
 
 type FileService interface {

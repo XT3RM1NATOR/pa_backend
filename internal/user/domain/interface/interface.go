@@ -9,7 +9,7 @@ type UserService interface {
 	GoogleAuthCallback(code string) (string, error)
 	GoogleTokens(token string) (string, string, error)
 	Login(email, password string) (string, string, error)
-	RegisterUser(email, password, workspaceId string) error
+	RegisterUser(email, password, workspaceId, emailHash string) error
 	ConfirmUser(token string) error
 	ForgotPassword(email string) error
 	ResetPassword(token, newPassword string) error
@@ -18,6 +18,7 @@ type UserService interface {
 	GetUserProfile(userId primitive.ObjectID) (*entity.User, []byte, error)
 	UpdateUserProfile(userId primitive.ObjectID, logo []byte, name string) error
 	FacebookAuthCallback(code, workspaceId string) error
+	UpdateUserStatus(userId primitive.ObjectID, status string) error
 }
 
 type EmailService interface {

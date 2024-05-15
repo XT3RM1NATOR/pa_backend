@@ -32,6 +32,14 @@ type SystemRepository interface {
 	UpdateWorkspaceUserStatus(userId primitive.ObjectID, workspaceId string, status bool) error
 	FindUserById(userId primitive.ObjectID) (*entity.User, error)
 	ValidateNewTeamUsers(team map[string]string) (map[primitive.ObjectID]entity.WorkspaceRole, map[string]entity.WorkspaceRole, error)
+	FindTeamByTeamId(teamId string) (*entity.Team, error)
+	InsertNewTeam(team *entity.Team) error
+	UpdateTeam(team *entity.Team) error
+	FindTeamByTeamIdAndWorkspaceId(teamId string, workspaceId primitive.ObjectID) (*entity.Team, error)
+	FindTeamsByWorkspaceId(workspaceId primitive.ObjectID) ([]*entity.Team, error)
+	CountChatsByTeamId(teamId primitive.ObjectID) (int, error)
+	DeleteTeam(id primitive.ObjectID) error
+	UpdateChatTeamIdToNil(teamId primitive.ObjectID) error
 }
 
 type EmailClient interface {

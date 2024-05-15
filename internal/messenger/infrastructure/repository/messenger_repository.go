@@ -89,6 +89,40 @@ func (mr *MessengerRepositoryImpl) FindChatByWorkspaceIdAndChatId(workspaceId pr
 	return &chat, nil
 }
 
+func (mr *MessengerRepositoryImpl) FindTeamByWorkspaceIdAndTeamId(workspaceId primitive.ObjectID, teamId string) (*entity.Team, error) {
+	mr.mu.RLock()
+	defer mr.mu.RUnlock()
+
+	var team entity.Team
+	err := mr.database.Collection(mr.config.MongoDB.ChatCollection).FindOne(
+		context.Background(),
+		bson.M{"workspace_id": workspaceId, "team_id": teamId},
+	).Decode(&team)
+	if err != nil {
+		return nil, err
+	}
+
+	return &team, nil
+}
+
+func (mr *MessengerRepositoryImpl) FindUserById(id primitive.ObjectID) (*entity.User, error) {
+	mr.mu.RLock()
+	defer mr.mu.RUnlock()
+
+	var user entity.User
+	err := mr.database.Collection(mr.config.MongoDB.UserCollection).FindOne(
+		context.Background(),
+		bson.M{"_id": id},
+	).Decode(&user)
+	if err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return nil, errors.New("user not found")
+		}
+		return nil, err
+	}
+	return &user, nil
+}
+
 func (mr *MessengerRepositoryImpl) FindChatByChatId(chatId string) (*entity.Chat, error) {
 	mr.mu.RLock()
 	defer mr.mu.RUnlock()

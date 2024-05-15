@@ -2,6 +2,7 @@ package service
 
 import (
 	"errors"
+	"fmt"
 	"github.com/Point-AI/backend/config"
 	"github.com/Point-AI/backend/internal/system/delivery/model"
 	"github.com/Point-AI/backend/internal/system/domain/entity"
@@ -10,6 +11,7 @@ import (
 	infrastructureInterface "github.com/Point-AI/backend/internal/system/service/interface"
 	"github.com/Point-AI/backend/utils"
 	"github.com/go-resty/resty/v2"
+	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 )
@@ -61,12 +63,13 @@ func (ss *SystemServiceImpl) CreateWorkspace(logo []byte, team map[string]string
 			return err
 		}
 
-		go ss.fileService.SaveFile(workspaceId+".jpg", logo)
+		go ss.fileService.SaveFile("wp."+workspaceId, logo)
 
 		for email, _ := range teamRoles {
 			id, err := ss.systemRepo.FindUserByEmail(email)
 			if errors.Is(err, mongo.ErrNoDocuments) {
-				go ss.emailService.SendInvitationEmail(email, ss.config.Website.BaseURL+"/auth/signup")
+				emailHash, _ := utils.GenerateInvitationJWTToken(ss.config.Auth.JWTSecretKey, email)
+				ss.emailService.SendWorkspaceInvitationEmail(email, fmt.Sprintf("%s/signin/confirm?id=%s&email=%s", ss.config.Website.WebURL, workspaceId, emailHash))
 			} else if err == nil {
 				go ss.systemRepo.AddPendingInviteToUser(id, workspaceId)
 			}
@@ -86,92 +89,91 @@ func (ss *SystemServiceImpl) LeaveWorkspace(workspaceId string, userId primitive
 		return err
 	}
 
-	if err := ss.systemRepo.RemoveUserFromWorkspace(workspace, userId); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (ss *SystemServiceImpl) SetFirstTeam(userId primitive.ObjectID, teamName, workspaceId string) error {
-	workspace, err := ss.systemRepo.FindWorkspaceByWorkspaceId(workspaceId)
+	user, err := ss.systemRepo.FindUserById(userId)
 	if err != nil {
 		return err
 	}
 
-	if ss.isAdmin(workspace.Team[userId]) || ss.isOwner(workspace.Team[userId]) {
-		if _, exists := workspace.InternalTeams[teamName]; !exists {
-			return errors.New("team not found")
-		}
-		workspace.FirstTeam = teamName
+	internalTeams, _ := ss.systemRepo.FindTeamsByWorkspaceId(workspace.Id)
 
-		err := ss.systemRepo.UpdateWorkspace(workspace)
-		if err != nil {
-			return err
-		}
-	}
-
-	return errors.New("unauthorised")
-}
-
-func (ss *SystemServiceImpl) UpdateMemberStatus(userId primitive.ObjectID, status, workspaceId string) error {
-	workspace, err := ss.systemRepo.FindWorkspaceByWorkspaceId(workspaceId)
-	if err != nil {
-		return err
-	}
-
-	for _, team := range workspace.InternalTeams {
-		if _, exists := team[userId]; exists {
-			switch entity.UserStatus(status) {
-			case entity.StatusAvailable, entity.StatusOffline, entity.StatusBusy:
-				team[userId] = entity.UserStatus(status)
-			default:
-				return errors.New("invalid status")
+	for _, internalTeam := range internalTeams {
+		if _, exists := internalTeam.Members[user.Id]; exists {
+			delete(internalTeam.Members, user.Id)
+			if err = ss.systemRepo.UpdateTeam(internalTeam); err != nil {
+				return err
 			}
 		}
 	}
 
-	err = ss.systemRepo.UpdateWorkspace(workspace)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return ss.systemRepo.RemoveUserFromWorkspace(workspace, userId)
 }
 
-func (ss *SystemServiceImpl) AddTeamsMember(userId primitive.ObjectID, memberEmail, memberRole string, teamName, workspaceId string) error {
+func (ss *SystemServiceImpl) SetFirstTeam(userId primitive.ObjectID, teamId, workspaceId string) error {
 	workspace, err := ss.systemRepo.FindWorkspaceByWorkspaceId(workspaceId)
 	if err != nil {
 		return err
 	}
 
-	if ss.isAdmin(workspace.Team[userId]) || ss.isOwner(workspace.Team[userId]) {
-		_, ok := workspace.InternalTeams[teamName]
-		if !ok {
-			return errors.New("team not found")
-		}
-
-		var role entity.WorkspaceRole
-		switch memberRole {
-		case string(entity.RoleAdmin), string(entity.RoleAgent), string(entity.RoleOwner):
-			role = entity.WorkspaceRole(memberRole)
-		default:
-			role = entity.RoleAgent
-		}
-
-		user, err := ss.systemRepo.FindUserByEmail(memberEmail)
-		if err != nil {
-			workspace.PendingInternalTeams[teamName][memberEmail] = true
-			workspace.PendingTeam[memberEmail] = role
-		} else {
-			workspace.InternalTeams[teamName][user] = entity.StatusOffline
-			workspace.Team[user] = role
-		}
-
-		return ss.systemRepo.UpdateWorkspace(workspace)
+	if !ss.isAdmin(workspace.Team[userId]) && !ss.isOwner(workspace.Team[userId]) {
+		return errors.New("unauthorised")
 	}
 
-	return errors.New("unauthorised")
+	internalTeam, err := ss.systemRepo.FindTeamByTeamIdAndWorkspaceId(teamId, workspace.Id)
+	if err != nil {
+		return err
+	}
+
+	internalTeam.IsFirstTeam = true
+
+	return ss.systemRepo.UpdateTeam(internalTeam)
+}
+
+func (ss *SystemServiceImpl) AddTeamsMembers(userId primitive.ObjectID, members map[string]string, teamId, workspaceId string) error {
+	workspace, err := ss.systemRepo.FindWorkspaceByWorkspaceId(workspaceId)
+	if err != nil {
+		return err
+	}
+
+	if !ss.isAdmin(workspace.Team[userId]) && !ss.isOwner(workspace.Team[userId]) {
+		return errors.New("unauthorised")
+	}
+
+	internalTeam, err := ss.systemRepo.FindTeamByTeamIdAndWorkspaceId(teamId, workspace.Id)
+	if err != nil {
+		return err
+	}
+
+	if members != nil {
+		teamRoles, pendingTeamRoles, err := ss.systemRepo.ValidateTeam(members, userId)
+		if err != nil {
+			return err
+		}
+
+		for id, role := range teamRoles {
+			if _, exists := workspace.Team[id]; !exists {
+				workspace.Team[id] = role
+				internalTeam.Members[id] = true
+			} else {
+				internalTeam.Members[id] = true
+			}
+		}
+
+		for email, role := range pendingTeamRoles {
+			emailHash, _ := utils.GenerateInvitationJWTToken(ss.config.Auth.JWTSecretKey, email)
+			ss.emailService.SendWorkspaceInvitationEmail(email, fmt.Sprintf("%s/signin/confirm?id=%s&email=%s", ss.config.Website.WebURL, workspaceId, emailHash))
+
+			if _, exists := workspace.PendingTeam[email]; !exists {
+				workspace.PendingTeam[email] = role
+				internalTeam.PendingMembers[email] = true
+			}
+		}
+	}
+
+	if err := ss.systemRepo.UpdateTeam(internalTeam); err != nil {
+		return err
+	}
+
+	return ss.systemRepo.UpdateWorkspace(workspace)
 }
 
 // GetWorkspaceById TODO: update function not to return team
@@ -217,10 +219,7 @@ func (ss *SystemServiceImpl) CreateTeam(userId primitive.ObjectID, workspaceId, 
 		return errors.New("unauthorised")
 	}
 
-	if _, exists := workspace.InternalTeams[teamName]; exists {
-		return errors.New("team name already exists")
-	}
-
+	internalTeam := ss.createTeam(workspace.Id, teamName, nil, nil, false)
 	if members != nil {
 		teamRoles, pendingTeamRoles, err := ss.systemRepo.ValidateTeam(members, userId)
 		if err != nil {
@@ -230,28 +229,32 @@ func (ss *SystemServiceImpl) CreateTeam(userId primitive.ObjectID, workspaceId, 
 		for id, role := range teamRoles {
 			if _, exists := workspace.Team[id]; !exists {
 				workspace.Team[id] = role
-				workspace.InternalTeams[teamName][id] = entity.StatusOffline
+				internalTeam.Members[id] = true
+			} else {
+				internalTeam.Members[id] = true
 			}
 		}
 
 		for email, role := range pendingTeamRoles {
 			if _, exists := workspace.PendingTeam[email]; !exists {
 				workspace.PendingTeam[email] = role
-				workspace.PendingInternalTeams[teamName][email] = true
+				internalTeam.PendingMembers[email] = true
 			}
 		}
-	} else {
-		workspace.InternalTeams[teamName] = make(map[primitive.ObjectID]entity.UserStatus)
 	}
 
 	if logo != nil {
-		ss.fileService.SaveFile(workspaceId+"."+teamName+".jpg", logo)
+		ss.fileService.SaveFile("team."+internalTeam.TeamId, logo)
+	}
+
+	if err := ss.systemRepo.InsertNewTeam(internalTeam); err != nil {
+		return err
 	}
 
 	return ss.systemRepo.UpdateWorkspace(workspace)
 }
 
-func (ss *SystemServiceImpl) DeleteTeam(userId primitive.ObjectID, workspaceId, teamName string) error {
+func (ss *SystemServiceImpl) DeleteTeam(userId primitive.ObjectID, workspaceId, teamId string) error {
 	workspace, err := ss.systemRepo.FindWorkspaceByWorkspaceId(workspaceId)
 	if err != nil {
 		return err
@@ -261,8 +264,16 @@ func (ss *SystemServiceImpl) DeleteTeam(userId primitive.ObjectID, workspaceId, 
 		return errors.New("unauthorized to make the changes")
 	}
 
-	delete(workspace.InternalTeams, teamName)
-	return ss.systemRepo.UpdateWorkspace(workspace)
+	team, err := ss.systemRepo.FindTeamByTeamIdAndWorkspaceId(teamId, workspace.Id)
+	if err != nil {
+		return err
+	}
+
+	if err = ss.systemRepo.UpdateChatTeamIdToNil(team.Id); err != nil {
+		return err
+	}
+
+	return ss.systemRepo.DeleteTeam(team.Id)
 }
 
 func (ss *SystemServiceImpl) UpdateWorkspace(userId primitive.ObjectID, newLogo []byte, workspaceId, newWorkspaceId, newName string) error {
@@ -271,36 +282,34 @@ func (ss *SystemServiceImpl) UpdateWorkspace(userId primitive.ObjectID, newLogo 
 		return err
 	}
 
-	if ss.isOwner(workspace.Team[userId]) || ss.isAdmin(workspace.Team[userId]) {
-		if newWorkspaceId != "" {
-			if err := utils.ValidateWorkspaceId(workspaceId); err != nil {
-				return err
-			}
-			if err := ss.fileService.UpdateFileName(workspace.WorkspaceId+".jpg", newWorkspaceId+".jpg"); err != nil {
-				return err
-			}
-			workspace.WorkspaceId = newWorkspaceId
-		}
+	if !ss.isOwner(workspace.Team[userId]) && !ss.isAdmin(workspace.Team[userId]) {
+		return errors.New("unauthorized to make the changes")
+	}
 
-		if newLogo != nil {
-			if err := utils.ValidatePhoto(newLogo); err != nil {
-				return err
-			}
-			if err := ss.fileService.UpdateFile(newLogo, workspace.WorkspaceId+".jpg"); err != nil {
-				return err
-			}
-		}
-
-		if newName != "" {
-			workspace.Name = newName
-		}
-
-		if err := ss.systemRepo.UpdateWorkspace(workspace); err != nil {
+	if newWorkspaceId != "" {
+		if err := utils.ValidateWorkspaceId(workspaceId); err != nil {
 			return err
 		}
-		return nil
+		if err := ss.fileService.UpdateFileName("wp."+workspace.WorkspaceId, "wp."+newWorkspaceId); err != nil {
+			return err
+		}
+		workspace.WorkspaceId = newWorkspaceId
 	}
-	return errors.New("unauthorized to make the changes")
+
+	if newLogo != nil {
+		if err := utils.ValidatePhoto(newLogo); err != nil {
+			return err
+		}
+		if err := ss.fileService.UpdateFile(newLogo, "wp."+workspace.WorkspaceId); err != nil {
+			return err
+		}
+	}
+
+	if newName != "" {
+		workspace.Name = newName
+	}
+
+	return ss.systemRepo.UpdateWorkspace(workspace)
 }
 
 func (ss *SystemServiceImpl) AddWorkspaceMembers(userId primitive.ObjectID, team map[string]string, workspaceId string) error {
@@ -310,17 +319,20 @@ func (ss *SystemServiceImpl) AddWorkspaceMembers(userId primitive.ObjectID, team
 	}
 
 	if ss.isAdmin(workspace.Team[userId]) || ss.isOwner(workspace.Team[userId]) {
-		teamRoles, pendingTeamRoles, err := ss.systemRepo.ValidateTeam(team, userId)
-		if err != nil {
-			return err
-		}
-
-		if err := ss.systemRepo.AddUsersToWorkspace(workspace, teamRoles, pendingTeamRoles); err != nil {
-			return err
-		}
+		return errors.New("unauthorised")
 	}
 
-	return errors.New("user does not have the permissions")
+	teamRoles, pendingTeamRoles, err := ss.systemRepo.ValidateTeam(team, userId)
+	if err != nil {
+		return err
+	}
+
+	for email, _ := range pendingTeamRoles {
+		emailHash, _ := utils.GenerateInvitationJWTToken(ss.config.Auth.JWTSecretKey, email)
+		ss.emailService.SendWorkspaceInvitationEmail(email, fmt.Sprintf("%s/signin/confirm?id=%s&email=%s", ss.config.Website.WebURL, workspaceId, emailHash))
+	}
+
+	return ss.systemRepo.AddUsersToWorkspace(workspace, teamRoles, pendingTeamRoles)
 }
 
 func (ss *SystemServiceImpl) UpdateWorkspaceMembers(userId primitive.ObjectID, team map[string]string, workspaceId string) error {
@@ -349,18 +361,27 @@ func (ss *SystemServiceImpl) DeleteWorkspaceMember(userId primitive.ObjectID, wo
 		return err
 	}
 
-	if ss.isAdmin(workspace.Team[userId]) || ss.isOwner(workspace.Team[userId]) {
-		userId, err := ss.systemRepo.FindUserByEmail(memberEmail)
-		if err != nil {
-			return err
-		}
+	if !ss.isAdmin(workspace.Team[userId]) && !ss.isOwner(workspace.Team[userId]) {
+		return errors.New("unauthorised")
+	}
 
-		if err := ss.systemRepo.RemoveUserFromWorkspace(workspace, userId); err != nil {
-			return err
+	user, err := ss.systemRepo.FindUserByEmail(memberEmail)
+	if err != nil {
+		return err
+	}
+
+	internalTeams, _ := ss.systemRepo.FindTeamsByWorkspaceId(workspace.Id)
+
+	for _, internalTeam := range internalTeams {
+		if _, exists := internalTeam.Members[user]; exists {
+			delete(internalTeam.Members, user)
+			if err = ss.systemRepo.UpdateTeam(internalTeam); err != nil {
+				return err
+			}
 		}
 	}
 
-	return errors.New("user does not have the permissions")
+	return ss.systemRepo.RemoveUserFromWorkspace(workspace, user)
 }
 
 func (ss *SystemServiceImpl) DeleteWorkspaceById(workspaceId string, userId primitive.ObjectID) error {
@@ -391,7 +412,7 @@ func (ss *SystemServiceImpl) GetUserProfiles(workspaceId string, userId primitiv
 		}
 
 		for _, user := range *users {
-			user.Logo, _ = ss.fileService.LoadFile(user.Email + ".jpg")
+			user.Logo, _ = ss.fileService.LoadFile("user." + user.Email)
 		}
 
 		return *users, nil
@@ -458,7 +479,7 @@ func (ss *SystemServiceImpl) RegisterTelegramIntegration(userId primitive.Object
 func (ss *SystemServiceImpl) formatWorkspaces(workspaces []entity.Workspace) ([]infrastructureModel.Workspace, error) {
 	formattedWorkspaces := make([]infrastructureModel.Workspace, len(workspaces))
 	for i, p := range workspaces {
-		logo, _ := ss.fileService.LoadFile(p.WorkspaceId + ".jpg")
+		logo, _ := ss.fileService.LoadFile("wp." + p.WorkspaceId)
 		team, _ := ss.systemRepo.FormatTeam(p.Team)
 
 		formattedWorkspace := infrastructureModel.Workspace{
@@ -498,7 +519,7 @@ func (ss *SystemServiceImpl) UpdateWorkspacePendingStatus(userId primitive.Objec
 	return nil
 }
 
-func (ss *SystemServiceImpl) UpdateTeam(userId primitive.ObjectID, workspaceId string, newTeamName, oldTeamName string) error {
+func (ss *SystemServiceImpl) UpdateTeam(userId primitive.ObjectID, newLogo []byte, workspaceId, newTeamName, teamId string) error {
 	workspace, err := ss.systemRepo.FindWorkspaceByWorkspaceId(workspaceId)
 	if err != nil {
 		return err
@@ -508,18 +529,17 @@ func (ss *SystemServiceImpl) UpdateTeam(userId primitive.ObjectID, workspaceId s
 		return errors.New("unauthorised")
 	}
 
-	if _, exists := workspace.InternalTeams[newTeamName]; exists {
-		return errors.New("team name already exists")
+	team, err := ss.systemRepo.FindTeamByTeamIdAndWorkspaceId(teamId, workspace.Id)
+	if err != nil {
+		return err
 	}
 
-	if _, exists := workspace.InternalTeams[oldTeamName]; !exists {
-		return errors.New("team name does not exist")
+	team.TeamName = newTeamName
+	if newLogo != nil {
+		ss.fileService.UpdateFile(newLogo, "team."+teamId)
 	}
 
-	workspace.InternalTeams[newTeamName] = workspace.InternalTeams[oldTeamName]
-	delete(workspace.InternalTeams, oldTeamName)
-
-	return ss.systemRepo.UpdateWorkspace(workspace)
+	return ss.systemRepo.UpdateTeam(team)
 }
 
 func (ss *SystemServiceImpl) GetAllTeams(userId primitive.ObjectID, workspaceId string) ([]model.TeamResponse, error) {
@@ -532,23 +552,30 @@ func (ss *SystemServiceImpl) GetAllTeams(userId primitive.ObjectID, workspaceId 
 		return nil, errors.New("unauthorised")
 	}
 
-	var teams []model.TeamResponse
-	for name, team := range workspace.InternalTeams {
+	internalTeams, err := ss.systemRepo.FindTeamsByWorkspaceId(workspace.Id)
+	if err != nil {
+		return nil, err
+	}
+
+	var teamsResponse []model.TeamResponse
+	for _, team := range internalTeams {
 		var memberCount int
 		var admins []string
 
-		for userId, _ := range team {
+		for userId, _ := range team.Members {
 			memberCount++
 			if ss.isAdmin(workspace.Team[userId]) || ss.isOwner(workspace.Team[userId]) {
 				user, _ := ss.systemRepo.FindUserById(userId)
 				admins = append(admins, user.FullName)
 			}
 		}
-		logo, _ := ss.fileService.LoadFile(workspaceId + "." + name + ".jpg")
-		teams = append(teams, *ss.createTeamResponse(name, memberCount, 0, admins, logo))
+		number, _ := ss.systemRepo.CountChatsByTeamId(team.Id)
+
+		logo, _ := ss.fileService.LoadFile("team." + team.TeamId)
+		teamsResponse = append(teamsResponse, *ss.createTeamResponse(team.TeamName, team.TeamId, memberCount, number, admins, logo))
 	}
 
-	return teams, nil
+	return teamsResponse, nil
 }
 
 func (ss *SystemServiceImpl) GetAllFolders(userId primitive.ObjectID, workspaceId string) (map[string][]string, error) {
@@ -564,13 +591,25 @@ func (ss *SystemServiceImpl) GetAllFolders(userId primitive.ObjectID, workspaceI
 	return workspace.Folders, nil
 }
 
-func (ss *SystemServiceImpl) createTeamResponse(teamName string, memberCount, chatCount int, adminNames []string, logo []byte) *model.TeamResponse {
+func (ss *SystemServiceImpl) createTeamResponse(teamName, teamId string, memberCount, chatCount int, adminNames []string, logo []byte) *model.TeamResponse {
 	return &model.TeamResponse{
+		TeamId:      teamId,
 		TeamName:    teamName,
 		MemberCount: memberCount,
 		AdminNames:  adminNames,
 		ChatCount:   chatCount,
 		Logo:        logo,
+	}
+}
+
+func (ss *SystemServiceImpl) createTeam(workspaceId primitive.ObjectID, teamName string, members map[primitive.ObjectID]bool, pendingMembers map[string]bool, isFirstTeam bool) *entity.Team {
+	return &entity.Team{
+		WorkspaceId:    workspaceId,
+		TeamId:         uuid.New().String(),
+		TeamName:       teamName,
+		Members:        members,
+		PendingMembers: pendingMembers,
+		IsFirstTeam:    isFirstTeam,
 	}
 }
 

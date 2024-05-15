@@ -40,29 +40,29 @@ func (us *UserServiceImpl) GoogleAuthCallback(code string) (string, error) {
 		return "", err
 	}
 
-	go us.fileService.SaveFile(email+".jpg", photo)
+	go us.fileService.SaveFile("user."+email, photo)
 
 	return oAuth2Token, nil
 }
 
 func (us *UserServiceImpl) FacebookAuthCallback(code, workspaceId string) error {
-	accessToken, refreshToken, err := utils.ExchangeFacebookCodeForToken(us.config.OAuth2.MetaClientId, us.config.OAuth2.MetaClientSecret, code, us.config.Website.BaseURL+us.config.OAuth2.MetaRedirectURL)
-	if err != nil {
-		return err
-	}
+	//accessToken, refreshToken, err := utils.ExchangeFacebookCodeForToken(us.config.OAuth2.MetaClientId, us.config.OAuth2.MetaClientSecret, code, us.config.Website.BaseURL+us.config.OAuth2.MetaRedirectURL)
+	//if err != nil {
+	//	return err
+	//}
 
 	workspace, err := us.userRepo.FindWorkspaceByWorkspaceId(workspaceId)
 	if err != nil {
 		return err
 	}
 
-	facebookIntegration := entity.MetaIntegration{
-		AccessToken:  accessToken,
-		RefreshToken: refreshToken,
-		IsActive:     true,
-	}
-
-	*workspace.Integrations.Meta = facebookIntegration
+	//facebookIntegration := entity.MetaIntegration{
+	//	AccessToken:  accessToken,
+	//	RefreshToken: refreshToken,
+	//	IsActive:     true,
+	//}
+	//
+	//*workspace.Integrations.Meta = facebookIntegration
 	if err = us.userRepo.UpdateWorkspace(workspace); err != nil {
 		return err
 	}
@@ -123,7 +123,7 @@ func (us *UserServiceImpl) Login(email, password string) (string, string, error)
 	return accessToken, refreshToken, nil
 }
 
-func (us *UserServiceImpl) RegisterUser(email, password, workspaceId string) error {
+func (us *UserServiceImpl) RegisterUser(email, password, workspaceId, emailHash string) error {
 	existingUser, err := us.userRepo.GetUserByEmail(email)
 	if err != nil {
 		return err
@@ -132,17 +132,25 @@ func (us *UserServiceImpl) RegisterUser(email, password, workspaceId string) err
 		return errors.New("user already exists")
 	}
 
-	confirmToken, err := utils.GenerateToken()
-	if err != nil {
-		return err
-	}
+	//confirmToken, err := utils.GenerateToken()
+	//if err != nil {
+	//	return err
+	//}
 	passwordHash, err := utils.HashPassword(password)
 	if err != nil {
 		return err
 	}
-	confirmationLink := fmt.Sprintf("%s/confirm?token=%s", us.config.Website.WebURL, confirmToken)
-	if err := us.emailService.SendConfirmationEmail(email, confirmationLink); err != nil {
+	//confirmationLink := fmt.Sprintf("%s/confirm?token=%s", us.config.Website.WebURL, confirmToken)
+	//if err := us.emailService.SendConfirmationEmail(email, confirmationLink); err != nil {
+	//	return err
+	//}
+
+	emailToken, err := utils.ValidateInvitationJWTToken(us.config.Auth.JWTSecretKey, emailHash)
+	if err != nil {
 		return err
+	}
+	if emailToken != email {
+		return errors.New("invalid email")
 	}
 
 	_, err = mail.ParseAddress(email)
@@ -159,12 +167,12 @@ func (us *UserServiceImpl) RegisterUser(email, password, workspaceId string) err
 		return errors.New("unauthorised")
 	}
 
-	err = us.userRepo.CreateUser(email, passwordHash, confirmToken)
-	if err != nil {
-		return err
-	}
+	return us.userRepo.CreateReadyUser(entity.UserRoleMember, email, passwordHash)
 
-	return nil
+	//err = us.userRepo.CreateUser(entity.UserRoleMember, email, passwordHash, confirmToken)
+	//if err != nil {
+	//	return err
+	//}
 }
 
 func (us *UserServiceImpl) ConfirmUser(token string) error {
@@ -286,7 +294,7 @@ func (us *UserServiceImpl) GetUserProfile(userId primitive.ObjectID) (*entity.Us
 		return &entity.User{}, nil, err
 	}
 
-	logo, err := us.fileService.LoadFile(user.Email + ".jpg")
+	logo, err := us.fileService.LoadFile("user." + user.Email)
 
 	return user, logo, nil
 }
@@ -298,7 +306,7 @@ func (us *UserServiceImpl) UpdateUserProfile(userId primitive.ObjectID, logo []b
 	}
 
 	if logo != nil {
-		go us.fileService.UpdateFile(logo, user.Email+".jpg")
+		go us.fileService.UpdateFile(logo, "user."+user.Email)
 	}
 	if name != "" {
 		user.FullName = name
@@ -308,4 +316,20 @@ func (us *UserServiceImpl) UpdateUserProfile(userId primitive.ObjectID, logo []b
 	}
 
 	return nil
+}
+
+func (us *UserServiceImpl) UpdateUserStatus(userId primitive.ObjectID, status string) error {
+	user, err := us.userRepo.GetUserById(userId)
+	if err != nil {
+		return err
+	}
+
+	switch entity.UserStatus(status) {
+	case entity.StatusAvailable, entity.StatusOffline, entity.StatusBusy:
+		user.Status = entity.UserStatus(status)
+	default:
+		return errors.New("invalid status")
+	}
+
+	return us.userRepo.UpdateUser(user)
 }

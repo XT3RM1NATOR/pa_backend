@@ -57,4 +57,6 @@ type MessengerRepository interface {
 	FindLatestChatsByWorkspaceIdAndAllTags(workspaceId primitive.ObjectID, tags []string, chatNumber int) ([]entity.Chat, error)
 	FindLatestTicketsByChatIdBeforeDate(workspaceId primitive.ObjectID, chatId string, beforeDate time.Time) ([]entity.Ticket, error)
 	FindUniqueTagsByWorkspaceId(workspaceId primitive.ObjectID) ([]string, error)
+	FindTeamByWorkspaceIdAndTeamId(workspaceId primitive.ObjectID, teamId string) (*entity.Team, error)
+	FindUserById(id primitive.ObjectID) (*entity.User, error)
 }

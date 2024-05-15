@@ -38,7 +38,7 @@ func (uc *UserController) RegisterUser(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, model.ErrorResponse{Error: err.Error()})
 	}
 
-	if err := uc.userService.RegisterUser(request.Email, request.Password, request.WorkspaceId); err != nil {
+	if err := uc.userService.RegisterUser(request.Email, request.Password, request.WorkspaceId, request.Hash); err != nil {
 		return c.JSON(http.StatusInternalServerError, model.ErrorResponse{Error: err.Error()})
 	}
 
@@ -290,4 +290,15 @@ func (uc *UserController) UpdateProfile(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, model.SuccessResponse{Message: "user updated successfully"})
+}
+
+func (uc *UserController) UpdateMemberStatus(c echo.Context) error {
+	status := c.Param("status")
+	userId := c.Request().Context().Value("userId").(primitive.ObjectID)
+
+	if err := uc.userService.UpdateUserStatus(userId, status); err != nil {
+		return c.JSON(http.StatusInternalServerError, model.ErrorResponse{Error: err.Error()})
+	}
+
+	return c.JSON(http.StatusCreated, model.SuccessResponse{Message: "status updated"})
 }

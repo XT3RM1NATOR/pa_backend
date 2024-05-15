@@ -18,17 +18,16 @@ type CreateTeamRequest struct {
 }
 
 type UpdateTeamRequest struct {
-	OldTeamName string `json:"old_team_name"`
-	TeamName    string `json:"team_name"`
+	TeamId      string `json:"team_id"`
+	NewTeamName string `json:"team_name"`
 	Logo        []byte `json:"logo"`
 	WorkspaceId string `json:"workspace_id"`
 }
 
 type AddTeamMembersRequest struct {
-	TeamName    string `json:"team_name"`
-	WorkspaceId string `json:"workspace_id"`
-	Member      string `json:"member_email"`
-	Role        string `json:"role"`
+	TeamId      string            `json:"team_id"`
+	WorkspaceId string            `json:"workspace_id"`
+	Members     map[string]string `json:"members"`
 }
 
 type AddWorkspaceMemberRequest struct {
@@ -80,6 +79,7 @@ type FoldersResponse struct {
 }
 
 type TeamResponse struct {
+	TeamId      string   `json:"team_id"`
 	TeamName    string   `json:"team_name"`
 	MemberCount int      `json:"member_count"`
 	AdminNames  []string `json:"admin_names"`

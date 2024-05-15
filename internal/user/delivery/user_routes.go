@@ -30,6 +30,7 @@ func RegisterAuthRoutes(e *echo.Echo, cfg *config.Config, db *mongo.Database, st
 	userGroup.POST("/recover", uc.ForgotPassword)
 	userGroup.POST("/reset", uc.ResetPassword)
 	userGroup.PUT("/renew", uc.RenewAccessToken)
+	userGroup.PUT("/update/:status", uc.UpdateMemberStatus, middleware.ValidateAccessTokenMiddleware(cfg.Auth.JWTSecretKey))
 	userGroup.GET("/profile", uc.GetProfile, middleware.ValidateAccessTokenMiddleware(cfg.Auth.JWTSecretKey))
 	userGroup.PUT("/profile", uc.UpdateProfile, middleware.ValidateAccessTokenMiddleware(cfg.Auth.JWTSecretKey))
 

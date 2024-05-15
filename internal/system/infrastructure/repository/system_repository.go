@@ -35,18 +35,12 @@ func (sr *SystemRepositoryImpl) CreateWorkspace(ownerId primitive.ObjectID, pend
 	team := make(map[primitive.ObjectID]entity.WorkspaceRole)
 	team[ownerId] = entity.RoleOwner
 
-	teamsMap := make(map[string]map[primitive.ObjectID]entity.UserStatus)
-	for _, teamName := range teams {
-		teamsMap[teamName] = make(map[primitive.ObjectID]entity.UserStatus)
-	}
-
 	workspace := &entity.Workspace{
-		Name:          name,
-		Team:          team,
-		InternalTeams: teamsMap,
-		PendingTeam:   pendingTeam,
-		WorkspaceId:   workspaceId,
-		CreatedAt:     time.Now(),
+		Name:        name,
+		Team:        team,
+		PendingTeam: pendingTeam,
+		WorkspaceId: workspaceId,
+		CreatedAt:   time.Now(),
 	}
 
 	_, err := sr.database.Collection(sr.config.MongoDB.WorkspaceCollection).InsertOne(
@@ -54,6 +48,21 @@ func (sr *SystemRepositoryImpl) CreateWorkspace(ownerId primitive.ObjectID, pend
 		workspace,
 	)
 	return err
+}
+
+func (sr *SystemRepositoryImpl) CountChatsByTeamId(teamId primitive.ObjectID) (int, error) {
+	sr.mu.RLock()
+	defer sr.mu.RUnlock()
+
+	count, err := sr.database.Collection(sr.config.MongoDB.ChatCollection).CountDocuments(
+		context.Background(),
+		bson.M{"team_id": teamId},
+	)
+	if err != nil {
+		return 0, err
+	}
+
+	return int(count), nil
 }
 
 func (sr *SystemRepositoryImpl) ValidateTeam(team map[string]string, ownerId primitive.ObjectID) (map[primitive.ObjectID]entity.WorkspaceRole, map[string]entity.WorkspaceRole, error) {
@@ -179,6 +188,75 @@ func (sr *SystemRepositoryImpl) FindWorkspaceByWorkspaceId(workspaceId string) (
 	return &workspace, nil
 }
 
+func (sr *SystemRepositoryImpl) InsertNewTeam(team *entity.Team) error {
+	sr.mu.Lock()
+	defer sr.mu.Unlock()
+
+	_, err := sr.database.Collection(sr.config.MongoDB.TeamCollection).InsertOne(context.Background(), team)
+	return err
+}
+
+func (sr *SystemRepositoryImpl) FindTeamByTeamId(teamId string) (*entity.Team, error) {
+	sr.mu.RLock()
+	defer sr.mu.RUnlock()
+
+	var team entity.Team
+	err := sr.database.Collection(sr.config.MongoDB.TeamCollection).FindOne(
+		context.Background(),
+		bson.M{"team_id": teamId},
+	).Decode(&team)
+	if err != nil {
+		return nil, err
+	}
+
+	return &team, nil
+}
+
+func (sr *SystemRepositoryImpl) FindTeamByTeamIdAndWorkspaceId(teamId string, workspaceId primitive.ObjectID) (*entity.Team, error) {
+	sr.mu.RLock()
+	defer sr.mu.RUnlock()
+
+	var team entity.Team
+	err := sr.database.Collection("team").FindOne(
+		context.Background(),
+		bson.M{"team_id": teamId, "workspace_id": workspaceId},
+	).Decode(&team)
+	if err != nil {
+		return nil, err
+	}
+
+	return &team, nil
+}
+
+func (sr *SystemRepositoryImpl) FindTeamsByWorkspaceId(workspaceId primitive.ObjectID) ([]*entity.Team, error) {
+	sr.mu.RLock()
+	defer sr.mu.RUnlock()
+
+	var teams []*entity.Team
+	cursor, err := sr.database.Collection("team").Find(
+		context.Background(),
+		bson.M{"workspace_id": workspaceId},
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(context.Background())
+
+	for cursor.Next(context.Background()) {
+		var team entity.Team
+		if err := cursor.Decode(&team); err != nil {
+			return nil, err
+		}
+		teams = append(teams, &team)
+	}
+
+	if err := cursor.Err(); err != nil {
+		return nil, err
+	}
+
+	return teams, nil
+}
+
 func (sr *SystemRepositoryImpl) RemoveUserFromWorkspace(workspace *entity.Workspace, userId primitive.ObjectID) error {
 	sr.mu.Lock()
 	defer sr.mu.Unlock()
@@ -298,6 +376,38 @@ func (sr *SystemRepositoryImpl) DeleteWorkspace(id primitive.ObjectID) error {
 	}
 
 	return nil
+}
+
+func (sr *SystemRepositoryImpl) DeleteTeam(id primitive.ObjectID) error {
+	sr.mu.Lock()
+	defer sr.mu.Unlock()
+
+	res, err := sr.database.Collection(sr.config.MongoDB.TeamCollection).DeleteOne(
+		context.Background(),
+		bson.M{"_id": id},
+	)
+	if err != nil {
+		return err
+	}
+
+	if res.DeletedCount == 0 {
+		return errors.New("workspace not found")
+	}
+
+	return nil
+}
+
+func (sr *SystemRepositoryImpl) UpdateChatTeamIdToNil(teamId primitive.ObjectID) error {
+	sr.mu.Lock()
+	defer sr.mu.Unlock()
+
+	_, err := sr.database.Collection(sr.config.MongoDB.ChatCollection).UpdateMany(
+		context.Background(),
+		bson.M{"team_id": teamId},
+		bson.M{"$set": bson.M{"team_id": primitive.NilObjectID}},
+	)
+
+	return err
 }
 
 func (sr *SystemRepositoryImpl) ClearPendingStatus(userId primitive.ObjectID, workspaceId string) error {
@@ -436,6 +546,25 @@ func (sr *SystemRepositoryImpl) UpdateWorkspace(workspace *entity.Workspace) err
 	}
 	if res.MatchedCount == 0 {
 		return errors.New("workspace not found")
+	}
+
+	return nil
+}
+
+func (sr *SystemRepositoryImpl) UpdateTeam(team *entity.Team) error {
+	sr.mu.Lock()
+	defer sr.mu.Unlock()
+
+	res, err := sr.database.Collection(sr.config.MongoDB.TeamCollection).ReplaceOne(
+		context.Background(),
+		bson.M{"_id": team.Id},
+		team,
+	)
+	if err != nil {
+		return err
+	}
+	if res.MatchedCount == 0 {
+		return errors.New("team not found")
 	}
 
 	return nil
