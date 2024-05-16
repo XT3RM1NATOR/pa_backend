@@ -135,7 +135,7 @@ func (mc *MessengerController) UpdateChatInfo(c echo.Context) error {
 	}
 
 	userId := c.Request().Context().Value("userId").(primitive.ObjectID)
-	if err := mc.messengerService.UpdateChatInfo(userId, request.ChatId, request.Tags, request.WorkspaceId); err != nil {
+	if err := mc.messengerService.UpdateChatInfo(userId, request.ChatId, request.Tags, request.WorkspaceId, request.Language); err != nil {
 		return c.JSON(http.StatusInternalServerError, model.ErrorResponse{Error: err.Error()})
 	}
 
@@ -210,15 +210,34 @@ func (mc *MessengerController) ImportTelegramChats(c echo.Context) error {
 }
 
 func (mc *MessengerController) GetAllChats(c echo.Context) error {
-	workspaceId := c.Param("id")
+	workspaceId, chatsType := c.Param("id"), c.Param("type")
 	userId := c.Request().Context().Value("userId").(primitive.ObjectID)
 
-	chats, err := mc.messengerService.GetAllChats(userId, workspaceId)
-	if err != nil {
-		return c.JSON(http.StatusInternalServerError, model.ErrorResponse{Error: err.Error()})
+	switch chatsType {
+	case "primary":
+		chats, err := mc.messengerService.GetAllPrimaryChats(userId, workspaceId)
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, model.ErrorResponse{Error: err.Error()})
+		}
+
+		return c.JSON(http.StatusOK, chats)
+	case "all":
+		chats, err := mc.messengerService.GetAllChats(userId, workspaceId)
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, model.ErrorResponse{Error: err.Error()})
+		}
+
+		return c.JSON(http.StatusOK, chats)
+	case "unassigned":
+		chats, err := mc.messengerService.GetAllUnassignedChats(userId, workspaceId)
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, model.ErrorResponse{Error: err.Error()})
+		}
+
+		return c.JSON(http.StatusOK, chats)
 	}
 
-	return c.JSON(http.StatusOK, chats)
+	return c.JSON(http.StatusBadRequest, model.ErrorResponse{Error: "invalid type"})
 }
 
 func (mc *MessengerController) GetChatsByFolder(c echo.Context) error {

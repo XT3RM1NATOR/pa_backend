@@ -194,7 +194,63 @@ func (ms *MessengerServiceImpl) GetAllChats(userId primitive.ObjectID, workspace
 		}
 		logo, _ := ms.fileService.LoadFile("chat." + chat.ChatId)
 		messageResponse := ms.createMessageResponse(nil, chat.LastMessage.CreatedAt, userId == chat.LastMessage.SenderId, chat.LastMessage.From, "", workspaceId, chat.Tickets[0].TicketId, chat.ChatId, chat.LastMessage.MessageId, chat.LastMessage.Message, string(chat.LastMessage.Type))
-		responseChats = append(responseChats, *ms.createChatResponse(workspace.WorkspaceId, chat.ChatId, chat.TgClientId, chat.TgChatId, chat.Tags, *messageResponse, string(entity.SourceTelegram), chat.IsImported, chat.CreatedAt, chat.Name, logo, nil))
+		responseChats = append(responseChats, *ms.createChatResponse(workspace.WorkspaceId, chat.ChatId, chat.TgClientId, chat.TgChatId, chat.Tags, *messageResponse, string(entity.SourceTelegram), chat.IsImported, chat.CreatedAt, chat.Name, logo, nil, string(chat.Language)))
+	}
+
+	return responseChats, nil
+}
+
+func (ms *MessengerServiceImpl) GetAllUnassignedChats(userId primitive.ObjectID, workspaceId string) ([]model.ChatResponse, error) {
+	workspace, err := ms.messengerRepo.FindWorkspaceByWorkspaceId(nil, workspaceId)
+	if err != nil {
+		return nil, err
+	}
+
+	if _, ok := workspace.Team[userId]; !ok {
+		return nil, errors.New("unauthorised")
+	}
+	chats, err := ms.messengerRepo.FindLatestUnassignedChatsByWorkspaceId(workspace.Id, 50)
+	if err != nil {
+		return nil, err
+	}
+
+	var responseChats []model.ChatResponse
+
+	for _, chat := range chats {
+		if chat.IsImported {
+
+		}
+		logo, _ := ms.fileService.LoadFile("chat." + chat.ChatId)
+		messageResponse := ms.createMessageResponse(nil, chat.LastMessage.CreatedAt, false, chat.LastMessage.From, "", workspaceId, chat.Tickets[0].TicketId, chat.ChatId, chat.LastMessage.MessageId, chat.LastMessage.Message, string(chat.LastMessage.Type))
+		responseChats = append(responseChats, *ms.createChatResponse(workspace.WorkspaceId, chat.ChatId, chat.TgClientId, chat.TgChatId, chat.Tags, *messageResponse, string(entity.SourceTelegram), chat.IsImported, chat.CreatedAt, chat.Name, logo, nil, string(chat.Language)))
+	}
+
+	return responseChats, nil
+}
+
+func (ms *MessengerServiceImpl) GetAllPrimaryChats(userId primitive.ObjectID, workspaceId string) ([]model.ChatResponse, error) {
+	workspace, err := ms.messengerRepo.FindWorkspaceByWorkspaceId(nil, workspaceId)
+	if err != nil {
+		return nil, err
+	}
+
+	if _, ok := workspace.Team[userId]; !ok {
+		return nil, errors.New("unauthorised")
+	}
+	chats, err := ms.messengerRepo.FindLatestChatsByWorkspaceIdAndUserId(workspace.Id, userId, 50)
+	if err != nil {
+		return nil, err
+	}
+
+	var responseChats []model.ChatResponse
+
+	for _, chat := range chats {
+		if chat.IsImported {
+
+		}
+		logo, _ := ms.fileService.LoadFile("chat." + chat.ChatId)
+		messageResponse := ms.createMessageResponse(nil, chat.LastMessage.CreatedAt, true, chat.LastMessage.From, "", workspaceId, chat.Tickets[0].TicketId, chat.ChatId, chat.LastMessage.MessageId, chat.LastMessage.Message, string(chat.LastMessage.Type))
+		responseChats = append(responseChats, *ms.createChatResponse(workspace.WorkspaceId, chat.ChatId, chat.TgClientId, chat.TgChatId, chat.Tags, *messageResponse, string(entity.SourceTelegram), chat.IsImported, chat.CreatedAt, chat.Name, logo, nil, string(chat.Language)))
 	}
 
 	return responseChats, nil
@@ -338,7 +394,7 @@ func (ms *MessengerServiceImpl) HandleMessage(userId primitive.ObjectID, workspa
 	}
 }
 
-func (ms *MessengerServiceImpl) UpdateChatInfo(userId primitive.ObjectID, chatId string, tags []string, workspaceId string) error {
+func (ms *MessengerServiceImpl) UpdateChatInfo(userId primitive.ObjectID, chatId string, tags []string, workspaceId, language string) error {
 	workspace, err := ms.messengerRepo.FindWorkspaceByWorkspaceId(nil, workspaceId)
 	if err != nil {
 		return err
@@ -353,6 +409,17 @@ func (ms *MessengerServiceImpl) UpdateChatInfo(userId primitive.ObjectID, chatId
 		return err
 	}
 	chat.Tags = tags
+
+	if language != "" {
+		switch entity.ChatLanguage(language) {
+		case entity.English:
+			chat.Language = entity.English
+		case entity.Russian:
+			chat.Language = entity.Russian
+		case entity.Uzbek:
+			chat.Language = entity.Uzbek
+		}
+	}
 
 	for _, tag := range tags {
 		var found bool
@@ -396,7 +463,7 @@ func (ms *MessengerServiceImpl) GetChat(userId primitive.ObjectID, workspaceId, 
 
 	logo, _ := ms.fileService.LoadFile("chat." + chatId)
 	responseMessage := ms.createMessageResponse(nil, chat.LastMessage.CreatedAt, chat.UserId == userId, chat.LastMessage.From, "", workspaceId, "", chat.ChatId, chat.LastMessage.MessageId, chat.LastMessage.Message, string(entity.TypeText))
-	responseChat := ms.createChatResponse(workspaceId, chatId, chat.TgClientId, chat.TgChatId, chat.Tags, *responseMessage, string(chat.Source), chat.IsImported, chat.CreatedAt, chat.Name, logo, notes)
+	responseChat := ms.createChatResponse(workspaceId, chatId, chat.TgClientId, chat.TgChatId, chat.Tags, *responseMessage, string(chat.Source), chat.IsImported, chat.CreatedAt, chat.Name, logo, notes, string(chat.Language))
 
 	return *responseChat, nil
 }
@@ -445,7 +512,7 @@ func (ms *MessengerServiceImpl) GetChatsByFolder(userId primitive.ObjectID, work
 		}
 		logo, _ := ms.fileService.LoadFile("chat." + chat.ChatId)
 		messageResponse := ms.createMessageResponse(nil, chat.LastMessage.CreatedAt, userId == chat.LastMessage.SenderId, chat.LastMessage.From, "", workspaceId, chat.Tickets[0].TicketId, chat.ChatId, chat.LastMessage.MessageId, chat.LastMessage.Message, string(chat.LastMessage.Type))
-		responseChats = append(responseChats, *ms.createChatResponse(workspace.WorkspaceId, chat.ChatId, chat.TgClientId, chat.TgChatId, chat.Tags, *messageResponse, string(entity.SourceTelegram), chat.IsImported, chat.CreatedAt, chat.Name, logo, nil))
+		responseChats = append(responseChats, *ms.createChatResponse(workspace.WorkspaceId, chat.ChatId, chat.TgClientId, chat.TgChatId, chat.Tags, *messageResponse, string(entity.SourceTelegram), chat.IsImported, chat.CreatedAt, chat.Name, logo, nil, string(chat.Language)))
 	}
 
 	return responseChats, nil
@@ -705,7 +772,7 @@ func (ms *MessengerServiceImpl) createMessageResponse(content []byte, createdAt 
 	}
 }
 
-func (ms *MessengerServiceImpl) createChatResponse(workspaceId, chatId string, tgClientId, tgChatId int, tags []string, lastMessage model.MessageResponse, source string, isImported bool, createdAt time.Time, name string, logo []byte, notes []model.MessageResponse) *model.ChatResponse {
+func (ms *MessengerServiceImpl) createChatResponse(workspaceId, chatId string, tgClientId, tgChatId int, tags []string, lastMessage model.MessageResponse, source string, isImported bool, createdAt time.Time, name string, logo []byte, notes []model.MessageResponse, language string) *model.ChatResponse {
 	return &model.ChatResponse{
 		WorkspaceId: workspaceId,
 		ChatId:      chatId,
@@ -718,6 +785,7 @@ func (ms *MessengerServiceImpl) createChatResponse(workspaceId, chatId string, t
 		Notes:       notes,
 		Name:        name,
 		Logo:        logo,
+		Language:    language,
 		CreatedAt:   createdAt,
 	}
 }

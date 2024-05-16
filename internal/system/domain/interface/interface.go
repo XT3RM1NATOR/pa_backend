@@ -23,10 +23,11 @@ type SystemService interface {
 	EditFolders(userId primitive.ObjectID, workspaceId string, folders map[string][]string) error
 	RegisterTelegramIntegration(userId primitive.ObjectID, workspaceId, stage, value string) (int, error)
 	GetAllTeams(userId primitive.ObjectID, workspaceId string) ([]model.TeamResponse, error)
-	GetAllFolders(userId primitive.ObjectID, workspaceId string) (map[string][]string, error)
+	GetAllFolders(userId primitive.ObjectID, workspaceId string) (map[string][]string, error, int)
 	CreateTeam(userId primitive.ObjectID, workspaceId, teamName string, members map[string]string, logo []byte) error
 	DeleteTeam(userId primitive.ObjectID, workspaceId, teamName string) error
 	UpdateTeam(userId primitive.ObjectID, newLogo []byte, workspaceId, newTeamName, teamId string) error
+	GetAllUsers(userId primitive.ObjectID, workspaceId string) ([]model.UserResponse, error)
 }
 
 type EmailService interface {

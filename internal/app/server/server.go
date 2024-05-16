@@ -13,6 +13,7 @@ import (
 	"github.com/sirupsen/logrus"
 	echoSwagger "github.com/swaggo/echo-swagger"
 	"go.mongodb.org/mongo-driver/mongo"
+	"log"
 	"os"
 	"sync"
 )
@@ -41,6 +42,11 @@ func RunHTTPServer(cfg *config.Config, db *mongo.Database, str *minio.Client) {
 		Output: logger.Out,
 	}))
 	e.Use(middleware.CORS())
+	e.Use(middleware.BodyDump(func(c echo.Context, reqBody, resBody []byte) {
+		if string(reqBody) != "" {
+			log.Print("Request Body:", string(reqBody))
+		}
+	}))
 
 	repoMu, storageMu := new(sync.RWMutex), new(sync.RWMutex)
 

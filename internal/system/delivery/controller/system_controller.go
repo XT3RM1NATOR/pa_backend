@@ -443,11 +443,22 @@ func (sc *SystemController) GetAllFolders(c echo.Context) error {
 	userId := c.Request().Context().Value("userId").(primitive.ObjectID)
 	workspaceId := c.Param("id")
 
-	folders, err := sc.systemService.GetAllFolders(userId, workspaceId)
+	folders, err, code := sc.systemService.GetAllFolders(userId, workspaceId)
+	if err != nil {
+		return c.JSON(code, model.ErrorResponse{Error: err.Error()})
+	}
+
+	return c.JSON(code, model.FoldersResponse{Folders: folders})
+}
+
+func (sc *SystemController) GetAllUsers(c echo.Context) error {
+	userId := c.Request().Context().Value("userId").(primitive.ObjectID)
+	workspaceId := c.Param("id")
+
+	users, err := sc.systemService.GetAllUsers(userId, workspaceId)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, model.ErrorResponse{Error: err.Error()})
 	}
 
-	folderResponse := model.FoldersResponse{Folders: folders}
-	return c.JSON(http.StatusOK, folderResponse)
+	return c.JSON(http.StatusOK, users)
 }

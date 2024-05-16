@@ -5,6 +5,7 @@ import (
 	"errors"
 	"github.com/Point-AI/backend/internal/system/domain/entity"
 	"image"
+	"image/jpeg"
 )
 
 func ValidateWorkspaceId(projectId string) error {
@@ -27,29 +28,40 @@ func isValidCharacter(char rune) bool {
 		char == '-'
 }
 
-func ValidatePhoto(photoBytes []byte) error {
+func ValidatePhoto(photoBytes []byte) ([]byte, error) {
 	img, _, err := image.Decode(bytes.NewReader(photoBytes))
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if len(photoBytes) > 1024*1024 {
-		return errors.New("photo size cannot exceed 1MB")
+		return nil, errors.New("photo size cannot exceed 1MB")
 	}
 
-	bounds := img.Bounds()
-	width := bounds.Dx()
-	height := bounds.Dy()
+	if len(photoBytes) > 1024*512 {
+		var compressed bytes.Buffer
 
-	if width != height {
-		return errors.New("photo must be square")
+		err = jpeg.Encode(&compressed, img, &jpeg.Options{Quality: 50})
+		if err != nil {
+			return nil, err
+		}
+
+		return compressed.Bytes(), nil
 	}
 
-	if width > 256 || height > 256 {
-		return errors.New("photo dimensions cannot exceed 256x256 pixels")
-	}
+	return photoBytes, nil
 
-	return nil
+	//bounds := img.Bounds()
+	//width := bounds.Dx()
+	//height := bounds.Dy()
+	//
+	//if width != height {
+	//	return errors.New("photo must be square")
+	//}
+	//
+	//if width > 256 || height > 256 {
+	//	return errors.New("photo dimensions cannot exceed 256x256 pixels")
+	//}
 }
 
 func ValidateTeamRoles(team map[string]string) (map[string]entity.WorkspaceRole, error) {

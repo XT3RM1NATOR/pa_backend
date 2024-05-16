@@ -15,6 +15,6 @@ func RegisterAPIRoutes(e *echo.Echo, cfg *config.Config, db *mongo.Database) {
 	ac := controller.NewAPIController(as, cfg)
 
 	apiGroup := e.Group("/api/v1")
-	apiGroup.POST("/article/:id", ac.HandlePost)
-	apiGroup.POST("/articles", ac.GetAllArticles)
+	apiGroup.POST("/article/:id/:lang", ac.HandlePost)
+	apiGroup.GET("/articles/:lang", ac.GetAllArticles)
 }

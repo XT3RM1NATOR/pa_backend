@@ -428,6 +428,64 @@ func (mr *MessengerRepositoryImpl) FindLatestChatsByWorkspaceId(workspaceId prim
 	return chats, nil
 }
 
+func (mr *MessengerRepositoryImpl) FindLatestUnassignedChatsByWorkspaceId(workspaceId primitive.ObjectID, n int) ([]entity.Chat, error) {
+	var chats []entity.Chat
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	filter := bson.M{"workspace_id": workspaceId, "user_id": primitive.NilObjectID}
+	opts := options.Find().SetSort(bson.M{"last_message.created_at": -1}).SetLimit(int64(n))
+
+	cursor, err := mr.database.Collection(mr.config.MongoDB.ChatCollection).Find(ctx, filter, opts)
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+
+	for cursor.Next(ctx) {
+		var chat entity.Chat
+		if err = cursor.Decode(&chat); err != nil {
+			return nil, err
+		}
+		chats = append(chats, chat)
+	}
+
+	if err = cursor.Err(); err != nil {
+		return nil, err
+	}
+
+	return chats, nil
+}
+
+func (mr *MessengerRepositoryImpl) FindLatestChatsByWorkspaceIdAndUserId(workspaceId primitive.ObjectID, userId primitive.ObjectID, n int) ([]entity.Chat, error) {
+	var chats []entity.Chat
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	filter := bson.M{"workspace_id": workspaceId, "user_id": userId}
+	opts := options.Find().SetSort(bson.M{"last_message.created_at": -1}).SetLimit(int64(n))
+
+	cursor, err := mr.database.Collection(mr.config.MongoDB.ChatCollection).Find(ctx, filter, opts)
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+
+	for cursor.Next(ctx) {
+		var chat entity.Chat
+		if err = cursor.Decode(&chat); err != nil {
+			return nil, err
+		}
+		chats = append(chats, chat)
+	}
+
+	if err = cursor.Err(); err != nil {
+		return nil, err
+	}
+
+	return chats, nil
+}
+
 func (mr *MessengerRepositoryImpl) InsertNewChat(ctx mongo.SessionContext, chat *entity.Chat) error {
 	mr.mu.Lock()
 	defer mr.mu.Unlock()

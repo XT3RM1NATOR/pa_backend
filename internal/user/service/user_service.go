@@ -306,7 +306,12 @@ func (us *UserServiceImpl) UpdateUserProfile(userId primitive.ObjectID, logo []b
 	}
 
 	if logo != nil {
-		go us.fileService.UpdateFile(logo, "user."+user.Email)
+		compressedLogo, err := utils.ValidatePhoto(logo)
+		if err != nil {
+			return err
+		}
+
+		go us.fileService.UpdateFile(compressedLogo, "user."+user.Email)
 	}
 	if name != "" {
 		user.FullName = name

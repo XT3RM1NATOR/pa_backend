@@ -21,10 +21,22 @@ func NewAPIServiceImpl(cfg *config.Config, apiRepo infrastructureInterface.APIRe
 	}
 }
 
-func (as *APIServiceImpl) IncrementViewCount(articleId int) error {
-	_, err := as.apiRepo.GetArticleById(articleId)
+func (as *APIServiceImpl) IncrementViewCount(articleId int, language string) error {
+	var langType entity.Language
+	switch language {
+	case "en":
+		langType = entity.English
+	case "uz":
+		langType = entity.Uzbek
+	case "uz-uz":
+		langType = entity.UzbekCyr
+	case "ru":
+		langType = entity.Russian
+	}
+
+	_, err := as.apiRepo.GetArticleByIdAndLanguage(articleId, langType)
 	if errors.Is(err, mongo.ErrNoDocuments) {
-		if err := as.apiRepo.CreateArticle(articleId); err != nil {
+		if err := as.apiRepo.CreateArticle(articleId, langType); err != nil {
 			return err
 		}
 		return nil
@@ -37,10 +49,18 @@ func (as *APIServiceImpl) IncrementViewCount(articleId int) error {
 	return nil
 }
 
-func (as *APIServiceImpl) GetAllArticles() (*[]entity.HelpDeskArticle, error) {
-	articles, err := as.apiRepo.GetAllArticles()
-	if err != nil {
-		return nil, err
+func (as *APIServiceImpl) GetAllArticles(language string) ([]entity.HelpDeskArticle, error) {
+	var langType entity.Language
+	switch language {
+	case "en":
+		langType = entity.English
+	case "uz":
+		langType = entity.Uzbek
+	case "uz-uz":
+		langType = entity.UzbekCyr
+	case "ru":
+		langType = entity.Russian
 	}
-	return articles, nil
+
+	return as.apiRepo.GetAllArticlesByLanguage(langType)
 }

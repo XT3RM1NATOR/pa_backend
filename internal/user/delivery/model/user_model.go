@@ -58,5 +58,6 @@ type UserProfileResponse struct {
 	Email     string    `json:"email"`
 	FullName  string    `json:"name"`
 	Logo      []byte    `json:"logo"`
+	Status    string    `json:"status"`
 	CreatedAt time.Time `json:"created_at"`
 }

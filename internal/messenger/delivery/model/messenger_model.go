@@ -51,6 +51,7 @@ type UpdateChatInfoRequest struct {
 	ChatId      string   `json:"chat_id"`
 	WorkspaceId string   `json:"workspace_id"`
 	Tags        []string `json:"tags"`
+	Language    string   `json:"language"`
 }
 
 type TelegramChat struct {
@@ -126,5 +127,6 @@ type ChatResponse struct {
 	IsImported  bool              `json:"is_imported"`
 	Name        string            `json:"name"`
 	Logo        []byte            `json:"logo"`
+	Language    string            `json:"language"`
 	CreatedAt   time.Time         `bson:"created_at"`
 }

@@ -38,8 +38,11 @@ func (ss *SystemServiceImpl) CreateWorkspace(logo []byte, team map[string]string
 	}
 
 	var teamRoles map[string]entity.WorkspaceRole
+	var finalLogo []byte
+	var err error
+
 	if logo != nil {
-		if err := utils.ValidatePhoto(logo); err != nil {
+		if finalLogo, err = utils.ValidatePhoto(logo); err != nil {
 			return err
 		}
 	}
@@ -57,13 +60,13 @@ func (ss *SystemServiceImpl) CreateWorkspace(logo []byte, team map[string]string
 		}
 	}
 
-	_, err := ss.systemRepo.FindWorkspaceByWorkspaceId(workspaceId)
+	_, err = ss.systemRepo.FindWorkspaceByWorkspaceId(workspaceId)
 	if errors.Is(err, mongo.ErrNoDocuments) {
 		if err := ss.systemRepo.CreateWorkspace(ownerId, teamRoles, workspaceId, name, teams); err != nil {
 			return err
 		}
 
-		go ss.fileService.SaveFile("wp."+workspaceId, logo)
+		go ss.fileService.SaveFile("wp."+workspaceId, finalLogo)
 
 		for email, _ := range teamRoles {
 			id, err := ss.systemRepo.FindUserByEmail(email)
@@ -297,10 +300,11 @@ func (ss *SystemServiceImpl) UpdateWorkspace(userId primitive.ObjectID, newLogo 
 	}
 
 	if newLogo != nil {
-		if err := utils.ValidatePhoto(newLogo); err != nil {
+		compressedLogo, err := utils.ValidatePhoto(newLogo)
+		if err != nil {
 			return err
 		}
-		if err := ss.fileService.UpdateFile(newLogo, "wp."+workspace.WorkspaceId); err != nil {
+		if err := ss.fileService.UpdateFile(compressedLogo, "wp."+workspace.WorkspaceId); err != nil {
 			return err
 		}
 	}
@@ -318,7 +322,7 @@ func (ss *SystemServiceImpl) AddWorkspaceMembers(userId primitive.ObjectID, team
 		return err
 	}
 
-	if ss.isAdmin(workspace.Team[userId]) || ss.isOwner(workspace.Team[userId]) {
+	if !ss.isAdmin(workspace.Team[userId]) && !ss.isOwner(workspace.Team[userId]) {
 		return errors.New("unauthorised")
 	}
 
@@ -508,6 +512,27 @@ func (ss *SystemServiceImpl) EditFolders(userId primitive.ObjectID, workspaceId 
 	return errors.New("unauthorized")
 }
 
+func (ss *SystemServiceImpl) GetAllUsers(userId primitive.ObjectID, workspaceId string) ([]model.UserResponse, error) {
+	workspace, err := ss.systemRepo.FindWorkspaceByWorkspaceId(workspaceId)
+	if err != nil {
+		return nil, err
+	}
+
+	if _, exists := workspace.Team[userId]; !exists {
+		return nil, errors.New("unauthorized")
+	}
+
+	var usersResponse []model.UserResponse
+	for userId, _ := range workspace.Team {
+		user, _ := ss.systemRepo.FindUserById(userId)
+		logo, _ := ss.fileService.LoadFile("user." + user.Email)
+
+		usersResponse = append(usersResponse, *ss.createUserResponse(user.Email, user.FullName, "", logo))
+	}
+
+	return usersResponse, nil
+}
+
 func (ss *SystemServiceImpl) UpdateWorkspacePendingStatus(userId primitive.ObjectID, workspaceId string, status bool) error {
 	if err := ss.systemRepo.ClearPendingStatus(userId, workspaceId); err != nil {
 		return err
@@ -578,17 +603,17 @@ func (ss *SystemServiceImpl) GetAllTeams(userId primitive.ObjectID, workspaceId 
 	return teamsResponse, nil
 }
 
-func (ss *SystemServiceImpl) GetAllFolders(userId primitive.ObjectID, workspaceId string) (map[string][]string, error) {
+func (ss *SystemServiceImpl) GetAllFolders(userId primitive.ObjectID, workspaceId string) (map[string][]string, error, int) {
 	workspace, err := ss.systemRepo.FindWorkspaceByWorkspaceId(workspaceId)
 	if err != nil {
-		return nil, err
+		return nil, err, 500
 	}
 
 	if _, exists := workspace.Team[userId]; !exists {
-		return nil, errors.New("unauthorised")
+		return nil, errors.New("unauthorised"), 403
 	}
 
-	return workspace.Folders, nil
+	return workspace.Folders, nil, 200
 }
 
 func (ss *SystemServiceImpl) createTeamResponse(teamName, teamId string, memberCount, chatCount int, adminNames []string, logo []byte) *model.TeamResponse {
@@ -610,6 +635,15 @@ func (ss *SystemServiceImpl) createTeam(workspaceId primitive.ObjectID, teamName
 		Members:        members,
 		PendingMembers: pendingMembers,
 		IsFirstTeam:    isFirstTeam,
+	}
+}
+
+func (ss *SystemServiceImpl) createUserResponse(email, fullName, role string, logo []byte) *model.UserResponse {
+	return &model.UserResponse{
+		Email:    email,
+		FullName: fullName,
+		Role:     role,
+		Logo:     logo,
 	}
 }
 

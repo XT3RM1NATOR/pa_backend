@@ -33,11 +33,12 @@ func NewAPIController(apiService _interface.APIService, cfg *config.Config) *API
 // @Router /api/v1/article/{id} [post]
 func (uc *APIController) HandlePost(c echo.Context) error {
 	articleId, err := strconv.Atoi(c.Param("id"))
+	language := c.Param("lang")
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, model.ErrorResponse{Error: "invalid article ID"})
 	}
 
-	if err := uc.apiService.IncrementViewCount(articleId); err != nil {
+	if err := uc.apiService.IncrementViewCount(articleId, language); err != nil {
 		return c.JSON(http.StatusInternalServerError, model.ErrorResponse{Error: err.Error()})
 	}
 
@@ -53,13 +54,14 @@ func (uc *APIController) HandlePost(c echo.Context) error {
 // @Failure 500 {object} model.ErrorResponse "Internal server error"
 // @Router /api/v1/articles [get]
 func (uc *APIController) GetAllArticles(c echo.Context) error {
-	articles, err := uc.apiService.GetAllArticles()
+	language := c.Param("lang")
+	articles, err := uc.apiService.GetAllArticles(language)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, model.ErrorResponse{Error: err.Error()})
 	}
 
 	var response []model.HelpDeskArticleResponse
-	for _, article := range *articles {
+	for _, article := range articles {
 		response = append(response, model.HelpDeskArticleResponse{
 			ArticleId: article.ArticleId,
 			ViewCount: article.ViewCount,
