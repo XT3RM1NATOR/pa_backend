@@ -182,6 +182,9 @@ func (sr *SystemRepositoryImpl) FindWorkspaceByWorkspaceId(workspaceId string) (
 		bson.M{"workspace_id": workspaceId},
 	).Decode(&workspace)
 	if err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return &workspace, nil
+		}
 		return &workspace, err
 	}
 
@@ -252,6 +255,10 @@ func (sr *SystemRepositoryImpl) FindTeamsByWorkspaceId(workspaceId primitive.Obj
 
 	if err := cursor.Err(); err != nil {
 		return nil, err
+	}
+
+	if len(teams) == 0 {
+		return nil, nil
 	}
 
 	return teams, nil

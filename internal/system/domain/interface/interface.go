@@ -22,7 +22,7 @@ type SystemService interface {
 	SetFirstTeam(userId primitive.ObjectID, teamId, workspaceId string) error
 	EditFolders(userId primitive.ObjectID, workspaceId string, folders map[string][]string) error
 	RegisterTelegramIntegration(userId primitive.ObjectID, workspaceId, stage, value string) (int, error)
-	GetAllTeams(userId primitive.ObjectID, workspaceId string) ([]model.TeamResponse, error)
+	GetAllTeams(userId primitive.ObjectID, workspaceId string) ([]model.TeamResponse, int, error)
 	GetAllFolders(userId primitive.ObjectID, workspaceId string) (map[string][]string, error, int)
 	CreateTeam(userId primitive.ObjectID, workspaceId, teamName string, members map[string]string, logo []byte) error
 	DeleteTeam(userId primitive.ObjectID, workspaceId, teamName string) error

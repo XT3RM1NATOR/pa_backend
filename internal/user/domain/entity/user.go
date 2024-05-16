@@ -61,8 +61,13 @@ type Chat struct {
 	Name        string             `bson:"name"`
 	Source      ChatSource         `bson:"source"`
 	Language    ChatLanguage       `bson:"language"`
-	IsImported  bool               `bson:"is_imported"`
-	CreatedAt   time.Time          `bson:"created_at"`
+	//Subject     string `bson:"subject"`
+	Company     string    `bson:"company"`
+	ClientEmail string    `bson:"client_email"`
+	ClientPhone string    `bson:"client_phone"`
+	Address     string    `bson:"address"`
+	IsImported  bool      `bson:"is_imported"`
+	CreatedAt   time.Time `bson:"created_at"`
 }
 
 type Note struct {

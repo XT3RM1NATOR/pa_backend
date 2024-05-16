@@ -135,7 +135,7 @@ func (mc *MessengerController) UpdateChatInfo(c echo.Context) error {
 	}
 
 	userId := c.Request().Context().Value("userId").(primitive.ObjectID)
-	if err := mc.messengerService.UpdateChatInfo(userId, request.ChatId, request.Tags, request.WorkspaceId, request.Language); err != nil {
+	if err := mc.messengerService.UpdateChatInfo(userId, request.ChatId, request.Tags, request.WorkspaceId, request.Language, request.Address, request.Company, request.ClientEmail, request.ClientPhone); err != nil {
 		return c.JSON(http.StatusInternalServerError, model.ErrorResponse{Error: err.Error()})
 	}
 

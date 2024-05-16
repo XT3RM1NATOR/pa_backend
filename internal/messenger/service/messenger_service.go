@@ -15,7 +15,6 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"sort"
-	"strconv"
 	"time"
 )
 
@@ -86,7 +85,7 @@ func (ms *MessengerServiceImpl) ReassignTicketToTeam(userId primitive.ObjectID, 
 		if err != nil {
 			return err
 		} else if chat == nil {
-			newChat := ms.createChat(originalChat, *ticketToMove, workspace.Id, assigneeId)
+			newChat := ms.createChat(originalChat.TgChatId, originalChat.TgClientId, originalChat.Source, *ticketToMove, workspace.Id, originalChat.UserId, originalChat.TeamId, originalChat.IsImported, originalChat.LastMessage, originalChat.Name, originalChat.Company, originalChat.ClientEmail, originalChat.ClientPhone, originalChat.Address)
 			return ms.messengerRepo.InsertNewChat(sc, newChat)
 		} else if chat != nil {
 			chat.Tickets = append(chat.Tickets, *ticketToMove)
@@ -154,7 +153,8 @@ func (ms *MessengerServiceImpl) ReassignTicketToUser(userId primitive.ObjectID, 
 		if err != nil {
 			return err
 		} else if chat == nil && err == nil {
-			newChat := ms.createChat(originalChat, *ticketToMove, workspace.Id, reassignUserId)
+			newChat := ms.createChat(originalChat.TgChatId, originalChat.TgClientId, originalChat.Source, *ticketToMove, workspace.Id, originalChat.UserId, originalChat.TeamId, originalChat.IsImported, originalChat.LastMessage, originalChat.Name, originalChat.Company, originalChat.ClientEmail, originalChat.ClientPhone, originalChat.Address)
+
 			return ms.messengerRepo.InsertNewChat(sc, newChat)
 		} else if chat != nil {
 			chat.Tickets = append(chat.Tickets, *ticketToMove)
@@ -192,9 +192,11 @@ func (ms *MessengerServiceImpl) GetAllChats(userId primitive.ObjectID, workspace
 		if chat.IsImported {
 
 		}
+		totalTickets, averageSolutionTime, averageNumberOfMessagesPerTicket := ms.extractTicketData(chat.Tickets)
+
 		logo, _ := ms.fileService.LoadFile("chat." + chat.ChatId)
 		messageResponse := ms.createMessageResponse(nil, chat.LastMessage.CreatedAt, userId == chat.LastMessage.SenderId, chat.LastMessage.From, "", workspaceId, chat.Tickets[0].TicketId, chat.ChatId, chat.LastMessage.MessageId, chat.LastMessage.Message, string(chat.LastMessage.Type))
-		responseChats = append(responseChats, *ms.createChatResponse(workspace.WorkspaceId, chat.ChatId, chat.TgClientId, chat.TgChatId, chat.Tags, *messageResponse, string(entity.SourceTelegram), chat.IsImported, chat.CreatedAt, chat.Name, logo, nil, string(chat.Language)))
+		responseChats = append(responseChats, *ms.createChatResponse(workspace.WorkspaceId, chat.ChatId, chat.TgClientId, chat.TgChatId, chat.Tags, *messageResponse, string(entity.SourceTelegram), chat.IsImported, chat.CreatedAt, chat.Name, logo, nil, string(chat.Language), chat.Company, chat.ClientEmail, chat.ClientPhone, chat.Address, totalTickets, averageSolutionTime, averageNumberOfMessagesPerTicket))
 	}
 
 	return responseChats, nil
@@ -220,9 +222,11 @@ func (ms *MessengerServiceImpl) GetAllUnassignedChats(userId primitive.ObjectID,
 		if chat.IsImported {
 
 		}
+		totalTickets, averageSolutionTime, averageNumberOfMessagesPerTicket := ms.extractTicketData(chat.Tickets)
+
 		logo, _ := ms.fileService.LoadFile("chat." + chat.ChatId)
 		messageResponse := ms.createMessageResponse(nil, chat.LastMessage.CreatedAt, false, chat.LastMessage.From, "", workspaceId, chat.Tickets[0].TicketId, chat.ChatId, chat.LastMessage.MessageId, chat.LastMessage.Message, string(chat.LastMessage.Type))
-		responseChats = append(responseChats, *ms.createChatResponse(workspace.WorkspaceId, chat.ChatId, chat.TgClientId, chat.TgChatId, chat.Tags, *messageResponse, string(entity.SourceTelegram), chat.IsImported, chat.CreatedAt, chat.Name, logo, nil, string(chat.Language)))
+		responseChats = append(responseChats, *ms.createChatResponse(workspace.WorkspaceId, chat.ChatId, chat.TgClientId, chat.TgChatId, chat.Tags, *messageResponse, string(entity.SourceTelegram), chat.IsImported, chat.CreatedAt, chat.Name, logo, nil, string(chat.Language), chat.Company, chat.ClientEmail, chat.ClientPhone, chat.Address, totalTickets, averageSolutionTime, averageNumberOfMessagesPerTicket))
 	}
 
 	return responseChats, nil
@@ -248,9 +252,11 @@ func (ms *MessengerServiceImpl) GetAllPrimaryChats(userId primitive.ObjectID, wo
 		if chat.IsImported {
 
 		}
+		totalTickets, averageSolutionTime, averageNumberOfMessagesPerTicket := ms.extractTicketData(chat.Tickets)
+
 		logo, _ := ms.fileService.LoadFile("chat." + chat.ChatId)
 		messageResponse := ms.createMessageResponse(nil, chat.LastMessage.CreatedAt, true, chat.LastMessage.From, "", workspaceId, chat.Tickets[0].TicketId, chat.ChatId, chat.LastMessage.MessageId, chat.LastMessage.Message, string(chat.LastMessage.Type))
-		responseChats = append(responseChats, *ms.createChatResponse(workspace.WorkspaceId, chat.ChatId, chat.TgClientId, chat.TgChatId, chat.Tags, *messageResponse, string(entity.SourceTelegram), chat.IsImported, chat.CreatedAt, chat.Name, logo, nil, string(chat.Language)))
+		responseChats = append(responseChats, *ms.createChatResponse(workspace.WorkspaceId, chat.ChatId, chat.TgClientId, chat.TgChatId, chat.Tags, *messageResponse, string(entity.SourceTelegram), chat.IsImported, chat.CreatedAt, chat.Name, logo, nil, string(chat.Language), chat.Company, chat.ClientEmail, chat.ClientPhone, chat.Address, totalTickets, averageSolutionTime, averageNumberOfMessagesPerTicket))
 	}
 
 	return responseChats, nil
@@ -306,10 +312,10 @@ func (ms *MessengerServiceImpl) ImportTelegramChats(workspaceId string, chats []
 	}
 
 	for _, chat := range chats {
-		go ms.updateWallpaper(workspaceId, strconv.FormatInt(chat.Id, 10), int(chat.Id))
 		message := ms.createMessage(primitive.ObjectID{}, chat.LastMessage.Id, chat.LastMessage.Text, chat.Title, entity.TypeText, time.Now())
 		ticket := ms.createTicket([]entity.Note{}, []entity.Message{*message}, time.Now())
-		newChat := ms.createNewChat(int(chat.Id), int(chat.LastMessage.SenderId), entity.SourceTelegram, *ticket, workspace.Id, primitive.ObjectID{}, true, *message, chat.Name)
+		newChat := ms.createChat(int(chat.Id), int(chat.LastMessage.SenderId), entity.SourceTelegram, *ticket, workspace.Id, primitive.NilObjectID, primitive.NilObjectID, true, *message, chat.Name, "", "", "", "")
+		go ms.updateWallpaper(workspaceId, newChat.ChatId, int(chat.Id))
 
 		err := ms.messengerRepo.InsertNewChat(nil, newChat)
 		if err != nil {
@@ -394,7 +400,7 @@ func (ms *MessengerServiceImpl) HandleMessage(userId primitive.ObjectID, workspa
 	}
 }
 
-func (ms *MessengerServiceImpl) UpdateChatInfo(userId primitive.ObjectID, chatId string, tags []string, workspaceId, language string) error {
+func (ms *MessengerServiceImpl) UpdateChatInfo(userId primitive.ObjectID, chatId string, tags []string, workspaceId, language string, address, company, clientEmail, clientPhone string) error {
 	workspace, err := ms.messengerRepo.FindWorkspaceByWorkspaceId(nil, workspaceId)
 	if err != nil {
 		return err
@@ -419,6 +425,18 @@ func (ms *MessengerServiceImpl) UpdateChatInfo(userId primitive.ObjectID, chatId
 		case entity.Uzbek:
 			chat.Language = entity.Uzbek
 		}
+	}
+	if address != "" {
+		chat.Address = address
+	}
+	if company != "" {
+		chat.Company = company
+	}
+	if clientEmail != "" {
+		chat.ClientEmail = clientEmail
+	}
+	if clientPhone != "" {
+		chat.ClientPhone = clientPhone
 	}
 
 	for _, tag := range tags {
@@ -460,10 +478,11 @@ func (ms *MessengerServiceImpl) GetChat(userId primitive.ObjectID, workspaceId, 
 		user, _ := ms.messengerRepo.FindUserById(note.UserId)
 		notes = append(notes, *ms.createMessageResponse(nil, note.CreatedAt, note.UserId == userId, user.FullName, "", workspaceId, "", chatId, note.NoteId, note.Text, string(entity.TypeChatNote)))
 	}
+	totalTickets, averageSolutionTime, averageNumberOfMessagesPerTicket := ms.extractTicketData(chat.Tickets)
 
 	logo, _ := ms.fileService.LoadFile("chat." + chatId)
 	responseMessage := ms.createMessageResponse(nil, chat.LastMessage.CreatedAt, chat.UserId == userId, chat.LastMessage.From, "", workspaceId, "", chat.ChatId, chat.LastMessage.MessageId, chat.LastMessage.Message, string(entity.TypeText))
-	responseChat := ms.createChatResponse(workspaceId, chatId, chat.TgClientId, chat.TgChatId, chat.Tags, *responseMessage, string(chat.Source), chat.IsImported, chat.CreatedAt, chat.Name, logo, notes, string(chat.Language))
+	responseChat := ms.createChatResponse(workspaceId, chatId, chat.TgClientId, chat.TgChatId, chat.Tags, *responseMessage, string(chat.Source), chat.IsImported, chat.CreatedAt, chat.Name, logo, notes, string(chat.Language), chat.Company, chat.ClientEmail, chat.ClientPhone, chat.Address, totalTickets, averageSolutionTime, averageNumberOfMessagesPerTicket)
 
 	return *responseChat, nil
 }
@@ -508,11 +527,13 @@ func (ms *MessengerServiceImpl) GetChatsByFolder(userId primitive.ObjectID, work
 
 	for _, chat := range chats {
 		if chat.IsImported {
-			go ms.updateWallpaper(workspaceId, chat.ChatId, chat.TgClientId)
+			//
 		}
+		totalTickets, averageSolutionTime, averageNumberOfMessagesPerTicket := ms.extractTicketData(chat.Tickets)
+
 		logo, _ := ms.fileService.LoadFile("chat." + chat.ChatId)
 		messageResponse := ms.createMessageResponse(nil, chat.LastMessage.CreatedAt, userId == chat.LastMessage.SenderId, chat.LastMessage.From, "", workspaceId, chat.Tickets[0].TicketId, chat.ChatId, chat.LastMessage.MessageId, chat.LastMessage.Message, string(chat.LastMessage.Type))
-		responseChats = append(responseChats, *ms.createChatResponse(workspace.WorkspaceId, chat.ChatId, chat.TgClientId, chat.TgChatId, chat.Tags, *messageResponse, string(entity.SourceTelegram), chat.IsImported, chat.CreatedAt, chat.Name, logo, nil, string(chat.Language)))
+		responseChats = append(responseChats, *ms.createChatResponse(workspace.WorkspaceId, chat.ChatId, chat.TgClientId, chat.TgChatId, chat.Tags, *messageResponse, string(entity.SourceTelegram), chat.IsImported, chat.CreatedAt, chat.Name, logo, nil, string(chat.Language), chat.Company, chat.ClientEmail, chat.ClientPhone, chat.Address, totalTickets, averageSolutionTime, averageNumberOfMessagesPerTicket))
 	}
 
 	return responseChats, nil
@@ -684,15 +705,44 @@ func (ms *MessengerServiceImpl) updateWallpaper(workspaceId, chatId string, user
 		return errors.New("an error occured")
 	}
 
+	//compressedPhoto, err := utils.ValidatePhoto(resp.Body())
+	//if err == nil {
+	//	ms.fileService.SaveFile("chat."+chatId, compressedPhoto)
+	//}
+
 	ms.fileService.SaveFile("chat."+chatId, resp.Body())
 
 	return nil
 }
 
-func (ms *MessengerServiceImpl) createNewChat(tgChatId int, tgClientId int, source entity.ChatSource, ticket entity.Ticket, workspaceId, assigneeId primitive.ObjectID, isImported bool, lastMessage entity.Message, name string) *entity.Chat {
+func (ms *MessengerServiceImpl) extractTicketData(tickets []entity.Ticket) (int, time.Duration, float64) {
+	totalTickets := len(tickets)
+	if totalTickets == 0 {
+		return 0, 0, 0
+	}
+
+	var totalSolutionTime time.Duration
+	var totalMessages int
+
+	for _, ticket := range tickets {
+		solutionTime := ticket.ResolvedAt.Sub(ticket.CreatedAt)
+		totalSolutionTime += solutionTime
+
+		totalMessages += len(ticket.Messages)
+	}
+
+	averageSolutionTime := totalSolutionTime / time.Duration(totalTickets)
+
+	averageNumberOfMessagesPerTicket := float64(totalMessages) / float64(totalTickets)
+
+	return totalTickets, averageSolutionTime, averageNumberOfMessagesPerTicket
+}
+
+func (ms *MessengerServiceImpl) createChat(tgChatId int, tgClientId int, source entity.ChatSource, ticket entity.Ticket, workspaceId, assigneeId, teamId primitive.ObjectID, isImported bool, lastMessage entity.Message, name, company, clientEmail, clientPhone, address string) *entity.Chat {
 	return &entity.Chat{
 		UserId:      assigneeId,
 		WorkspaceId: workspaceId,
+		TeamId:      teamId,
 		ChatId:      uuid.New().String(),
 		TgChatId:    tgChatId,
 		TgClientId:  tgClientId,
@@ -703,21 +753,10 @@ func (ms *MessengerServiceImpl) createNewChat(tgChatId int, tgClientId int, sour
 		IsImported:  isImported,
 		Name:        name,
 		LastMessage: lastMessage,
-		CreatedAt:   time.Now(),
-	}
-}
-
-func (ms *MessengerServiceImpl) createChat(currentChat *entity.Chat, ticket entity.Ticket, workspaceId, assigneeId primitive.ObjectID) *entity.Chat {
-	return &entity.Chat{
-		UserId:      assigneeId,
-		WorkspaceId: workspaceId,
-		ChatId:      uuid.New().String(),
-		TgChatId:    currentChat.TgChatId,
-		TgClientId:  currentChat.TgClientId,
-		Tickets:     []entity.Ticket{ticket},
-		Notes:       []entity.Note{},
-		Tags:        []string{},
-		Source:      currentChat.Source,
+		Company:     company,
+		ClientEmail: clientEmail,
+		ClientPhone: clientPhone,
+		Address:     address,
 		CreatedAt:   time.Now(),
 	}
 }
@@ -772,21 +811,28 @@ func (ms *MessengerServiceImpl) createMessageResponse(content []byte, createdAt 
 	}
 }
 
-func (ms *MessengerServiceImpl) createChatResponse(workspaceId, chatId string, tgClientId, tgChatId int, tags []string, lastMessage model.MessageResponse, source string, isImported bool, createdAt time.Time, name string, logo []byte, notes []model.MessageResponse, language string) *model.ChatResponse {
+func (ms *MessengerServiceImpl) createChatResponse(workspaceId, chatId string, tgClientId, tgChatId int, tags []string, lastMessage model.MessageResponse, source string, isImported bool, createdAt time.Time, name string, logo []byte, notes []model.MessageResponse, language, company, clientEmail, clientPhone, address string, totalTickets int, averageSolutionTime time.Duration, averageNumberOfMessagesPerTicket float64) *model.ChatResponse {
 	return &model.ChatResponse{
-		WorkspaceId: workspaceId,
-		ChatId:      chatId,
-		TgClientId:  tgClientId,
-		TgChatId:    tgChatId,
-		Tags:        tags,
-		LastMessage: lastMessage,
-		Source:      source,
-		IsImported:  isImported,
-		Notes:       notes,
-		Name:        name,
-		Logo:        logo,
-		Language:    language,
-		CreatedAt:   createdAt,
+		WorkspaceId:                      workspaceId,
+		ChatId:                           chatId,
+		TgClientId:                       tgClientId,
+		TgChatId:                         tgChatId,
+		Tags:                             tags,
+		LastMessage:                      lastMessage,
+		Source:                           source,
+		IsImported:                       isImported,
+		Notes:                            notes,
+		Name:                             name,
+		Logo:                             logo,
+		Language:                         language,
+		Company:                          company,
+		Address:                          address,
+		ClientPhone:                      clientPhone,
+		ClientEmail:                      clientEmail,
+		TicketNumber:                     totalTickets,
+		AverageSolutionTime:              averageSolutionTime,
+		AverageNumberOfMessagesPerTicket: averageNumberOfMessagesPerTicket,
+		CreatedAt:                        createdAt,
 	}
 }
 

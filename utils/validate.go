@@ -1,11 +1,8 @@
 package utils
 
 import (
-	"bytes"
 	"errors"
 	"github.com/Point-AI/backend/internal/system/domain/entity"
-	"image"
-	"image/jpeg"
 )
 
 func ValidateWorkspaceId(projectId string) error {
@@ -29,25 +26,24 @@ func isValidCharacter(char rune) bool {
 }
 
 func ValidatePhoto(photoBytes []byte) ([]byte, error) {
-	img, _, err := image.Decode(bytes.NewReader(photoBytes))
-	if err != nil {
-		return nil, err
-	}
+	//if len(photoBytes) > 1024*1024 {
+	//	return nil, errors.New("photo size cannot exceed 1MB")
+	//}
 
-	if len(photoBytes) > 1024*1024 {
-		return nil, errors.New("photo size cannot exceed 1MB")
-	}
-
-	if len(photoBytes) > 1024*512 {
-		var compressed bytes.Buffer
-
-		err = jpeg.Encode(&compressed, img, &jpeg.Options{Quality: 50})
-		if err != nil {
-			return nil, err
-		}
-
-		return compressed.Bytes(), nil
-	}
+	//if len(photoBytes) > 1024*512 {
+	//	img, _, err := image.Decode(bytes.NewReader(photoBytes))
+	//	if err != nil {
+	//		return nil, err
+	//	}
+	//	var compressed bytes.Buffer
+	//
+	//	err = jpeg.Encode(&compressed, img, &jpeg.Options{Quality: 50})
+	//	if err != nil {
+	//		return nil, err
+	//	}
+	//
+	//	return compressed.Bytes(), nil
+	//}
 
 	return photoBytes, nil
 

@@ -15,7 +15,7 @@ type MessengerService interface {
 	ValidateUserInWorkspace(userId primitive.ObjectID, workspace *entity.Workspace) error
 	UpdateTicketStatus(userId primitive.ObjectID, ticketId, workspaceId, status string) error
 	ValidateUserInWorkspaceById(userId primitive.ObjectID, workspaceId string) error
-	UpdateChatInfo(userId primitive.ObjectID, chatId string, tags []string, workspaceId, language string) error
+	UpdateChatInfo(userId primitive.ObjectID, chatId string, tags []string, workspaceId, language string, address, company, clientEmail, clientPhone string) error
 	HandleMessage(userId primitive.ObjectID, workspaceId, ticketId, chatId, messageType, message string) error
 	DeleteMessage(userId primitive.ObjectID, messageType, workspaceId, ticketId, messageId, chatId string) error
 	GetAllChats(userId primitive.ObjectID, workspaceId string) ([]model.ChatResponse, error)

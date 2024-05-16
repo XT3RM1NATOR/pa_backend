@@ -51,6 +51,10 @@ type UpdateChatInfoRequest struct {
 	ChatId      string   `json:"chat_id"`
 	WorkspaceId string   `json:"workspace_id"`
 	Tags        []string `json:"tags"`
+	Company     string   `json:"company"`
+	ClientEmail string   `json:"client_email"`
+	ClientPhone string   `json:"client_phone"`
+	Address     string   `json:"address"`
 	Language    string   `json:"language"`
 }
 
@@ -116,17 +120,25 @@ type TelegramStatusResponse struct {
 }
 
 type ChatResponse struct {
-	WorkspaceId string            `bson:"workspace_id"`
-	ChatId      string            `bson:"chat_id"`
-	TgClientId  int               `bson:"tg_user_id"`
-	TgChatId    int               `bson:"tg_chat_id"`
-	Notes       []MessageResponse `bson:"notes"`
-	Tags        []string          `bson:"tags"`
-	LastMessage MessageResponse   `bson:"last_message"`
-	Source      string            `bson:"source"`
-	IsImported  bool              `json:"is_imported"`
-	Name        string            `json:"name"`
-	Logo        []byte            `json:"logo"`
-	Language    string            `json:"language"`
-	CreatedAt   time.Time         `bson:"created_at"`
+	WorkspaceId                      string            `bson:"workspace_id"`
+	ChatId                           string            `bson:"chat_id"`
+	TgClientId                       int               `bson:"tg_user_id"`
+	TgChatId                         int               `bson:"tg_chat_id"`
+	Notes                            []MessageResponse `bson:"notes"`
+	Tags                             []string          `bson:"tags"`
+	LastMessage                      MessageResponse   `bson:"last_message"`
+	Source                           string            `bson:"source"`
+	IsImported                       bool              `json:"is_imported"`
+	Name                             string            `json:"name"`
+	Logo                             []byte            `json:"logo"`
+	Language                         string            `json:"language"`
+	Company                          string            `json:"company"`
+	ClientEmail                      string            `json:"client_email"`
+	ClientPhone                      string            `json:"client_phone"`
+	Address                          string            `json:"address"`
+	TicketNumber                     int               `json:"ticket_number"`
+	AverageSolutionTime              time.Duration     `json:"average_solution_time"`
+	AverageNumberOfMessagesPerTicket float64           `json:"average_number_of_messages_per_ticket"`
+	TeamName                         string            `json:"team_name"`
+	CreatedAt                        time.Time         `bson:"created_at"`
 }

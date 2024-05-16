@@ -431,12 +431,12 @@ func (sc *SystemController) GetAllTeams(c echo.Context) error {
 	userId := c.Request().Context().Value("userId").(primitive.ObjectID)
 	workspaceId := c.Param("id")
 
-	teams, err := sc.systemService.GetAllTeams(userId, workspaceId)
+	teams, code, err := sc.systemService.GetAllTeams(userId, workspaceId)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, model.ErrorResponse{Error: err.Error()})
+		return c.JSON(code, model.ErrorResponse{Error: err.Error()})
 	}
 
-	return c.JSON(http.StatusOK, teams)
+	return c.JSON(code, teams)
 }
 
 func (sc *SystemController) GetAllFolders(c echo.Context) error {

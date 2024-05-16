@@ -567,19 +567,25 @@ func (ss *SystemServiceImpl) UpdateTeam(userId primitive.ObjectID, newLogo []byt
 	return ss.systemRepo.UpdateTeam(team)
 }
 
-func (ss *SystemServiceImpl) GetAllTeams(userId primitive.ObjectID, workspaceId string) ([]model.TeamResponse, error) {
+func (ss *SystemServiceImpl) GetAllTeams(userId primitive.ObjectID, workspaceId string) ([]model.TeamResponse, int, error) {
 	workspace, err := ss.systemRepo.FindWorkspaceByWorkspaceId(workspaceId)
 	if err != nil {
-		return nil, err
+		return nil, 500, err
+	}
+	if workspace == nil {
+		return nil, 204, err
 	}
 
 	if _, exists := workspace.Team[userId]; !exists {
-		return nil, errors.New("unauthorised")
+		return nil, 403, errors.New("unauthorised")
 	}
 
 	internalTeams, err := ss.systemRepo.FindTeamsByWorkspaceId(workspace.Id)
 	if err != nil {
-		return nil, err
+		return nil, 500, err
+	}
+	if internalTeams == nil {
+		return nil, 204, nil
 	}
 
 	var teamsResponse []model.TeamResponse
@@ -600,7 +606,7 @@ func (ss *SystemServiceImpl) GetAllTeams(userId primitive.ObjectID, workspaceId 
 		teamsResponse = append(teamsResponse, *ss.createTeamResponse(team.TeamName, team.TeamId, memberCount, number, admins, logo))
 	}
 
-	return teamsResponse, nil
+	return teamsResponse, 200, nil
 }
 
 func (ss *SystemServiceImpl) GetAllFolders(userId primitive.ObjectID, workspaceId string) (map[string][]string, error, int) {
