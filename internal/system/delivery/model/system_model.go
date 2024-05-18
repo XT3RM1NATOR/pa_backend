@@ -1,13 +1,13 @@
 package model
 
+import "time"
+
 // Requests
 
 type CreateWorkspaceRequest struct {
-	Name        string            `json:"name"`
-	Logo        []byte            `json:"logo"`
-	Team        map[string]string `json:"team"`
-	Teams       []string          `json:"teams"`
-	WorkspaceId string            `json:"workspace_id"`
+	Name        string `json:"name"`
+	Logo        []byte `json:"logo"`
+	WorkspaceId string `json:"workspace_id"`
 }
 
 type CreateTeamRequest struct {
@@ -68,10 +68,20 @@ type WorkspaceResponse struct {
 }
 
 type UserResponse struct {
-	Email    string `json:"email"`
-	FullName string `json:"name"`
-	Role     string `json:"role"`
-	Logo     []byte `json:"logo"`
+	Email                string        `json:"email"`
+	FullName             string        `json:"name"`
+	Role                 string        `json:"role"`
+	Logo                 []byte        `json:"logo"`
+	InTeam               bool          `json:"in_team"`
+	AverageResponseTime  time.Duration `json:"average_response_time"`
+	AverageRequestsCount int           `json:"average_requests_count"`
+	Status               string        `json:"status"`
+	Teams                []TeamData    `json:"teams"`
+}
+
+type TeamData struct {
+	Name string `json:"name"`
+	Id   string `json:"id"`
 }
 
 type FoldersResponse struct {

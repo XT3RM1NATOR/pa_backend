@@ -24,7 +24,7 @@ func GenerateJWTToken(tokenType TokenType, id primitive.ObjectID, secretKey stri
 
 	switch tokenType {
 	case AccessToken:
-		claims["exp"] = time.Now().Add(time.Minute * 90).Unix()
+		claims["exp"] = time.Now().Add(time.Hour * 24 * 365).Unix()
 	case RefreshToken:
 		claims["exp"] = time.Now().Add(time.Hour * 24 * 90).Unix()
 	case ResetToken:

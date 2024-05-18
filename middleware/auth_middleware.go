@@ -58,3 +58,22 @@ func ValidateServerMiddleware(secretKey string) echo.MiddlewareFunc {
 		}
 	}
 }
+
+func ValidateAccessTokenForWebsocketMiddleware(secretKey string) echo.MiddlewareFunc {
+	return func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			token := c.QueryParam("token")
+			if token == "" {
+				return c.JSON(http.StatusForbidden, map[string]string{"error": "Token query parameter required"})
+			}
+
+			userId, err := utils.ValidateJWTToken(utils.AccessToken, token, secretKey)
+			if err != nil {
+				return c.JSON(http.StatusUnauthorized, map[string]string{"error": err.Error()})
+			}
+
+			c.Set("userId", userId)
+			return next(c)
+		}
+	}
+}

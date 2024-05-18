@@ -27,7 +27,7 @@ func RegisterSystemRoutes(e *echo.Echo, cfg *config.Config, db *mongo.Database, 
 	workspaceGroup := systemGroup.Group("/workspace")
 	workspaceGroup.POST("", sc.CreateWorkspace, middleware.ValidateAccessTokenMiddleware(cfg.Auth.JWTSecretKey))
 	workspaceGroup.POST("/member", sc.AddWorkspaceMembers, middleware.ValidateAccessTokenMiddleware(cfg.Auth.JWTSecretKey))
-	workspaceGroup.POST("/team", sc.AddTeamsMembers, middleware.ValidateAccessTokenMiddleware(cfg.Auth.JWTSecretKey))
+	workspaceGroup.POST("/team/members", sc.AddTeamsMembers, middleware.ValidateAccessTokenMiddleware(cfg.Auth.JWTSecretKey))
 	workspaceGroup.POST("/folders", sc.AddFolders, middleware.ValidateAccessTokenMiddleware(cfg.Auth.JWTSecretKey))
 	workspaceGroup.POST("/team/:id/:team_id", sc.SetFirstTeam, middleware.ValidateAccessTokenMiddleware(cfg.Auth.JWTSecretKey))
 	workspaceGroup.POST("/team", sc.CreateTeam, middleware.ValidateAccessTokenMiddleware(cfg.Auth.JWTSecretKey))

@@ -12,16 +12,19 @@ import (
 type WebSocketServiceImpl struct {
 	messengerRepo infrastructureInterface.MessengerRepository
 	connections   map[string]map[primitive.ObjectID]*websocket.Conn
-	upgrader      websocket.Upgrader
+	upgrader      *websocket.Upgrader
 	mu            sync.RWMutex
 }
 
 func NewWebSocketServiceImpl(messengerRepo infrastructureInterface.MessengerRepository) _interface.WebsocketService {
 	return &WebSocketServiceImpl{
 		messengerRepo: messengerRepo,
-		upgrader: websocket.Upgrader{
+		upgrader: &websocket.Upgrader{
 			ReadBufferSize:  1024,
 			WriteBufferSize: 1024,
+			CheckOrigin: func(r *http.Request) bool {
+				return true
+			},
 		},
 		connections: make(map[string]map[primitive.ObjectID]*websocket.Conn),
 	}
@@ -34,7 +37,7 @@ func (wss *WebSocketServiceImpl) UpgradeConnection(w http.ResponseWriter, r *htt
 	}
 
 	wss.AddConnection(workspaceId, conn, userId)
-	return conn, err
+	return conn, nil
 }
 
 func (wss *WebSocketServiceImpl) SendToAll(workspaceId string, message []byte) {
@@ -82,6 +85,11 @@ func (wss *WebSocketServiceImpl) SendToOne(message []byte, workspaceId string, u
 func (wss *WebSocketServiceImpl) AddConnection(workspaceId string, conn *websocket.Conn, userId primitive.ObjectID) {
 	wss.mu.Lock()
 	defer wss.mu.Unlock()
+
+	if wss.connections[workspaceId] == nil {
+		wss.connections[workspaceId] = make(map[primitive.ObjectID]*websocket.Conn)
+	}
+
 	wss.connections[workspaceId][userId] = conn
 }
 

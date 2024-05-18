@@ -14,6 +14,8 @@ import (
 	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
+	"log"
+	"net/http"
 	"sort"
 	"time"
 )
@@ -190,7 +192,7 @@ func (ms *MessengerServiceImpl) GetAllChats(userId primitive.ObjectID, workspace
 
 	for _, chat := range chats {
 		if chat.IsImported {
-
+			go ms.updateWallpaper(workspaceId, chat.ChatId, chat.TgChatId)
 		}
 		totalTickets, averageSolutionTime, averageNumberOfMessagesPerTicket := ms.extractTicketData(chat.Tickets)
 
@@ -335,6 +337,47 @@ func (ms *MessengerServiceImpl) ValidateUserInWorkspaceById(userId primitive.Obj
 	}
 
 	return errors.New("user does not have the permissions")
+}
+
+func (ms *MessengerServiceImpl) HandleChatWS(userId primitive.ObjectID, workspaceId string, w http.ResponseWriter, r *http.Request) error {
+	workspace, err := ms.messengerRepo.FindWorkspaceByWorkspaceId(nil, workspaceId)
+	if err != nil {
+		return err
+	}
+	if _, exists := workspace.Team[userId]; !exists {
+		return errors.New("user does not have the permissions")
+	}
+
+	if err = ms.ValidateUserInWorkspaceById(userId, workspaceId); err != nil {
+		return err
+	}
+
+	ws, err := ms.websocketService.UpgradeConnection(w, r, workspaceId, userId)
+	if err != nil {
+		return err
+	}
+
+	go func() {
+		defer ms.websocketService.RemoveConnection(workspaceId, userId)
+		for {
+			_, message, err := ws.ReadMessage()
+			if err != nil {
+				break
+			}
+
+			var receivedMessage model.MessageRequest
+			if err := json.Unmarshal(message, &receivedMessage); err != nil {
+				continue
+			}
+			log.Print(receivedMessage)
+
+			if err = ms.HandleMessage(userId, workspaceId, receivedMessage.TicketId, receivedMessage.ChatId, receivedMessage.Type, receivedMessage.Message); err != nil {
+				log.Println("i am in the error", err)
+			}
+		}
+	}()
+
+	return nil
 }
 
 func (ms *MessengerServiceImpl) HandleMessage(userId primitive.ObjectID, workspaceId, ticketId, chatId, messageType, message string) error {
@@ -725,8 +768,10 @@ func (ms *MessengerServiceImpl) extractTicketData(tickets []entity.Ticket) (int,
 	var totalMessages int
 
 	for _, ticket := range tickets {
-		solutionTime := ticket.ResolvedAt.Sub(ticket.CreatedAt)
-		totalSolutionTime += solutionTime
+		if !ticket.ResolvedAt.IsZero() {
+			solutionTime := ticket.ResolvedAt.Sub(ticket.CreatedAt)
+			totalSolutionTime += solutionTime
+		}
 
 		totalMessages += len(ticket.Messages)
 	}

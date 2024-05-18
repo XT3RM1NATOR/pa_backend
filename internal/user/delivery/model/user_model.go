@@ -10,6 +10,8 @@ type UserRequest struct {
 	Hash        string `json:"hash"`
 	WorkspaceId string `json:"workspace_id"`
 	Email       string `json:"email"`
+	Logo        []byte `json:"logo"`
+	Name        string `json:"name"`
 	Password    string `json:"password"`
 }
 
@@ -59,5 +61,6 @@ type UserProfileResponse struct {
 	FullName  string    `json:"name"`
 	Logo      []byte    `json:"logo"`
 	Status    string    `json:"status"`
+	Role      string    `json:"role"`
 	CreatedAt time.Time `json:"created_at"`
 }

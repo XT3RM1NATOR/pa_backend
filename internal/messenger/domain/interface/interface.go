@@ -26,6 +26,7 @@ type MessengerService interface {
 	GetAllTags(userId primitive.ObjectID, workspaceId string) ([]string, error)
 	GetAllPrimaryChats(userId primitive.ObjectID, workspaceId string) ([]model.ChatResponse, error)
 	GetAllUnassignedChats(userId primitive.ObjectID, workspaceId string) ([]model.ChatResponse, error)
+	HandleChatWS(userId primitive.ObjectID, workspaceId string, w http.ResponseWriter, r *http.Request) error
 }
 
 type WebsocketService interface {

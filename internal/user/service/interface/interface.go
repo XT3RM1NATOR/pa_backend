@@ -14,7 +14,7 @@ type StorageClient interface {
 
 type UserRepository interface {
 	CreateUser(userRole entity.UserRole, email, passwordHash, confirmToken string) error
-	CreateReadyUser(userRole entity.UserRole, email, passwordHash string) error
+	CreateReadyUser(userRole entity.UserRole, email, passwordHash, name string) error
 	CreateOauth2User(email, authSource string) (string, error)
 	GetUserByEmail(email string) (*entity.User, error)
 	GetUserById(id primitive.ObjectID) (*entity.User, error)

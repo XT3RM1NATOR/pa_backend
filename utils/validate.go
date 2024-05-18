@@ -1,8 +1,10 @@
 package utils
 
 import (
+	"bytes"
 	"errors"
 	"github.com/Point-AI/backend/internal/system/domain/entity"
+	"image"
 )
 
 func ValidateWorkspaceId(projectId string) error {
@@ -26,6 +28,10 @@ func isValidCharacter(char rune) bool {
 }
 
 func ValidatePhoto(photoBytes []byte) ([]byte, error) {
+	_, _, err := image.Decode(bytes.NewReader(photoBytes))
+	if err != nil {
+		return nil, err
+	}
 	//if len(photoBytes) > 1024*1024 {
 	//	return nil, errors.New("photo size cannot exceed 1MB")
 	//}

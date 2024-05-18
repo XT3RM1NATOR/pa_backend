@@ -15,7 +15,7 @@ type StorageClient interface {
 
 type SystemRepository interface {
 	ValidateTeam(team map[string]string, ownerId primitive.ObjectID) (map[primitive.ObjectID]entity.WorkspaceRole, map[string]entity.WorkspaceRole, error)
-	CreateWorkspace(ownerId primitive.ObjectID, pendingTeam map[string]entity.WorkspaceRole, workspaceId, name string, teams []string) error
+	CreateWorkspace(ownerId primitive.ObjectID, workspaceId, name string) error
 	RemoveUserFromWorkspace(workspace *entity.Workspace, userId primitive.ObjectID) error
 	FindWorkspaceByWorkspaceId(workspaceId string) (*entity.Workspace, error)
 	DeleteWorkspace(id primitive.ObjectID) error
@@ -40,6 +40,7 @@ type SystemRepository interface {
 	CountChatsByTeamId(teamId primitive.ObjectID) (int, error)
 	DeleteTeam(id primitive.ObjectID) error
 	UpdateChatTeamIdToNil(teamId primitive.ObjectID) error
+	GetTeamNamesByUserId(userId primitive.ObjectID) []entity.Team
 }
 
 type EmailClient interface {

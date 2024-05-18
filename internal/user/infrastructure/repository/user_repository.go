@@ -51,7 +51,7 @@ func (ur *UserRepositoryImpl) CreateUser(userRole entity.UserRole, email, passwo
 	return err
 }
 
-func (ur *UserRepositoryImpl) CreateReadyUser(userRole entity.UserRole, email, passwordHash string) error {
+func (ur *UserRepositoryImpl) CreateReadyUser(userRole entity.UserRole, email, passwordHash, name string) error {
 	ur.mu.Lock()
 	defer ur.mu.Unlock()
 
@@ -60,6 +60,8 @@ func (ur *UserRepositoryImpl) CreateReadyUser(userRole entity.UserRole, email, p
 		PasswordHash: passwordHash,
 		IsConfirmed:  true,
 		Role:         userRole,
+		Status:       entity.StatusAvailable,
+		FullName:     name,
 		CreatedAt:    time.Now(),
 	}
 

@@ -9,7 +9,6 @@ import (
 	"github.com/Point-AI/backend/internal/user/service/interface"
 	"github.com/Point-AI/backend/utils"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"log"
 	"net/mail"
 )
 
@@ -123,7 +122,7 @@ func (us *UserServiceImpl) Login(email, password string) (string, string, error)
 	return accessToken, refreshToken, nil
 }
 
-func (us *UserServiceImpl) RegisterUser(email, password, workspaceId, emailHash string) error {
+func (us *UserServiceImpl) RegisterUser(email, password, workspaceId, emailHash, name string, logo []byte) error {
 	existingUser, err := us.userRepo.GetUserByEmail(email)
 	if err != nil {
 		return err
@@ -166,8 +165,11 @@ func (us *UserServiceImpl) RegisterUser(email, password, workspaceId, emailHash 
 	if _, exists := workspace.PendingTeam[email]; !exists {
 		return errors.New("unauthorised")
 	}
+	if logo != nil {
+		go us.fileService.SaveFile("user."+email, logo)
+	}
 
-	return us.userRepo.CreateReadyUser(entity.UserRoleMember, email, passwordHash)
+	return us.userRepo.CreateReadyUser(entity.UserRoleMember, email, passwordHash, name)
 
 	//err = us.userRepo.CreateUser(entity.UserRoleMember, email, passwordHash, confirmToken)
 	//if err != nil {
@@ -273,7 +275,6 @@ func (us *UserServiceImpl) setRefreshToken(user *entity.User) (string, string, e
 		if refreshToken, err = utils.GenerateJWTToken("refresh_token", user.Id, us.config.Auth.JWTSecretKey); err != nil {
 			return "", "", err
 		}
-		log.Println(refreshToken)
 
 		if err := us.userRepo.SetRefreshToken(user, refreshToken); err != nil {
 			return "", "", err
@@ -306,12 +307,12 @@ func (us *UserServiceImpl) UpdateUserProfile(userId primitive.ObjectID, logo []b
 	}
 
 	if logo != nil {
-		compressedLogo, err := utils.ValidatePhoto(logo)
-		if err != nil {
-			return err
-		}
+		//compressedLogo, err := utils.ValidatePhoto(logo)
+		//if err != nil {
+		//	return err
+		//}
 
-		go us.fileService.UpdateFile(compressedLogo, "user."+user.Email)
+		go us.fileService.UpdateFile(logo, "user."+user.Email)
 	}
 	if name != "" {
 		user.FullName = name

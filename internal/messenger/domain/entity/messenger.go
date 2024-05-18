@@ -142,8 +142,8 @@ const (
 )
 
 const (
-	StatusAvailable UserStatus = "available"
-	StatusBusy      UserStatus = "busy"
+	StatusAvailable UserStatus = "online"
+	StatusBusy      UserStatus = "break"
 	StatusOffline   UserStatus = "offline"
 )
 

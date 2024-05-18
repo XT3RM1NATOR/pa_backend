@@ -10,7 +10,6 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	"log"
 	"sync"
 	"time"
 )
@@ -158,7 +157,6 @@ func (mr *MessengerRepositoryImpl) FindUniqueTagsByWorkspaceId(workspaceId primi
 	for cursor.Next(context.Background()) {
 		var chat entity.Chat
 		if err := cursor.Decode(&chat); err != nil {
-			log.Printf("Error decoding chat: %v", err)
 			continue
 		}
 
@@ -201,7 +199,6 @@ func (mr *MessengerRepositoryImpl) FindLatestTicketsByChatIdBeforeDate(workspace
 
 	cursor, err := mr.database.Collection(mr.config.MongoDB.ChatCollection).Aggregate(ctx, pipeline)
 	if err != nil {
-		log.Printf("Failed to fetch tickets: %v", err)
 		return nil, err
 	}
 	defer cursor.Close(ctx)
@@ -210,7 +207,6 @@ func (mr *MessengerRepositoryImpl) FindLatestTicketsByChatIdBeforeDate(workspace
 	for cursor.Next(ctx) {
 		var ticket entity.Ticket
 		if err := cursor.Decode(&ticket); err != nil {
-			log.Printf("Failed to decode ticket: %v", err)
 			return nil, err
 		}
 		tickets = append(tickets, ticket)
@@ -358,7 +354,6 @@ func (mr *MessengerRepositoryImpl) FindLatestChatsByWorkspaceIdAndAllTags(worksp
 
 	cursor, err := mr.database.Collection(mr.config.MongoDB.ChatCollection).Find(context.Background(), filter, opts)
 	if err != nil {
-		log.Printf("Failed to fetch chats: %v", err)
 		return nil, err
 	}
 	defer cursor.Close(context.Background())
@@ -366,14 +361,12 @@ func (mr *MessengerRepositoryImpl) FindLatestChatsByWorkspaceIdAndAllTags(worksp
 	for cursor.Next(context.Background()) {
 		var chat entity.Chat
 		if err := cursor.Decode(&chat); err != nil {
-			log.Printf("Failed to decode chat: %v", err)
 			return nil, err
 		}
 		chats = append(chats, chat)
 	}
 
 	if err := cursor.Err(); err != nil {
-		log.Printf("Error occurred during cursor operation: %v", err)
 		return nil, err
 	}
 
@@ -495,7 +488,6 @@ func (mr *MessengerRepositoryImpl) InsertNewChat(ctx mongo.SessionContext, chat 
 	//if ctx != nil {
 	//	c = ctx
 	//}
-	log.Println(mr.config.MongoDB.ChatCollection)
 
 	_, err := mr.database.Collection(mr.config.MongoDB.ChatCollection).InsertOne(
 		context.Background(),

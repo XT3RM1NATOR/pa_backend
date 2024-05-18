@@ -28,7 +28,7 @@ func NewSystemRepositoryImpl(cfg *config.Config, db *mongo.Database, mu *sync.RW
 	}
 }
 
-func (sr *SystemRepositoryImpl) CreateWorkspace(ownerId primitive.ObjectID, pendingTeam map[string]entity.WorkspaceRole, workspaceId, name string, teams []string) error {
+func (sr *SystemRepositoryImpl) CreateWorkspace(ownerId primitive.ObjectID, workspaceId, name string) error {
 	sr.mu.Lock()
 	defer sr.mu.Unlock()
 
@@ -36,10 +36,12 @@ func (sr *SystemRepositoryImpl) CreateWorkspace(ownerId primitive.ObjectID, pend
 	team[ownerId] = entity.RoleOwner
 
 	workspace := &entity.Workspace{
+		WorkspaceId: workspaceId,
 		Name:        name,
 		Team:        team,
-		PendingTeam: pendingTeam,
-		WorkspaceId: workspaceId,
+		PendingTeam: make(map[string]entity.WorkspaceRole),
+		Folders:     make(map[string][]string),
+		Tags:        make([]string, 0),
 		CreatedAt:   time.Now(),
 	}
 
@@ -283,28 +285,27 @@ func (sr *SystemRepositoryImpl) RemoveUserFromWorkspace(workspace *entity.Worksp
 	return nil
 }
 
+// AddUsersToWorkspace TODO: delete initialization
 func (sr *SystemRepositoryImpl) AddUsersToWorkspace(workspace *entity.Workspace, teamRoles map[primitive.ObjectID]entity.WorkspaceRole, pendingTeamRoles map[string]entity.WorkspaceRole) error {
-	sr.mu.Lock()
-	defer sr.mu.Unlock()
+	if workspace.Team == nil {
+		workspace.Team = make(map[primitive.ObjectID]entity.WorkspaceRole)
+	}
+	if workspace.PendingTeam == nil {
+		workspace.PendingTeam = make(map[string]entity.WorkspaceRole)
+	}
 
 	for userId, role := range teamRoles {
 		if _, exists := workspace.Team[userId]; !exists {
 			workspace.Team[userId] = role
 		}
 	}
-
 	for email, role := range pendingTeamRoles {
 		if _, exists := workspace.PendingTeam[email]; !exists {
 			workspace.PendingTeam[email] = role
 		}
 	}
 
-	err := sr.UpdateWorkspace(workspace)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return sr.UpdateWorkspace(workspace)
 }
 
 func (sr *SystemRepositoryImpl) UpdateUsersInWorkspace(workspace *entity.Workspace, teamRoles map[primitive.ObjectID]entity.WorkspaceRole) error {
@@ -433,9 +434,6 @@ func (sr *SystemRepositoryImpl) ClearPendingStatus(userId primitive.ObjectID, wo
 }
 
 func (sr *SystemRepositoryImpl) UpdateWorkspaceUserStatus(userId primitive.ObjectID, workspaceId string, status bool) error {
-	sr.mu.Lock()
-	defer sr.mu.Unlock()
-
 	email, err := sr.FindUserEmailById(userId)
 	if err != nil {
 		return err
@@ -575,4 +573,40 @@ func (sr *SystemRepositoryImpl) UpdateTeam(team *entity.Team) error {
 	}
 
 	return nil
+}
+
+func (sr *SystemRepositoryImpl) GetTeamNamesByUserId(userId primitive.ObjectID) []entity.Team {
+	sr.mu.RLock()
+	defer sr.mu.RUnlock()
+
+	var teams []entity.Team
+	cursor, err := sr.database.Collection(sr.config.MongoDB.TeamCollection).Find(
+		context.Background(),
+		bson.M{},
+	)
+	if err != nil {
+		return nil
+	}
+	defer cursor.Close(context.Background())
+
+	for cursor.Next(context.Background()) {
+		var team entity.Team
+		if err := cursor.Decode(&team); err != nil {
+			return nil
+		}
+		teams = append(teams, team)
+	}
+
+	if err := cursor.Err(); err != nil {
+		return nil
+	}
+
+	var teamNames []entity.Team
+	for _, team := range teams {
+		if _, exists := team.Members[userId]; exists {
+			teamNames = append(teamNames, team)
+		}
+	}
+
+	return teamNames
 }

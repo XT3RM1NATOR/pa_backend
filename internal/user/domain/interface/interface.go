@@ -9,7 +9,7 @@ type UserService interface {
 	GoogleAuthCallback(code string) (string, error)
 	GoogleTokens(token string) (string, string, error)
 	Login(email, password string) (string, string, error)
-	RegisterUser(email, password, workspaceId, emailHash string) error
+	RegisterUser(email, password, workspaceId, emailHash, name string, logo []byte) error
 	ConfirmUser(token string) error
 	ForgotPassword(email string) error
 	ResetPassword(token, newPassword string) error

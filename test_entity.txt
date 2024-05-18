@@ -1,48 +1,106 @@
 db.chat.insertOne(
-  {
-    _id: ObjectId('66445abbe2f11532d3d7864c'),
-    user_id: ObjectId('663e04041a9625d37293471e'),
-    workspace_id: ObjectId('6645d6f10221a7af8e0ddc59'),
-    chat_id: UUID(),
-    tg_user_id: Long('7172788685'),
-    tg_chat_id: Long('7172788685'),
-    tags: [ 'yuliy' ],
-    notes: [],
-    tickets: [
-      {
-        ticket_id: '7664220b-f4ec-4282-b77b-a42a49ec3ef0',
-        subject: '',
-        notes: [],
-        messages: [
-          {
-            sender_id: ObjectId('000000000000000000000000'),
-            message_id: 'da8d7e59-deaa-4b5f-9bf1-ec8823753de9',
-            message_id_client: 5,
-            message: '',
-            from: 'Тарасов Николай Борисович',
-            type: 'text',
-            created_at: ISODate('2024-05-15T06:48:27.726Z')
-          }
-        ],
-        status: 'closed',
-        created_at: ISODate('2024-05-15T06:48:27.726Z'),
-        resolved_at: ISODate('0001-01-01T00:00:00.000Z')
-      }
-    ],
-    last_message: {
-      sender_id: ObjectId('000000000000000000000000'),
-      message_id: 'da8d7e59-deaa-4b5f-9bf1-ec8823753de9',
-      message_id_client: 5,
-      message: '',
-      from: 'Тарасов Николай Борисович',
-      type: 'text',
-      created_at: ISODate('2024-05-15T06:48:27.726Z')
+   {
+      _id: ObjectId(),
+      user_id: ObjectId('000000000000000000000000'),
+      workspace_id: ObjectId('6645d6f10221a7af8e0ddc59'),
+      team_id: ObjectId('000000000000000000000000'),
+      chat_id: 'ae7f5d7f-3300-40cc-a23e-1a9d8735d821',
+      tg_user_id: Long('-1001152249392'),
+      tg_chat_id: Long('-1001152249392'),
+      tags: [],
+      notes: [],
+      tickets: [
+        {
+          ticket_id: 'ae7f5d7f-3300-40cc-a23e-1a9d7735d521',
+          subject: '',
+          notes: [],
+          messages: [
+            {
+              sender_id: ObjectId('000000000000000000000000'),
+              message_id: '5ed844b0-d040-43b1-9266-3bd0fc9b3273',
+              message_id_client: 1311,
+              message: 'Frontend sucks ass',
+              from: 'UzPopka',
+              type: 'text',
+              created_at: ISODate('2024-05-16T12:14:32.777Z')
+            }
+          ],
+          status: 'closed',
+          created_at: ISODate('2024-05-16T12:14:32.777Z'),
+          resolved_at: ISODate('0001-01-01T00:00:00.000Z')
+        }
+      ],
+      last_message: {
+        sender_id: ObjectId('000000000000000000000000'),
+        message_id: '5ed844b0-d040-43b1-9266-3bd0fc9b3273',
+        message_id_client: 1311,
+        message: 'Frontend sucks ass',
+        from: 'UzPopka',
+        type: 'text',
+        created_at: ISODate('2024-05-16T12:14:32.777Z')
+       },
+      name: 'UzPopka',
+      source: 'telegram',
+      language: '',
+      company: '',
+      client_email: '',
+      client_phone: '',
+      address: '',
+      is_imported: true,
+      created_at: ISODate('2024-05-16T12:14:32.777Z')
     },
-    name: 'ШоХХХруХХХ',
-    source: 'instagram',
-    is_imported: true,
-    created_at: ISODate('2024-05-15T06:48:27.726Z'),
-    team_id: ObjectId('000000000000000000000000')
-  },
+)
+
+db.chat.insertOne(
+   {
+      _id: ObjectId(),
+      user_id: ObjectId('000000000000000000000000'),
+      workspace_id: ObjectId('6645d6f10221a7af8e0ddc59'),
+      team_id: ObjectId('000000000000000000000000'),
+      chat_id: UUID(),
+      tg_user_id: Long('-1001152249392'),
+      tg_chat_id: Long('-1001152249392'),
+      tags: [],
+      notes: [],
+      tickets: [
+        {
+          ticket_id: UUID(),
+          subject: '',
+          notes: [],
+          messages: [
+            {
+              sender_id: ObjectId('000000000000000000000000'),
+              message_id: UUID(),
+              message_id_client: 1311,
+              message: 'backend is very good',
+              from: 'Sigma',
+              type: 'text',
+              created_at: ISODate('2024-05-16T12:14:32.777Z')
+            }
+          ],
+          status: 'closed',
+          created_at: ISODate('2024-05-16T12:14:32.777Z'),
+          resolved_at: ISODate('0001-01-01T00:00:00.000Z')
+        }
+      ],
+      last_message: {
+        sender_id: ObjectId('000000000000000000000000'),
+        message_id: '5ed844b0-d040-43b1-9266-3bd0fc9b3273',
+        message_id_client: 1311,
+        message: 'backend is very good',
+        from: 'Sigma',
+        type: 'text',
+        created_at: ISODate('2024-05-16T12:14:32.777Z')
+       },
+      name: 'Sigma',
+      source: 'telegram',
+      language: '',
+      company: '',
+      client_email: '',
+      client_phone: '',
+      address: '',
+      is_imported: true,
+      created_at: ISODate('2024-05-16T12:14:32.777Z')
+    },
 )
 

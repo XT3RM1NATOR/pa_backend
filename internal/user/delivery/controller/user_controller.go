@@ -38,7 +38,7 @@ func (uc *UserController) RegisterUser(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, model.ErrorResponse{Error: err.Error()})
 	}
 
-	if err := uc.userService.RegisterUser(request.Email, request.Password, request.WorkspaceId, request.Hash); err != nil {
+	if err := uc.userService.RegisterUser(request.Email, request.Password, request.WorkspaceId, request.Hash, request.Name, request.Logo); err != nil {
 		return c.JSON(http.StatusInternalServerError, model.ErrorResponse{Error: err.Error()})
 	}
 
@@ -265,6 +265,8 @@ func (uc *UserController) GetProfile(c echo.Context) error {
 		Email:     user.Email,
 		FullName:  user.FullName,
 		Logo:      logo,
+		Status:    string(user.Status),
+		Role:      string(user.Role),
 		CreatedAt: user.CreatedAt,
 	})
 }

@@ -39,7 +39,7 @@ func (sc *SystemController) CreateWorkspace(c echo.Context) error {
 	}
 
 	ownerId := c.Request().Context().Value("userId").(primitive.ObjectID)
-	if err := sc.systemService.CreateWorkspace(request.Logo, request.Team, ownerId, request.WorkspaceId, request.Name, request.Teams); err != nil {
+	if err := sc.systemService.CreateWorkspace(request.Logo, ownerId, request.WorkspaceId, request.Name); err != nil {
 		return c.JSON(http.StatusInternalServerError, model.ErrorResponse{Error: err.Error()})
 	}
 
@@ -453,9 +453,9 @@ func (sc *SystemController) GetAllFolders(c echo.Context) error {
 
 func (sc *SystemController) GetAllUsers(c echo.Context) error {
 	userId := c.Request().Context().Value("userId").(primitive.ObjectID)
-	workspaceId := c.Param("id")
+	workspaceId, teamId := c.Param("id"), c.QueryParam("team_id")
 
-	users, err := sc.systemService.GetAllUsers(userId, workspaceId)
+	users, err := sc.systemService.GetAllUsers(userId, workspaceId, teamId)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, model.ErrorResponse{Error: err.Error()})
 	}

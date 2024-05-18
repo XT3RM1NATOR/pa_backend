@@ -1,7 +1,6 @@
 package controller
 
 import (
-	"encoding/json"
 	"github.com/Point-AI/backend/config"
 	"github.com/Point-AI/backend/internal/messenger/delivery/model"
 	_interface "github.com/Point-AI/backend/internal/messenger/domain/interface"
@@ -19,11 +18,12 @@ type MessengerController struct {
 func NewMessengerController(cfg *config.Config, messengerService _interface.MessengerService, websocketService _interface.WebsocketService) *MessengerController {
 	return &MessengerController{
 		messengerService: messengerService,
+		websocketService: websocketService,
 		config:           cfg,
 	}
 }
 
-// WSHandler handles WebSocket connections for real-time messaging.
+// ChatWSHandler handles WebSocket connections for real-time messaging.
 // @Summary Handles WebSocket connections.
 // @Tags Messenger
 // @Produce json
@@ -33,38 +33,13 @@ func NewMessengerController(cfg *config.Config, messengerService _interface.Mess
 // @Failure 400 {object} model.ErrorResponse "Bad request, user not valid in workspace"
 // @Failure 500 {object} model.ErrorResponse "Internal server error, failed to upgrade connection"
 // @Router /messenger/ws/{id} [get]
-func (mc *MessengerController) WSHandler(c echo.Context) error {
-	userId := c.Request().Context().Value("userId").(primitive.ObjectID)
-	workspaceId := c.Param("id")
+func (mc *MessengerController) ChatWSHandler(c echo.Context) error {
+	userId, _ := c.Get("userId").(primitive.ObjectID)
+	workspaceId := c.QueryParam("id")
 
-	err := mc.messengerService.ValidateUserInWorkspaceById(userId, workspaceId)
-	if err != nil {
-		return c.JSON(http.StatusBadRequest, model.ErrorResponse{Error: err.Error()})
+	if err := mc.messengerService.HandleChatWS(userId, workspaceId, c.Response(), c.Request()); err != nil {
+		return c.JSON(http.StatusInternalServerError, model.ErrorResponse{Error: "error happened while upgrading the connection"})
 	}
-
-	ws, err := mc.websocketService.UpgradeConnection(c.Response(), c.Request(), workspaceId, userId)
-	if err != nil {
-		return c.JSON(http.StatusInternalServerError, model.ErrorResponse{Error: err.Error()})
-	}
-
-	go func() {
-		defer mc.websocketService.RemoveConnection(workspaceId, userId)
-		for {
-			_, message, err := ws.ReadMessage()
-			if err != nil {
-				break
-			}
-
-			var receivedMessage model.MessageRequest
-			if err := json.Unmarshal(message, &receivedMessage); err != nil {
-				continue
-			}
-
-			if err = mc.messengerService.HandleMessage(userId, workspaceId, receivedMessage.TicketId, receivedMessage.ChatId, receivedMessage.Type, receivedMessage.Message); err != nil {
-
-			}
-		}
-	}()
 
 	return c.JSON(http.StatusOK, model.SuccessResponse{Message: "connection upgraded successfully"})
 }
