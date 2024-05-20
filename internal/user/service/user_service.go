@@ -106,10 +106,6 @@ func (us *UserServiceImpl) Login(email, password string) (string, string, error)
 		return "", "", errors.New("invalid password")
 	}
 
-	if user.PasswordHash == "" {
-		return "", "", errors.New("creating a new password required")
-	}
-
 	if !user.IsConfirmed {
 		return "", "", errors.New("email not confirmed")
 	}
